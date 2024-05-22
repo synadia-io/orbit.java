@@ -1,4 +1,4 @@
-name: retrier
+name: Build Retrier Main
 
 on:
   push:

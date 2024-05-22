@@ -1,4 +1,4 @@
-name: retrier
+name: Build Retrier Pull Request
 
 on:
   pull_request:
