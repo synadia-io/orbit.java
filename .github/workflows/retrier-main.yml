@@ -1,8 +1,9 @@
-name: Build Retrier Pull Request
+name: Build Retrier Main
 
 on:
-  pull_request:
-    types: [opened, synchronize, reopened]
+  push:
+    branches:
+      - main
     paths:
       - 'retrier/**'
 
@@ -42,4 +43,9 @@ jobs:
         run: |
           pushd retrier
           ./gradlew javadoc
+          popd
+      - name: Publish Snapshot
+        run: |
+          pushd retrier
+          ./gradlew -i publishToSonatype
           popd
