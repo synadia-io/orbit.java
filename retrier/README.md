@@ -1,6 +1,4 @@
-![Synadia](src/main/javadoc/images/synadia-logo.png)
-
-![NATS](src/main/javadoc/images/nats-logo.png)
+![Synadia](src/main/javadoc/images/synadia-logo.png) &nbsp;&nbsp;&nbsp;&nbsp; ![NATS](src/main/javadoc/images/large-logo.png)
 
 # JNATS Retrier Extension
 
