@@ -33,11 +33,13 @@ jobs:
           nats-server -v
       - name: Check out code
         uses: actions/checkout@v3
-      - name: Build and Test
+      - name: Compile and Test
         run: |
           pushd retrier
           chmod +x gradlew && ./gradlew clean test
-          ./gradlew compileJava
           popd
       - name: Verify Javadoc
-        run: ./gradlew javadoc
+        run: |
+          pushd retrier
+          ./gradlew javadoc
+          popd
