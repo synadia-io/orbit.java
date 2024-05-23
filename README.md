@@ -11,7 +11,7 @@ not made until the specific project has a v1.0.0 version.
 
 This is a list of the current utilities hosted here
 
-| Module                     | Description                                                        | Docs                                              |
-|----------------------------|--------------------------------------------------------------------|---------------------------------------------------|
-| Retrier                    | Extension for retrying anything, with specific api for publishing. | [README.md](retrier/README.md)                    |
-| Managed Async JS Publisher | Jetstream Async Publishing with automatic Publish Ack Management   | [README.md](managed-async-js-publisher/README.md) |
+| Module                | Description                                                        | Docs                                              |
+|-----------------------|--------------------------------------------------------------------|---------------------------------------------------|
+| Retrier               | Extension for retrying anything, with specific api for publishing. | [README.md](retrier/README.md)                    |
+| JS Publish Extensions | Extention about Jetstream Publishing                               | [README.md](js-publish-extensions/README.md) |
