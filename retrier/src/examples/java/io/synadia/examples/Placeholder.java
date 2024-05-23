@@ -4,6 +4,7 @@
 package io.synadia.examples;
 
 public class Placeholder {
+
     public static void main(String[] args) {
     }
 }
