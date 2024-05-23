@@ -1,4 +1,4 @@
-name: Build Retrier Main
+name: Build Publish Extensions Main
 
 on:
   push:

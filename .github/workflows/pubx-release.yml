@@ -1,4 +1,4 @@
-name: Release Retrier
+name: Release Publish Extensions
 
 on:
   release:

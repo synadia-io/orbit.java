@@ -1,4 +1,4 @@
-name: Build Retrier Pull Request
+name: Build Publish Extensions Pull Request
 
 on:
   pull_request:
