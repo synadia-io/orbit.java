@@ -9,7 +9,6 @@ import io.nats.client.NUID;
 import io.nats.client.PublishOptions;
 import io.nats.client.api.PublishAck;
 import io.nats.client.impl.Headers;
-import io.synadia.examples.Debug;
 
 import java.io.IOException;
 import java.util.concurrent.*;
@@ -187,7 +186,6 @@ public class ManagedAsyncJsPublisher implements AutoCloseable {
         }
         finally {
             flightsRunnerDone.countDown();
-            Debug.info("END PUBLISH RUNNER");
         }
     }
 
@@ -233,7 +231,6 @@ public class ManagedAsyncJsPublisher implements AutoCloseable {
         }
         finally {
             flightsRunnerDone.countDown();
-            Debug.info("END FLIGHTS RUNNER");
         }
     }
 
