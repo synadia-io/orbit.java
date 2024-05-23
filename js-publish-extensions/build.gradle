@@ -36,9 +36,10 @@ repositories {
 
 dependencies {
     implementation 'io.nats:jnats:2.18.1'
+    implementation 'io.synadia:jnats-retrier:0.0.1'
 
     testImplementation 'io.nats:jnats-server-runner:1.2.8'
-    testImplementation 'org.junit.jupiter:junit-jupiter:5.7.0'
+    testImplementation 'org.junit.jupiter:junit-jupiter:5.9.0'
     testImplementation 'com.github.stefanbirkner:system-lambda:1.2.1'
     testImplementation 'nl.jqno.equalsverifier:equalsverifier:3.12.3'
 }
@@ -63,9 +64,9 @@ task bundle(type: Bundle) {
 
 jar {
     manifest {
-        attributes('Automatic-Module-Name': 'io.synadia.jnats-managed-async-js-publisher')
+        attributes('Automatic-Module-Name': 'io.synadia.jnats-js-publish-extensions')
     }
-    bnd (['Implementation-Title': 'JNATS Managed Async JS Publisher Extension',
+    bnd (['Implementation-Title': 'JNATS JS Publish Extensions',
           'Implementation-Version': jarVersion,
           'Implementation-Vendor': 'synadia.io']
     )
@@ -80,7 +81,7 @@ test {
 javadoc {
     options.overview = 'src/main/javadoc/overview.html' // relative to source root
     source = sourceSets.main.allJava
-    title = "Synadia Communications Inc. JNATS Managed Async JS Publisher Extension"
+    title = "Synadia Communications Inc. JNATS JS Publish Extensions"
     classpath = sourceSets.main.runtimeClasspath
     doLast {
         if (!OperatingSystem.current().isWindows()) {
@@ -102,7 +103,7 @@ javadoc {
 task examplesJar(type: Jar) {
     archiveClassifier.set('examples')
     manifest {
-        attributes('Implementation-Title': 'Managed Async JS Publisher Extension Examples',
+        attributes('Implementation-Title': 'JNATS JS Publish Extensions Examples',
                 'Implementation-Version': jarVersion,
                 'Implementation-Vendor': 'synadia.io')
     }
@@ -167,7 +168,7 @@ publishing {
                 packaging = 'jar'
                 groupId = group
                 artifactId = archivesBaseName
-                description = 'Synadia Communications Inc. JNATS Retrier Extension'
+                description = 'Synadia Communications Inc. JNATS JS Publish Extensions'
                 url = 'https://github.com/synadia-io/orbit.java'
                 licenses {
                     license {

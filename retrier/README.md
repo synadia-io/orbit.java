@@ -1,8 +1,8 @@
 ![Synadia](src/main/javadoc/images/synadia-logo.png) &nbsp;&nbsp;&nbsp;&nbsp; ![NATS](src/main/javadoc/images/large-logo.png)
 
-# JNATS Retrier Extension
+# Retrier Utility
 
-The ability to retry any java function, and specific pre-built helpers to retry JetStream publishes.
+The retrier is a general purpose java utility that can execute any action (function) in a retriable manner.
 
 **Current Release**: 0.0.1 &nbsp; **Current Snapshot**: 0.0.2-SNAPSHOT
 
