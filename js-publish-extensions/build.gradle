@@ -66,7 +66,7 @@ jar {
     manifest {
         attributes('Automatic-Module-Name': 'io.synadia.jnats-js-publish-extensions')
     }
-    bnd (['Implementation-Title': 'JNATS JS Publish Extensions',
+    bnd (['Implementation-Title': 'JNATS JetStream Publish Extensions',
           'Implementation-Version': jarVersion,
           'Implementation-Vendor': 'synadia.io']
     )
@@ -81,7 +81,7 @@ test {
 javadoc {
     options.overview = 'src/main/javadoc/overview.html' // relative to source root
     source = sourceSets.main.allJava
-    title = "Synadia Communications Inc. JNATS JS Publish Extensions"
+    title = "Synadia Communications Inc. JNATS JetStream Publish Extensions"
     classpath = sourceSets.main.runtimeClasspath
     doLast {
         if (!OperatingSystem.current().isWindows()) {
@@ -103,7 +103,7 @@ javadoc {
 task examplesJar(type: Jar) {
     archiveClassifier.set('examples')
     manifest {
-        attributes('Implementation-Title': 'JNATS JS Publish Extensions Examples',
+        attributes('Implementation-Title': 'JNATS JetStream Publish Extensions Examples',
                 'Implementation-Version': jarVersion,
                 'Implementation-Vendor': 'synadia.io')
     }
@@ -168,7 +168,7 @@ publishing {
                 packaging = 'jar'
                 groupId = group
                 artifactId = archivesBaseName
-                description = 'Synadia Communications Inc. JNATS JS Publish Extensions'
+                description = 'Synadia Communications Inc. JNATS JetStream Publish Extensions'
                 url = 'https://github.com/synadia-io/orbit.java'
                 licenses {
                     license {

@@ -17,9 +17,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 
-// TODO builder executor service
 // TODO fine tune holding logic
-// TODO handle disconnection
 
 /**
  */
@@ -48,7 +46,8 @@ public class ManagedAsyncJsPublisher implements AutoCloseable {
     private final AtomicBoolean keepGoingPublishRunner;
     private final AtomicBoolean keepGoingFlightsRunner;
     private final AtomicBoolean draining;
-    private final ExecutorService executorService;
+    private final ExecutorService notificationExecutorService;
+    private final boolean notificationExecutorServiceWasNotSupplied;
     private final AtomicReference<Thread> publishRunnerThread;
     private final AtomicReference<Thread> flightsRunnerThread;
     private final CountDownLatch publishRunnerDone;
@@ -65,6 +64,16 @@ public class ManagedAsyncJsPublisher implements AutoCloseable {
         pollTime = b.pollTime;
         holdPauseTime = b.holdPauseTime;
         waitTimeout = b.waitTimeout;
+
+        if (b.notificationExecutorService == null) {
+            notificationExecutorService = Executors.newFixedThreadPool(1);
+            notificationExecutorServiceWasNotSupplied = true;
+        }
+        else {
+            notificationExecutorService = b.notificationExecutorService;
+            notificationExecutorServiceWasNotSupplied = false;
+        }
+
         preFlight = new LinkedBlockingQueue<>();
         inFlight = new LinkedBlockingQueue<>();
         notHolding = new AtomicBoolean(true);
@@ -74,7 +83,6 @@ public class ManagedAsyncJsPublisher implements AutoCloseable {
         publishRunnerThread = new AtomicReference<>();
         flightsRunnerThread = new AtomicReference<>();
 
-        executorService = Executors.newFixedThreadPool(1);
         publishRunnerDone = new CountDownLatch(1);
         flightsRunnerDone = new CountDownLatch(1);
     }
@@ -112,7 +120,9 @@ public class ManagedAsyncJsPublisher implements AutoCloseable {
     @Override
     public void close() throws Exception {
         stop();
-        executorService.shutdown();
+        if (notificationExecutorServiceWasNotSupplied) {
+            notificationExecutorService.shutdown();
+        }
 
         if (!publishRunnerDone.await(pollTime, TimeUnit.MILLISECONDS)) {
             Thread t = publishRunnerThread.get();
@@ -159,7 +169,7 @@ public class ManagedAsyncJsPublisher implements AutoCloseable {
                         inFlight.offer(flight);
                         pre.flightFuture.complete(flight);
                         if (publisherListener != null) {
-                            executorService.submit(() -> publisherListener.published(flight));
+                            notificationExecutorService.submit(() -> publisherListener.published(flight));
                         }
                         if (inFlight.size() >= maxInFlight) {
                             notHolding.set(false);
@@ -195,17 +205,17 @@ public class ManagedAsyncJsPublisher implements AutoCloseable {
                     if (flight.publishAckFuture.isDone()) {
                         if (flight.publishAckFuture.isCompletedExceptionally()) {
                             if (publisherListener != null) {
-                                executorService.submit(() -> publisherListener.completedExceptionally(flight));
+                                notificationExecutorService.submit(() -> publisherListener.completedExceptionally(flight));
                             }
                         }
                         else if (publisherListener != null) {
-                            executorService.submit(() -> publisherListener.acked(flight));
+                            notificationExecutorService.submit(() -> publisherListener.acked(flight));
                         }
                     }
                     else if (System.currentTimeMillis() - flight.publishTime > waitTimeout) {
                         flight.publishAckFuture.completeExceptionally(new IOException("Timeout or no response waiting for publish acknowledgement."));
                         if (publisherListener != null) {
-                            executorService.submit(() -> publisherListener.timeout(flight));
+                            notificationExecutorService.submit(() -> publisherListener.timeout(flight));
                         }
                     }
                     else {
@@ -248,6 +258,7 @@ public class ManagedAsyncJsPublisher implements AutoCloseable {
         long pollTime = DEFAULT_POLL_TIME;
         long holdPauseTime = DEFAULT_PAUSE_TIME;
         long waitTimeout = DEFAULT_WAIT_TIMEOUT;
+        ExecutorService notificationExecutorService;
 
         public Builder(JetStream js) {
             if (js == null) {
@@ -293,6 +304,11 @@ public class ManagedAsyncJsPublisher implements AutoCloseable {
 
         public Builder waitTimeout(long waitTimeout) {
             this.waitTimeout = waitTimeout;
+            return this;
+        }
+
+        public Builder notificationExecutorService(ExecutorService notificationExecutorService) {
+            this.notificationExecutorService = notificationExecutorService;
             return this;
         }
 
