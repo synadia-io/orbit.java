@@ -14,10 +14,10 @@ import io.synadia.jnats.extension.RetryConfig;
 
 import java.io.IOException;
 
-public class RetrierPublishExample {
+public class RetrierPublishSyncExample {
 
-    public static String STREAM = "retrier";
-    public static String SUBJECT = "retriersub";
+    public static String STREAM = "retrierS";
+    public static String SUBJECT = "retrierS-subject";
 
     public static void main(String[] args) {
         try (Connection nc = Nats.connect()) {

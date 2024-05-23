@@ -4,6 +4,7 @@
 package io.synadia.jnats.extension;
 
 /**
+ *
  */
 public interface PublisherListener {
     void published(Flight flight);

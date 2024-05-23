@@ -9,18 +9,21 @@ import io.nats.client.NUID;
 import io.nats.client.PublishOptions;
 import io.nats.client.api.PublishAck;
 import io.nats.client.impl.Headers;
+import io.synadia.examples.Debug;
 
 import java.io.IOException;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 
+// TODO builder executor service
+// TODO fine tune holding logic
+// TODO handle disconnection
+
 /**
  */
-public class ManagedAsyncJsPublisher {
+public class ManagedAsyncJsPublisher implements AutoCloseable {
     public static final int DEFAULT_MAX_IN_FLIGHT = 50;
     public static final int DEFAULT_REFILL_AMOUNT = 0;
     public static final long DEFAULT_POLL_TIME = 100;
@@ -39,14 +42,17 @@ public class ManagedAsyncJsPublisher {
     private final long pollTime;
     private final long holdPauseTime;
     private final long waitTimeout;
-    private final LinkedBlockingQueue<PreFlight> preFlights;
+    private final LinkedBlockingQueue<PreFlight> preFlight;
     private final LinkedBlockingQueue<Flight> inFlight;
     private final AtomicBoolean notHolding;
     private final AtomicBoolean keepGoingPublishRunner;
     private final AtomicBoolean keepGoingFlightsRunner;
     private final AtomicBoolean draining;
+    private final ExecutorService executorService;
     private final AtomicReference<Thread> publishRunnerThread;
     private final AtomicReference<Thread> flightsRunnerThread;
+    private final CountDownLatch publishRunnerDone;
+    private final CountDownLatch flightsRunnerDone;
 
     private ManagedAsyncJsPublisher(Builder b) {
         messageIdGenerator = new AtomicLong(0);
@@ -59,7 +65,7 @@ public class ManagedAsyncJsPublisher {
         pollTime = b.pollTime;
         holdPauseTime = b.holdPauseTime;
         waitTimeout = b.waitTimeout;
-        preFlights = new LinkedBlockingQueue<>();
+        preFlight = new LinkedBlockingQueue<>();
         inFlight = new LinkedBlockingQueue<>();
         notHolding = new AtomicBoolean(true);
         keepGoingPublishRunner = new AtomicBoolean(true);
@@ -67,12 +73,19 @@ public class ManagedAsyncJsPublisher {
         draining = new AtomicBoolean(false);
         publishRunnerThread = new AtomicReference<>();
         flightsRunnerThread = new AtomicReference<>();
+
+        executorService = Executors.newFixedThreadPool(1);
+        publishRunnerDone = new CountDownLatch(1);
+        flightsRunnerDone = new CountDownLatch(1);
     }
 
     public void start() {
-        Thread t = new Thread(this::publishRunner);
+        Thread t;
+
+        t = new Thread(this::publishRunner);
         t.start();
         publishRunnerThread.set(t);
+
         t = new Thread(this::flightsRunner);
         t.start();
         flightsRunnerThread.set(t);
@@ -93,14 +106,42 @@ public class ManagedAsyncJsPublisher {
 
     public void drain() {
         draining.set(true);
-        preFlights.offer(DRAIN_MARKER);
+        preFlight.offer(DRAIN_MARKER);
+    }
+
+    @Override
+    public void close() throws Exception {
+        stop();
+        executorService.shutdown();
+
+        if (!publishRunnerDone.await(pollTime, TimeUnit.MILLISECONDS)) {
+            Thread t = publishRunnerThread.get();
+            if (t != null) {
+                t.interrupt();
+            }
+        }
+
+        if (!flightsRunnerDone.await(pollTime, TimeUnit.MILLISECONDS)) {
+            Thread t = flightsRunnerThread.get();
+            if (t != null) {
+                t.interrupt();
+            }
+        }
+    }
+
+    public int inFlightSize() {
+        return inFlight.size();
+    }
+
+    public int preFlightSize() {
+        return preFlight.size();
     }
 
     public void publishRunner() {
-        while (keepGoingPublishRunner.get()) {
-            try {
+        try {
+            while (keepGoingPublishRunner.get()) {
                 if (notHolding.get()) {
-                    PreFlight pre = preFlights.poll(pollTime, TimeUnit.MILLISECONDS);
+                    PreFlight pre = preFlight.poll(pollTime, TimeUnit.MILLISECONDS);
                     if (pre != null) {
                         if (pre == DRAIN_MARKER) {
                             keepGoingPublishRunner.set(false);
@@ -118,9 +159,9 @@ public class ManagedAsyncJsPublisher {
                         inFlight.offer(flight);
                         pre.flightFuture.complete(flight);
                         if (publisherListener != null) {
-                            publisherListener.published(flight);
+                            executorService.submit(() -> publisherListener.published(flight));
                         }
-                        if (inFlight.size() == maxInFlight) {
+                        if (inFlight.size() >= maxInFlight) {
                             notHolding.set(false);
                         }
                     }
@@ -130,21 +171,22 @@ public class ManagedAsyncJsPublisher {
                     Thread.sleep(holdPauseTime);
                 }
             }
-            catch (InterruptedException e) {
-                keepGoingPublishRunner.set(false);
-                Thread.currentThread().interrupt();
-            }
+        }
+        catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+        finally {
+            flightsRunnerDone.countDown();
+            Debug.info("END PUBLISH RUNNER");
         }
     }
 
-    // TODO call listener as task
-    // TODO fine tune holding logic
     public void flightsRunner() {
-        while (keepGoingFlightsRunner.get()) {
-            try {
+        try {
+            while (keepGoingFlightsRunner.get()) {
                 Flight flight = inFlight.poll(pollTime, TimeUnit.MILLISECONDS);
                 if (flight == null) {
-                    if (draining.get() && preFlights.isEmpty() && inFlight.isEmpty()) {
+                    if (draining.get() && preFlight.isEmpty() && inFlight.isEmpty()) {
                         keepGoingFlightsRunner.set(false);
                         return;
                     }
@@ -153,17 +195,17 @@ public class ManagedAsyncJsPublisher {
                     if (flight.publishAckFuture.isDone()) {
                         if (flight.publishAckFuture.isCompletedExceptionally()) {
                             if (publisherListener != null) {
-                                publisherListener.completedExceptionally(flight);
+                                executorService.submit(() -> publisherListener.completedExceptionally(flight));
                             }
                         }
                         else if (publisherListener != null) {
-                            publisherListener.acked(flight);
+                            executorService.submit(() -> publisherListener.acked(flight));
                         }
                     }
                     else if (System.currentTimeMillis() - flight.publishTime > waitTimeout) {
                         flight.publishAckFuture.completeExceptionally(new IOException("Timeout or no response waiting for publish acknowledgement."));
                         if (publisherListener != null) {
-                            publisherListener.timeout(flight);
+                            executorService.submit(() -> publisherListener.timeout(flight));
                         }
                     }
                     else {
@@ -175,10 +217,13 @@ public class ManagedAsyncJsPublisher {
                     }
                 }
             }
-            catch (InterruptedException e) {
-                keepGoingFlightsRunner.set(false);
-                Thread.currentThread().interrupt();
-            }
+        }
+        catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+        finally {
+            flightsRunnerDone.countDown();
+            Debug.info("END FLIGHTS RUNNER");
         }
     }
 
@@ -252,11 +297,21 @@ public class ManagedAsyncJsPublisher {
         }
 
         /**
-         * Builds a ManagedAsyncJsPublisher.
+         * Builds a ManagedAsyncJsPublisher without starting it, for instance to delay its start or to use custom threads
          * @return ManagedAsyncJsPublisher instance
          */
         public ManagedAsyncJsPublisher build() {
             return new ManagedAsyncJsPublisher(this);
+        }
+
+        /**
+         * Builds a ManagedAsyncJsPublisher.
+         * @return ManagedAsyncJsPublisher instance
+         */
+        public ManagedAsyncJsPublisher start() {
+            ManagedAsyncJsPublisher p = new ManagedAsyncJsPublisher(this);
+            p.start();
+            return p;
         }
     }
 
@@ -275,7 +330,7 @@ public class ManagedAsyncJsPublisher {
         }
 
         PreFlight p = new PreFlight(idPrefix + "-" + messageIdGenerator.incrementAndGet(), subject, headers, body, options);
-        preFlights.offer(p);
+        preFlight.offer(p);
         return p.flightFuture;
     }
 

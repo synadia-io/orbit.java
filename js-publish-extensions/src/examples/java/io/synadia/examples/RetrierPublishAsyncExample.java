@@ -18,8 +18,8 @@ import java.util.concurrent.TimeUnit;
 
 public class RetrierPublishAsyncExample {
 
-    public static String STREAM = "retrier";
-    public static String SUBJECT = "retriersub";
+    public static String STREAM = "retrierA";
+    public static String SUBJECT = "retrierA-subject";
 
     public static void main(String[] args) {
         try (Connection nc = Nats.connect()) {

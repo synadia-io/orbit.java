@@ -3,21 +3,23 @@
 
 package io.synadia.jnats.extension;
 
-import io.nats.client.PublishOptions;
 import io.nats.client.api.PublishAck;
-import io.nats.client.impl.Headers;
 
 import java.util.concurrent.CompletableFuture;
 
-public class Flight {
-    final PreFlight pre;
-    final long publishTime;
-    final CompletableFuture<PublishAck> publishAckFuture;
+/**
+ *
+ */
+public class Flight extends PreFlight {
+    public final long publishTime;
+    public final CompletableFuture<PublishAck> publishAckFuture;
+    public long elapsed;
 
-    public Flight(PreFlight pre, CompletableFuture<PublishAck> publishAckFuture) {
+    public Flight(PreFlight preFlight, CompletableFuture<PublishAck> publishAckFuture) {
+        super(preFlight);
         publishTime = System.currentTimeMillis();
-        this.pre = pre;
         this.publishAckFuture = publishAckFuture;
+        elapsed = -1;
     }
 
     public long getPublishTime() {
@@ -26,25 +28,5 @@ public class Flight {
 
     public CompletableFuture<PublishAck> getPublishAckFuture() {
         return publishAckFuture;
-    }
-
-    public String getId() {
-        return pre.id;
-    }
-
-    public String getSubject() {
-        return pre.subject;
-    }
-
-    public Headers getHeaders() {
-        return pre.headers;
-    }
-
-    public byte[] getBody() {
-        return pre.body;
-    }
-
-    public PublishOptions getOptions() {
-        return pre.options;
     }
 }

@@ -8,22 +8,33 @@ import io.nats.client.impl.Headers;
 
 import java.util.concurrent.CompletableFuture;
 
+/**
+ *
+ */
 public class PreFlight {
+    public final String id;
+    public final String subject;
+    public final Headers headers;
+    public final byte[] body;
+    public final PublishOptions options;
+    public final CompletableFuture<Flight> flightFuture;
 
-    final String id;
-    final String subject;
-    final Headers headers;
-    final byte[] body;
-    final PublishOptions options;
-    final CompletableFuture<Flight> flightFuture;
-
-    PreFlight(String id, String subject, Headers headers, byte[] body, PublishOptions options) {
+    public PreFlight(String id, String subject, Headers headers, byte[] body, PublishOptions options) {
         this.id = id;
         this.subject = subject;
         this.headers = headers;
         this.body = body;
         this.options = options;
         flightFuture = new CompletableFuture<>();
+    }
+
+    protected PreFlight(PreFlight preFlight) {
+        this.id = preFlight.id;
+        this.subject = preFlight.subject;
+        this.headers = preFlight.headers;
+        this.body = preFlight.body;
+        this.options = preFlight.options;
+        flightFuture = preFlight.flightFuture;
     }
 
     public String getId() {
