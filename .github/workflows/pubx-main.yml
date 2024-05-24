@@ -5,7 +5,7 @@ on:
     branches:
       - main
     paths:
-      - 'js-publish-extensions/**'
+      - 'pubx/**'
 
 env:
   GODEBUG: x509sha1=1

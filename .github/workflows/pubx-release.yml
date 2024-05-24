@@ -6,7 +6,7 @@ on:
       - main
     types: [released]
     tags:
-      - 'js-publish-extensions/*'
+      - 'pubx/*'
 
 env:
   GODEBUG: x509sha1=1
