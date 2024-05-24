@@ -4,7 +4,7 @@ on:
   release:
     branches:
       - main
-    types: [released]
+    types: [created]
     tags:
       - 'retrier/*'
 
