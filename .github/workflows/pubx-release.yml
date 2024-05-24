@@ -1,9 +1,8 @@
 name: Release Publish Extensions
 
 on:
-  release:
-    tags:
-      - 'pubx/*'
+  push:
+    tags: [ 'pubx/*' ]
 
 env:
   GODEBUG: x509sha1=1
