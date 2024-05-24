@@ -2,7 +2,6 @@ name: Release Publish Extensions
 
 on:
   release:
-    types: [created]
     tags:
       - 'pubx/*'
 

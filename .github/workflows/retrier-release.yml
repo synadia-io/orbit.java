@@ -2,7 +2,6 @@ name: Release Retrier
 
 on:
   release:
-    types: [created]
     tags:
       - 'retrier/*'
 
