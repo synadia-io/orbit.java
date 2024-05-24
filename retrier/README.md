@@ -8,6 +8,5 @@ The retrier is a general purpose java utility that can execute any action (funct
 
 [![License Apache 2](https://img.shields.io/badge/License-Apache2-blue.svg)](https://www.apache.org/licenses/LICENSE-2.0)
 
-
 Copyright (c) 2024 Synadia Communications Inc. All Rights Reserved.
 See [LICENSE](LICENSE) and [NOTICE](NOTICE) file for details.
