@@ -4,7 +4,7 @@ on:
   pull_request:
     types: [opened, synchronize, reopened]
     paths:
-      - 'pubx/**'
+      - 'js-publish-extensions/**'
 
 env:
   GODEBUG: x509sha1=1
