@@ -142,15 +142,13 @@ artifacts {
     archives javadocJar, sourcesJar, examplesJar
 }
 
-if (isMerge || isRelease) {
-    nexusPublishing {
-        repositories {
-            sonatype {
-                nexusUrl.set(uri("https://s01.oss.sonatype.org/service/local/"))
-                snapshotRepositoryUrl.set(uri("https://s01.oss.sonatype.org/content/repositories/snapshots/"))
-                username = System.getenv('OSSRH_USERNAME')
-                password = System.getenv('OSSRH_PASSWORD')
-            }
+nexusPublishing {
+    repositories {
+        sonatype {
+            nexusUrl.set(uri("https://s01.oss.sonatype.org/service/local/"))
+            snapshotRepositoryUrl.set(uri("https://s01.oss.sonatype.org/content/repositories/snapshots/"))
+            username = System.getenv('OSSRH_USERNAME')
+            password = System.getenv('OSSRH_PASSWORD')
         }
     }
 }
@@ -163,7 +161,7 @@ publishing {
             artifact examplesJar
             artifact javadocJar
             pom {
-                name = rootProject.name
+                name = 'retrier'
                 packaging = 'jar'
                 groupId = group
                 artifactId = archivesBaseName
