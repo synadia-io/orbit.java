@@ -31,13 +31,16 @@ jobs:
           nats-server -v
       - name: Check out code
         uses: actions/checkout@v3
+      - name: Prepare Gradle
+        run: |
+          rm README.md
+          cp -r retrier/* ./
+          rm -rf js-publish-extensions
+          rm -rf retrier
+          chmod +x gradlew
       - name: Compile and Test
-        run: |
-          pushd retrier
-          chmod +x gradlew && ./gradlew clean test
-          popd
+        run: ./gradlew clean test
+      - name: Verify Javadoc
+        run: ./gradlew javadoc
       - name: Verify, Sign and Publish Release
-        run: |
-          pushd retrier
-          ./gradlew -i signArchives signMavenJavaPublication publishToSonatype closeAndReleaseSonatypeStagingRepository
-          popd
+        run: ./gradlew -i signArchives signMavenJavaPublication publishToSonatype closeAndReleaseSonatypeStagingRepository
