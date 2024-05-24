@@ -3,15 +3,15 @@
 
 package io.synadia.examples;
 
-import io.synadia.jnats.extension.Retrier;
-import io.synadia.jnats.extension.RetryAction;
-import io.synadia.jnats.extension.RetryConfig;
-import io.synadia.jnats.extension.RetryObserver;
+import io.synadia.retrier.Retrier;
+import io.synadia.retrier.RetryAction;
+import io.synadia.retrier.RetryConfig;
+import io.synadia.retrier.RetryObserver;
 
 public class RetrierExample {
 
-    private static String RECOVERABLE = "recoverable";
-    private static String UNRECOVERABLE = "unrecoverable";
+    private static final String RECOVERABLE = "recoverable";
+    private static final String UNRECOVERABLE = "unrecoverable";
 
     public static void main(String[] args) {
         RetryConfig retryConfig = RetryConfig.builder()

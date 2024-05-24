@@ -1,10 +1,10 @@
-package io.synadia.jnats.extension;
+package io.synadia.retrier;
 
 import org.junit.jupiter.api.Test;
 
 import java.util.concurrent.atomic.AtomicInteger;
 
-import static io.synadia.jnats.extension.RetryConfig.*;
+import static io.synadia.retrier.RetryConfig.*;
 import static org.junit.jupiter.api.Assertions.*;
 
 public class RetrierTests {
