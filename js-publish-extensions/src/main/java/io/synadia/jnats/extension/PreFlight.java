@@ -9,7 +9,9 @@ import io.nats.client.impl.Headers;
 import java.util.concurrent.CompletableFuture;
 
 /**
- *
+ * This object represents the message as given to the AsyncJsPublisher
+ * and is carried through until it's actually published, at which time it's converted
+ * to a Flight.
  */
 public class PreFlight {
     public final String id;
@@ -55,5 +57,9 @@ public class PreFlight {
 
     public PublishOptions getOptions() {
         return options;
+    }
+
+    public CompletableFuture<Flight> getFlightFuture() {
+        return flightFuture;
     }
 }

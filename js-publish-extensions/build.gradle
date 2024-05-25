@@ -13,7 +13,7 @@ plugins {
     id 'signing'
 }
 
-def jarVersion = "0.0.11"
+def jarVersion = "0.1.0"
 group = 'io.synadia'
 
 def isMerge = System.getenv("BUILD_EVENT") == "push"
@@ -32,11 +32,17 @@ repositories {
     maven {
         url "https://oss.sonatype.org/content/repositories/releases/"
     }
+    maven {
+        url "https://oss.sonatype.org/content/repositories/snapshots"
+    }
+    maven {
+        url "https://s01.oss.sonatype.org/content/repositories/snapshots/"
+    }
 }
 
 dependencies {
-    implementation 'io.nats:jnats:2.18.1'
-    implementation 'io.synadia:jnats-retrier:0.0.1'
+    implementation 'io.nats:jnats:2.18.2-SNAPSHOT'
+    implementation 'io.synadia:retrier:0.2.0-SNAPSHOT'
 
     testImplementation 'io.nats:jnats-server-runner:1.2.8'
     testImplementation 'org.junit.jupiter:junit-jupiter:5.9.0'

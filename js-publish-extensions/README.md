@@ -1,8 +1,12 @@
 ![Synadia](src/main/javadoc/images/synadia-logo.png) &nbsp;&nbsp;&nbsp;&nbsp; ![NATS](src/main/javadoc/images/large-logo.png)
 
-# JNATS Managed Async JetStream Publisher Extension
+# JNATS JetStream Publisher Extensions
 
-Utility to automatically publish async with load management and error handling. 
+The library contains 2 utilities.
+
+### PublishRetrier
+
+This class parallels the standard JetStream publish api with methods that will retry the publish
 
 **Current Release**: 0.0.1 &nbsp; **Current Snapshot**: 0.0.2-SNAPSHOT
 
