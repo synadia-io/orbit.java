@@ -10,13 +10,14 @@ import io.nats.client.Options;
 import io.nats.client.api.StorageType;
 import io.nats.client.api.StreamConfiguration;
 import io.nats.client.impl.ErrorListenerConsoleImpl;
+import io.synadia.jnats.extension.AsyncJsPublishListener;
+import io.synadia.jnats.extension.AsyncJsPublisher;
 import io.synadia.jnats.extension.Flight;
-import io.synadia.jnats.extension.ManagedAsyncJsPublisher;
-import io.synadia.jnats.extension.PublisherListener;
-import io.synadia.jnats.extension.RetryConfig;
 
 import java.io.IOException;
 import java.util.concurrent.atomic.AtomicLong;
+
+import static io.synadia.retrier.RetryConfig.DEFAULT_CONFIG;
 
 public class ManagedExample {
 
@@ -34,28 +35,28 @@ public class ManagedExample {
         try (Connection nc = Nats.connect(options)) {
             setupStream(nc);
 
-            PublisherListener publisherListener = new ExamplePublisherListener();
+            AsyncJsPublishListener publishListener = new ExamplePublishListener();
 
-            ManagedAsyncJsPublisher.Builder builder =
-                ManagedAsyncJsPublisher.builder(nc.jetStream())
-                    .publisherListener(publisherListener);
+            AsyncJsPublisher.Builder builder =
+                AsyncJsPublisher.builder(nc.jetStream())
+                    .publishListener(publishListener);
 
             if (useRetrier) {
-                builder.retryConfig(RetryConfig.DEFAULT_CONFIG);
+                builder.retryConfig(DEFAULT_CONFIG);
             }
 
             // the publisher is AutoCloseable
-            try (ManagedAsyncJsPublisher managed = builder.start()) {
+            try (AsyncJsPublisher managed = builder.start()) {
                 for (int x = 0; x < COUNT; x++) {
                     managed.publishAsync(SUBJECT, ("data-" + x).getBytes());
                 }
 
                 while (managed.preFlightSize() > 0) {
-                    System.out.println(publisherListener);
+                    System.out.println(publishListener);
                     //noinspection BusyWait
                     Thread.sleep(1000);
                 }
-                System.out.println(publisherListener);
+                System.out.println(publishListener);
             }
         }
         catch (Exception e) {
@@ -82,7 +83,7 @@ public class ManagedExample {
         }
     }
 
-    static class ExamplePublisherListener implements PublisherListener {
+    static class ExamplePublishListener implements AsyncJsPublishListener {
         public AtomicLong published = new AtomicLong();
         public AtomicLong acked = new AtomicLong();
         public AtomicLong exceptioned = new AtomicLong();
@@ -113,7 +114,7 @@ public class ManagedExample {
                 flight.publishAckFuture.get();
             }
             catch (Exception e) {
-                print("completedExceptionally", new String(flight.body), e.toString());
+                print("completedExceptionally", new String(flight.getBody()), e.toString());
             }
         }
 
@@ -124,7 +125,7 @@ public class ManagedExample {
                 flight.publishAckFuture.get();
             }
             catch (Exception e) {
-                print("timeout", new String(flight.body), e.toString());
+                print("timeout", new String(flight.getBody()), e.toString());
             }
         }
     }

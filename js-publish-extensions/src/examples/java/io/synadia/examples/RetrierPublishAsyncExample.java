@@ -9,8 +9,8 @@ import io.nats.client.Nats;
 import io.nats.client.api.PublishAck;
 import io.nats.client.api.StorageType;
 import io.nats.client.api.StreamConfiguration;
-import io.synadia.jnats.extension.Retrier;
-import io.synadia.jnats.extension.RetryConfig;
+import io.synadia.jnats.extension.PublishRetrier;
+import io.synadia.retrier.RetryConfig;
 
 import java.io.IOException;
 import java.util.concurrent.CompletableFuture;
@@ -53,7 +53,7 @@ public class RetrierPublishAsyncExample {
             long now = System.currentTimeMillis();
 
             System.out.println("Publishing @ " + now);
-            CompletableFuture<PublishAck> cfpa = Retrier.publishAsync(config, nc.jetStream(), SUBJECT, null);
+            CompletableFuture<PublishAck> cfpa = PublishRetrier.publishAsync(config, nc.jetStream(), SUBJECT, null);
             PublishAck pa = cfpa.get(30, TimeUnit.SECONDS);
             long done = System.currentTimeMillis();
 

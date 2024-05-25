@@ -9,8 +9,8 @@ import io.nats.client.Nats;
 import io.nats.client.api.PublishAck;
 import io.nats.client.api.StorageType;
 import io.nats.client.api.StreamConfiguration;
-import io.synadia.jnats.extension.Retrier;
-import io.synadia.jnats.extension.RetryConfig;
+import io.synadia.jnats.extension.PublishRetrier;
+import io.synadia.retrier.RetryConfig;
 
 import java.io.IOException;
 
@@ -51,7 +51,7 @@ public class RetrierPublishSyncExample {
             long now = System.currentTimeMillis();
 
             System.out.println("Publishing @ " + now);
-            PublishAck pa = Retrier.publish(config, nc.jetStream(), SUBJECT, null);
+            PublishAck pa = PublishRetrier.publish(config, nc.jetStream(), SUBJECT, null);
             long done = System.currentTimeMillis();
 
             System.out.println("Publish Ack: " + pa.getJv().toJson());

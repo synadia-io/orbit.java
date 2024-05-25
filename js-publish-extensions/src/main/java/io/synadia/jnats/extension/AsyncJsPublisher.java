@@ -9,6 +9,7 @@ import io.nats.client.NUID;
 import io.nats.client.PublishOptions;
 import io.nats.client.api.PublishAck;
 import io.nats.client.impl.Headers;
+import io.synadia.retrier.RetryConfig;
 
 import java.io.IOException;
 import java.util.concurrent.*;
@@ -16,18 +17,21 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 
-// TODO fine tune holding logic
+// TODO ? fine tune holding logic
+// TODO ? Allow the user to define a maximum pre-flight queue size.
 
 /**
+ * This is the main entry point. Build an instance of this class and
+ * publish to it instead of to the JetStream context.
  */
-public class ManagedAsyncJsPublisher implements AutoCloseable {
+public class AsyncJsPublisher implements AutoCloseable {
     public static final int DEFAULT_MAX_IN_FLIGHT = 50;
     public static final int DEFAULT_REFILL_AMOUNT = 0;
     public static final long DEFAULT_POLL_TIME = 100;
     public static final long DEFAULT_PAUSE_TIME = 100;
     public static final long DEFAULT_WAIT_TIMEOUT = DEFAULT_MAX_IN_FLIGHT * DEFAULT_POLL_TIME;
 
-    private static final PreFlight DRAIN_MARKER = new PreFlight("DRAIN_MARKER", null, null, null, null);
+    private static final PreFlight STOP_MARKER = new PreFlight("STOP", null, null, null, null);
 
     private final AtomicLong messageIdGenerator;
     private final JetStream js;
@@ -35,7 +39,7 @@ public class ManagedAsyncJsPublisher implements AutoCloseable {
     private final int maxInFlight;
     private final int refillAllowedAt;
     private final RetryConfig retryConfig;
-    private final PublisherListener publisherListener;
+    private final AsyncJsPublishListener publishListener;
     private final long pollTime;
     private final long holdPauseTime;
     private final long waitTimeout;
@@ -52,14 +56,14 @@ public class ManagedAsyncJsPublisher implements AutoCloseable {
     private final CountDownLatch publishRunnerDone;
     private final CountDownLatch flightsRunnerDone;
 
-    private ManagedAsyncJsPublisher(Builder b) {
+    private AsyncJsPublisher(Builder b) {
         messageIdGenerator = new AtomicLong(0);
         js = b.js;
         idPrefix = b.idPrefix;
         maxInFlight = b.maxInFlight;
         refillAllowedAt = b.refillAllowedAt;
         retryConfig = b.retryConfig;
-        publisherListener = b.publisherListener;
+        publishListener = b.publishListener;
         pollTime = b.pollTime;
         holdPauseTime = b.holdPauseTime;
         waitTimeout = b.waitTimeout;
@@ -86,10 +90,11 @@ public class ManagedAsyncJsPublisher implements AutoCloseable {
         flightsRunnerDone = new CountDownLatch(1);
     }
 
+    /**
+     * Start the publisher.
+     */
     public void start() {
-        Thread t;
-
-        t = new Thread(this::publishRunner);
+        Thread t = new Thread(this::publishRunner);
         t.start();
         publishRunnerThread.set(t);
 
@@ -98,27 +103,32 @@ public class ManagedAsyncJsPublisher implements AutoCloseable {
         flightsRunnerThread.set(t);
     }
 
-    public Thread getPublishRunnerThread() {
-        return publishRunnerThread.get();
-    }
-
-    public Thread getFlightsRunnerThread() {
-        return flightsRunnerThread.get();
-    }
-
+    /**
+     * stop the publisher
+     */
     public void stop() {
         keepGoingPublishRunner.set(false);
         keepGoingFlightsRunner.set(false);
     }
 
+    /**
+     * Drain the publish.
+     * <p>The manager stops accepting new publishes</p>
+     * <p>The manager tries to publish all already asked to be published</p>
+     * You can still call stop, which will just finish it's current work.
+     */
     public void drain() {
         draining.set(true);
-        preFlight.offer(DRAIN_MARKER);
+        preFlight.offer(STOP_MARKER);
     }
 
+    /**
+     * Shutdown the manager.
+     */
     @Override
     public void close() throws Exception {
         stop();
+
         if (notificationExecutorServiceWasNotSupplied) {
             notificationExecutorService.shutdown();
         }
@@ -138,21 +148,32 @@ public class ManagedAsyncJsPublisher implements AutoCloseable {
         }
     }
 
+    /**
+     * The number of messages currently in flight (published, awaiting ack)
+     * @return the number
+     */
     public int inFlightSize() {
         return inFlight.size();
     }
 
+    /**
+     * The number of messages currently waiting to be published
+     * @return the number
+     */
     public int preFlightSize() {
         return preFlight.size();
     }
 
+    /**
+     * The publishRunner is the runnable event loop that's job is to published messages that the user has queue up.
+     */
     public void publishRunner() {
         try {
             while (keepGoingPublishRunner.get()) {
                 if (notHolding.get()) {
                     PreFlight pre = preFlight.poll(pollTime, TimeUnit.MILLISECONDS);
                     if (pre != null) {
-                        if (pre == DRAIN_MARKER) {
+                        if (pre == STOP_MARKER) {
                             keepGoingPublishRunner.set(false);
                             return;
                         }
@@ -162,14 +183,12 @@ public class ManagedAsyncJsPublisher implements AutoCloseable {
                             fpa = js.publishAsync(pre.subject, pre.headers, pre.body, pre.options);
                         }
                         else {
-                            fpa = Retrier.publishAsync(retryConfig, js, pre.subject, pre.headers, pre.body, pre.options);
+                            fpa = PublishRetrier.publishAsync(retryConfig, js, pre.subject, pre.headers, pre.body, pre.options);
                         }
-                        Flight flight = new Flight(pre, fpa);
+                        Flight flight = new Flight(fpa, pre);
                         inFlight.offer(flight);
                         pre.flightFuture.complete(flight);
-                        if (publisherListener != null) {
-                            notificationExecutorService.submit(() -> publisherListener.published(flight));
-                        }
+                        notifyPublished(flight);
                         if (inFlight.size() >= maxInFlight) {
                             notHolding.set(false);
                         }
@@ -189,6 +208,9 @@ public class ManagedAsyncJsPublisher implements AutoCloseable {
         }
     }
 
+    /**
+     * The flightsRunner is the runnable event loop that's job is to track the published messages and their futures.
+     */
     public void flightsRunner() {
         try {
             while (keepGoingFlightsRunner.get()) {
@@ -202,19 +224,15 @@ public class ManagedAsyncJsPublisher implements AutoCloseable {
                 else {
                     if (flight.publishAckFuture.isDone()) {
                         if (flight.publishAckFuture.isCompletedExceptionally()) {
-                            if (publisherListener != null) {
-                                notificationExecutorService.submit(() -> publisherListener.completedExceptionally(flight));
-                            }
+                            notifyCompletedExceptionally(flight);
                         }
-                        else if (publisherListener != null) {
-                            notificationExecutorService.submit(() -> publisherListener.acked(flight));
+                        else if (publishListener != null) {
+                            notifyAcked(flight);
                         }
                     }
                     else if (System.currentTimeMillis() - flight.publishTime > waitTimeout) {
                         flight.publishAckFuture.completeExceptionally(new IOException("Timeout or no response waiting for publish acknowledgement."));
-                        if (publisherListener != null) {
-                            notificationExecutorService.submit(() -> publisherListener.timeout(flight));
-                        }
+                        notifyTimeout(flight);
                     }
                     else {
                         inFlight.offer(flight); // put it back in the queue for later
@@ -234,8 +252,32 @@ public class ManagedAsyncJsPublisher implements AutoCloseable {
         }
     }
 
+    private void notifyPublished(Flight flight) {
+        if (publishListener != null) {
+            notificationExecutorService.submit(() -> publishListener.published(flight));
+        }
+    }
+
+    private void notifyCompletedExceptionally(Flight flight) {
+        if (publishListener != null) {
+            notificationExecutorService.submit(() -> publishListener.completedExceptionally(flight));
+        }
+    }
+
+    private void notifyAcked(Flight flight) {
+        if (publishListener != null) {
+            notificationExecutorService.submit(() -> publishListener.acked(flight));
+        }
+    }
+
+    private void notifyTimeout(Flight flight) {
+        if (publishListener != null) {
+            notificationExecutorService.submit(() -> publishListener.timeout(flight));
+        }
+    }
+
     /**
-     * Creates a builder for the ManagedAsyncJsPublisher
+     * Creates a builder for the AsyncJsPublisher
      * @return the builder
      */
     public static Builder builder(JetStream js) {
@@ -243,7 +285,7 @@ public class ManagedAsyncJsPublisher implements AutoCloseable {
     }
 
     /**
-     * The builder class for the ManagedAsyncJsPublisher
+     * The builder class for the AsyncJsPublisher
      */
     public static class Builder {
         JetStream js;
@@ -251,7 +293,7 @@ public class ManagedAsyncJsPublisher implements AutoCloseable {
         int maxInFlight = DEFAULT_MAX_IN_FLIGHT;
         int refillAllowedAt = DEFAULT_REFILL_AMOUNT;
         RetryConfig retryConfig;
-        PublisherListener publisherListener;
+        AsyncJsPublishListener publishListener;
         long pollTime = DEFAULT_POLL_TIME;
         long holdPauseTime = DEFAULT_PAUSE_TIME;
         long waitTimeout = DEFAULT_WAIT_TIMEOUT;
@@ -284,8 +326,8 @@ public class ManagedAsyncJsPublisher implements AutoCloseable {
             return this;
         }
 
-        public Builder publisherListener(PublisherListener publisherListener) {
-            this.publisherListener = publisherListener;
+        public Builder publishListener(AsyncJsPublishListener publishListener) {
+            this.publishListener = publishListener;
             return this;
         }
 
@@ -310,19 +352,19 @@ public class ManagedAsyncJsPublisher implements AutoCloseable {
         }
 
         /**
-         * Builds a ManagedAsyncJsPublisher without starting it, for instance to delay its start or to use custom threads
-         * @return ManagedAsyncJsPublisher instance
+         * Builds a AsyncJsPublisher without starting it, for instance to delay its start or to use custom threads
+         * @return AsyncJsPublisher instance
          */
-        public ManagedAsyncJsPublisher build() {
-            return new ManagedAsyncJsPublisher(this);
+        public AsyncJsPublisher build() {
+            return new AsyncJsPublisher(this);
         }
 
         /**
-         * Builds a ManagedAsyncJsPublisher.
-         * @return ManagedAsyncJsPublisher instance
+         * Builds a AsyncJsPublisher.
+         * @return AsyncJsPublisher instance
          */
-        public ManagedAsyncJsPublisher start() {
-            ManagedAsyncJsPublisher p = new ManagedAsyncJsPublisher(this);
+        public AsyncJsPublisher start() {
+            AsyncJsPublisher p = new AsyncJsPublisher(this);
             p.start();
             return p;
         }

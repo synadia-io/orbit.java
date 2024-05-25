@@ -9,11 +9,12 @@ import io.nats.client.PublishOptions;
 import io.nats.client.api.PublishAck;
 import io.nats.client.impl.Headers;
 import io.nats.client.support.Status;
+import io.synadia.retrier.RetryConfig;
 
 import java.util.concurrent.CompletableFuture;
 
-import static io.synadia.jnats.extension.Retrier.execute;
-import static io.synadia.jnats.extension.RetryConfig.DEFAULT_CONFIG;
+import static io.synadia.retrier.Retrier.execute;
+import static io.synadia.retrier.RetryConfig.DEFAULT_CONFIG;
 
 /**
  * The Publish Retrier provides methods which are built specifically for JetStream publishing.

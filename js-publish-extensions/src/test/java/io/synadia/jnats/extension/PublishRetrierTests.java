@@ -15,7 +15,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 
-import static io.synadia.jnats.extension.RetryConfig.DEFAULT_CONFIG;
+import static io.synadia.retrier.RetryConfig.DEFAULT_CONFIG;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 public class PublishRetrierTests {
@@ -38,35 +38,35 @@ public class PublishRetrierTests {
             try (Connection nc = Nats.connect(runner.getURI())) {
                 final JetStream js = nc.jetStream();
 
-                _testRetrySync(nc, subject -> Retrier.publish(js, subject, null));
-                _testRetrySync(nc, subject -> Retrier.publish(js,  subject, null, null, null));
-                _testRetrySync(nc, subject -> Retrier.publish(js,  subject, null));
-                _testRetrySync(nc, subject -> Retrier.publish(js,  subject, (Headers)null, null));
-                _testRetrySync(nc, subject -> Retrier.publish(js,  subject, null, (PublishOptions) null));
-                _testRetrySync(nc, subject -> Retrier.publish(js, message(subject)));
-                _testRetrySync(nc, subject -> Retrier.publish(js, message(subject), null));
+                _testRetrySync(nc, subject -> PublishRetrier.publish(js, subject, null));
+                _testRetrySync(nc, subject -> PublishRetrier.publish(js,  subject, null, null, null));
+                _testRetrySync(nc, subject -> PublishRetrier.publish(js,  subject, null));
+                _testRetrySync(nc, subject -> PublishRetrier.publish(js,  subject, (Headers)null, null));
+                _testRetrySync(nc, subject -> PublishRetrier.publish(js,  subject, null, (PublishOptions) null));
+                _testRetrySync(nc, subject -> PublishRetrier.publish(js, message(subject)));
+                _testRetrySync(nc, subject -> PublishRetrier.publish(js, message(subject), null));
 
-                _testRetrySync(nc, subject -> Retrier.publish(DEFAULT_CONFIG, js, subject, null));
-                _testRetrySync(nc, subject -> Retrier.publish(DEFAULT_CONFIG, js,  subject, null, null, null));
-                _testRetrySync(nc, subject -> Retrier.publish(DEFAULT_CONFIG, js,  subject, null));
-                _testRetrySync(nc, subject -> Retrier.publish(DEFAULT_CONFIG, js,  subject, (Headers)null, null));
-                _testRetrySync(nc, subject -> Retrier.publish(DEFAULT_CONFIG, js,  subject, null, (PublishOptions)null));
-                _testRetrySync(nc, subject -> Retrier.publish(DEFAULT_CONFIG, js, message(subject)));
-                _testRetrySync(nc, subject -> Retrier.publish(DEFAULT_CONFIG, js, message(subject), null));
+                _testRetrySync(nc, subject -> PublishRetrier.publish(DEFAULT_CONFIG, js, subject, null));
+                _testRetrySync(nc, subject -> PublishRetrier.publish(DEFAULT_CONFIG, js,  subject, null, null, null));
+                _testRetrySync(nc, subject -> PublishRetrier.publish(DEFAULT_CONFIG, js,  subject, null));
+                _testRetrySync(nc, subject -> PublishRetrier.publish(DEFAULT_CONFIG, js,  subject, (Headers)null, null));
+                _testRetrySync(nc, subject -> PublishRetrier.publish(DEFAULT_CONFIG, js,  subject, null, (PublishOptions)null));
+                _testRetrySync(nc, subject -> PublishRetrier.publish(DEFAULT_CONFIG, js, message(subject)));
+                _testRetrySync(nc, subject -> PublishRetrier.publish(DEFAULT_CONFIG, js, message(subject), null));
 
-                _testRetryAsync(nc, subject -> Retrier.publishAsync(js, subject, null, null, null));
-                _testRetryAsync(nc, subject -> Retrier.publishAsync(js, subject, null));
-                _testRetryAsync(nc, subject -> Retrier.publishAsync(js, subject, (Headers)null, null));
-                _testRetryAsync(nc, subject -> Retrier.publishAsync(js, subject, null, (PublishOptions)null));
-                _testRetryAsync(nc, subject -> Retrier.publishAsync(js, message(subject)));
-                _testRetryAsync(nc, subject -> Retrier.publishAsync(js, message(subject), null));
+                _testRetryAsync(nc, subject -> PublishRetrier.publishAsync(js, subject, null, null, null));
+                _testRetryAsync(nc, subject -> PublishRetrier.publishAsync(js, subject, null));
+                _testRetryAsync(nc, subject -> PublishRetrier.publishAsync(js, subject, (Headers)null, null));
+                _testRetryAsync(nc, subject -> PublishRetrier.publishAsync(js, subject, null, (PublishOptions)null));
+                _testRetryAsync(nc, subject -> PublishRetrier.publishAsync(js, message(subject)));
+                _testRetryAsync(nc, subject -> PublishRetrier.publishAsync(js, message(subject), null));
 
-                _testRetryAsync(nc, subject -> Retrier.publishAsync(DEFAULT_CONFIG, js, subject, null, null, null));
-                _testRetryAsync(nc, subject -> Retrier.publishAsync(DEFAULT_CONFIG, js, subject, null));
-                _testRetryAsync(nc, subject -> Retrier.publishAsync(DEFAULT_CONFIG, js, subject, (Headers)null, null));
-                _testRetryAsync(nc, subject -> Retrier.publishAsync(DEFAULT_CONFIG, js, subject, null, (PublishOptions)null));
-                _testRetryAsync(nc, subject -> Retrier.publishAsync(DEFAULT_CONFIG, js, message(subject)));
-                _testRetryAsync(nc, subject -> Retrier.publishAsync(DEFAULT_CONFIG, js, message(subject), null));
+                _testRetryAsync(nc, subject -> PublishRetrier.publishAsync(DEFAULT_CONFIG, js, subject, null, null, null));
+                _testRetryAsync(nc, subject -> PublishRetrier.publishAsync(DEFAULT_CONFIG, js, subject, null));
+                _testRetryAsync(nc, subject -> PublishRetrier.publishAsync(DEFAULT_CONFIG, js, subject, (Headers)null, null));
+                _testRetryAsync(nc, subject -> PublishRetrier.publishAsync(DEFAULT_CONFIG, js, subject, null, (PublishOptions)null));
+                _testRetryAsync(nc, subject -> PublishRetrier.publishAsync(DEFAULT_CONFIG, js, message(subject)));
+                _testRetryAsync(nc, subject -> PublishRetrier.publishAsync(DEFAULT_CONFIG, js, message(subject), null));
             }
         }
     }
