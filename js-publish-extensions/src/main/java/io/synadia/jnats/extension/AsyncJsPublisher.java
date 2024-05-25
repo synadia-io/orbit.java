@@ -53,8 +53,8 @@ public class AsyncJsPublisher implements AutoCloseable {
     private final boolean notificationExecutorServiceWasNotSupplied;
     private final AtomicReference<Thread> publishRunnerThread;
     private final AtomicReference<Thread> flightsRunnerThread;
-    private final CountDownLatch publishRunnerDone;
-    private final CountDownLatch flightsRunnerDone;
+    private final CountDownLatch publishRunnerDoneLatch;
+    private final CountDownLatch flightsRunnerDoneLatch;
 
     private AsyncJsPublisher(Builder b) {
         messageIdGenerator = new AtomicLong(0);
@@ -86,8 +86,8 @@ public class AsyncJsPublisher implements AutoCloseable {
         publishRunnerThread = new AtomicReference<>();
         flightsRunnerThread = new AtomicReference<>();
 
-        publishRunnerDone = new CountDownLatch(1);
-        flightsRunnerDone = new CountDownLatch(1);
+        publishRunnerDoneLatch = new CountDownLatch(1);
+        flightsRunnerDoneLatch = new CountDownLatch(1);
     }
 
     /**
@@ -133,14 +133,14 @@ public class AsyncJsPublisher implements AutoCloseable {
             notificationExecutorService.shutdown();
         }
 
-        if (!publishRunnerDone.await(pollTime, TimeUnit.MILLISECONDS)) {
+        if (!publishRunnerDoneLatch.await(pollTime, TimeUnit.MILLISECONDS)) {
             Thread t = publishRunnerThread.get();
             if (t != null) {
                 t.interrupt();
             }
         }
 
-        if (!flightsRunnerDone.await(pollTime, TimeUnit.MILLISECONDS)) {
+        if (!flightsRunnerDoneLatch.await(pollTime, TimeUnit.MILLISECONDS)) {
             Thread t = flightsRunnerThread.get();
             if (t != null) {
                 t.interrupt();
@@ -162,6 +162,62 @@ public class AsyncJsPublisher implements AutoCloseable {
      */
     public int preFlightSize() {
         return preFlight.size();
+    }
+
+    /**
+     * A latch that finishes when then publish runner event loop is complete
+     * @return the latch
+     */
+    public CountDownLatch getPublishRunnerDoneLatch() {
+        return publishRunnerDoneLatch;
+    }
+
+    /**
+     * A latch that finishes when then flights runner event loop is complete
+     * @return the latch
+     */
+    public CountDownLatch getFlightsRunnerDoneLatch() {
+        return flightsRunnerDoneLatch;
+    }
+
+    /**
+     * The configured max in flight
+     * @return the value
+     */
+    public int getMaxInFlight() {
+        return maxInFlight;
+    }
+
+    /**
+     * The configured refill allowed at
+     * @return the value
+     */
+    public int getRefillAllowedAt() {
+        return refillAllowedAt;
+    }
+
+    /**
+     * The configured poll time
+     * @return the time in millis
+     */
+    public long getPollTime() {
+        return pollTime;
+    }
+
+    /**
+     * The configured hold pause time
+     * @return the time in millis
+     */
+    public long getHoldPauseTime() {
+        return holdPauseTime;
+    }
+
+    /**
+     * The configured wait timeout
+     * @return the time in millis
+     */
+    public long getWaitTimeout() {
+        return waitTimeout;
     }
 
     /**
@@ -204,7 +260,7 @@ public class AsyncJsPublisher implements AutoCloseable {
             Thread.currentThread().interrupt();
         }
         finally {
-            flightsRunnerDone.countDown();
+            flightsRunnerDoneLatch.countDown();
         }
     }
 
@@ -248,7 +304,7 @@ public class AsyncJsPublisher implements AutoCloseable {
             Thread.currentThread().interrupt();
         }
         finally {
-            flightsRunnerDone.countDown();
+            flightsRunnerDoneLatch.countDown();
         }
     }
 

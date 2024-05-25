@@ -15,16 +15,21 @@ import io.synadia.jnats.extension.AsyncJsPublisher;
 import io.synadia.jnats.extension.Flight;
 
 import java.io.IOException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
 import static io.synadia.retrier.RetryConfig.DEFAULT_CONFIG;
 
-public class ManagedExample {
+public class AsyncJsPublisherExample {
 
     public static final int COUNT = 100_000;
     public static final String STREAM = "managed";
     public static final String SUBJECT = "managed_subject";
-    public static final boolean useRetrier = true;
+
+    public static final boolean USE_RETRIER = false;  // set this to true to have each publish use retry logic
+    public static final boolean BUILT_IN_START = true; // set this to false in order to demonstrate the custom start
 
     public static void main(String[] args) {
         Options options = Options.builder()
@@ -41,28 +46,70 @@ public class ManagedExample {
                 AsyncJsPublisher.builder(nc.jetStream())
                     .publishListener(publishListener);
 
-            if (useRetrier) {
+            if (USE_RETRIER) {
                 builder.retryConfig(DEFAULT_CONFIG);
             }
 
-            // the publisher is AutoCloseable
-            try (AsyncJsPublisher managed = builder.start()) {
-                for (int x = 0; x < COUNT; x++) {
-                    managed.publishAsync(SUBJECT, ("data-" + x).getBytes());
+            if (BUILT_IN_START) {
+                // the publisher is AutoCloseable
+                try (AsyncJsPublisher publisher = builder.start()) {
+                    publish(publisher, publishListener);
                 }
+            }
+            else {
+                // custom notification executor
+                ExecutorService notificationExecutorService = Executors.newFixedThreadPool(1);
+                builder.notificationExecutorService(notificationExecutorService);
 
-                while (managed.preFlightSize() > 0) {
-                    System.out.println(publishListener);
-                    //noinspection BusyWait
-                    Thread.sleep(1000);
+                AsyncJsPublisher publisher = builder.build();
+
+                // this custom start mimics what the built-in does but
+                // shows how to access the publish / flights runner Runnable(s)
+                Thread publishRunnerThread = new Thread(publisher::publishRunner);
+                publishRunnerThread.start();
+                Thread flightsRunnerThread = new Thread(publisher::flightsRunner);
+                flightsRunnerThread.start();
+
+                // same publish logic as the built-in start
+                publish(publisher, publishListener);
+
+                // if you have a custom start, you probably want some custom closing
+                // again, the example mimics what the built-in does
+                // don't forget to call the publisher close, because it does some stuff
+                publisher.close();
+                notificationExecutorService.shutdown();
+                if (!publisher.getPublishRunnerDoneLatch().await(publisher.getPollTime(), TimeUnit.MILLISECONDS)) {
+                    publishRunnerThread.interrupt();
                 }
-                System.out.println(publishListener);
+                if (!publisher.getFlightsRunnerDoneLatch().await(publisher.getPollTime(), TimeUnit.MILLISECONDS)) {
+                    flightsRunnerThread.interrupt();
+                }
             }
         }
         catch (Exception e) {
             //noinspection CallToPrintStackTrace
             e.printStackTrace();
         }
+    }
+
+    private static void publish(AsyncJsPublisher publisher, AsyncJsPublishListener publishListener) throws InterruptedException {
+        for (int x = 0; x < COUNT; x++) {
+            publisher.publishAsync(SUBJECT, ("data-" + x).getBytes());
+        }
+
+        while (publisher.preFlightSize() > 0) {
+            System.out.println(publishListener);
+            //noinspection BusyWait
+            Thread.sleep(1000);
+        }
+
+        while (publisher.inFlightSize() > 0) {
+            System.out.println(publishListener);
+            //noinspection BusyWait
+            Thread.sleep(1000);
+        }
+
+        System.out.println(publishListener);
     }
 
     private static void setupStream(Connection nc) {

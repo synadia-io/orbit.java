@@ -13,11 +13,13 @@ import io.synadia.jnats.extension.PublishRetrier;
 import io.synadia.retrier.RetryConfig;
 
 import java.io.IOException;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 
-public class RetrierPublishSyncExample {
+public class PublishRetrierAsyncExample {
 
-    public static String STREAM = "retrierS";
-    public static String SUBJECT = "retrierS-subject";
+    public static String STREAM = "pr-async-stream";
+    public static String SUBJECT = "pr-async-subject";
 
     public static void main(String[] args) {
         try (Connection nc = Nats.connect()) {
@@ -51,7 +53,8 @@ public class RetrierPublishSyncExample {
             long now = System.currentTimeMillis();
 
             System.out.println("Publishing @ " + now);
-            PublishAck pa = PublishRetrier.publish(config, nc.jetStream(), SUBJECT, null);
+            CompletableFuture<PublishAck> cfpa = PublishRetrier.publishAsync(config, nc.jetStream(), SUBJECT, null);
+            PublishAck pa = cfpa.get(30, TimeUnit.SECONDS);
             long done = System.currentTimeMillis();
 
             System.out.println("Publish Ack: " + pa.getJv().toJson());
