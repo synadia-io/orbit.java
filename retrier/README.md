@@ -2,9 +2,11 @@
 
 # Retrier Utility
 
-The retrier is a general purpose java utility that can execute any action (function) in a retriable manner.
+The retrier is a general purpose Java utility that can execute any action (function) in a retriable manner.
 
 **Current Release**: 0.1.0 &nbsp; **Current Snapshot**: 0.2.0-SNAPSHOT
+
+### Retrier Usage
 
 For how to use, please see [RetrierExample.java](src/examples/java/io/synadia/examples/RetrierExample.java)
 
@@ -14,7 +16,7 @@ The [Unit Tests](src/test/java/io/synadia/jnats/extension/RetrierTests.java) may
 
 See the [Main README.md](../README.md). The group is `io.synadia` The artifact is `retrier`
 
-## License
+### License
 
 [![License Apache 2](https://img.shields.io/badge/License-Apache2-blue.svg)](https://www.apache.org/licenses/LICENSE-2.0)
 
