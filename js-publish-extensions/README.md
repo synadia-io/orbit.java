@@ -8,7 +8,7 @@ The library contains 2 utilities.
 
 This class parallels the standard JetStream publish api with methods that will retry the publish
 
-**Current Release**: 0.0.1 &nbsp; **Current Snapshot**: 0.0.2-SNAPSHOT
+**Current Release**: 0.1.0 &nbsp; **Current Snapshot**: 0.1.1-SNAPSHOT
 
 ### Gradle and Maven
 

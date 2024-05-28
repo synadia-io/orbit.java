@@ -4,7 +4,7 @@
 
 The retrier is a general purpose java utility that can execute any action (function) in a retriable manner.
 
-**Current Release**: 0.0.1 &nbsp; **Current Snapshot**: 0.0.2-SNAPSHOT
+**Current Release**: 0.1.0 &nbsp; **Current Snapshot**: 0.2.0-SNAPSHOT
 
 For how to use, please see [RetrierExample.java](src/examples/java/io/synadia/examples/RetrierExample.java)
 
