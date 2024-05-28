@@ -13,14 +13,13 @@ import io.nats.client.impl.ErrorListenerConsoleImpl;
 import io.synadia.jnats.extension.AsyncJsPublishListener;
 import io.synadia.jnats.extension.AsyncJsPublisher;
 import io.synadia.jnats.extension.Flight;
+import io.synadia.retrier.RetryConfig;
 
 import java.io.IOException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
-
-import static io.synadia.retrier.RetryConfig.DEFAULT_CONFIG;
 
 public class AsyncJsPublisherExample {
 
@@ -40,22 +39,42 @@ public class AsyncJsPublisherExample {
         try (Connection nc = Nats.connect(options)) {
             setupStream(nc);
 
+            // --------------------------------------------------------------------------------
+            // The listener is important for the developer to have a window in to the publishing.
+            // see the ExamplePublishListener implementation
+            // --------------------------------------------------------------------------------
             AsyncJsPublishListener publishListener = new ExamplePublishListener();
 
             AsyncJsPublisher.Builder builder =
                 AsyncJsPublisher.builder(nc.jetStream())
                     .publishListener(publishListener);
 
+            // --------------------------------------------------------------------------------
+            // If you want to use retrying for publishing, you must give a Retry Config
+            // --------------------------------------------------------------------------------
             if (USE_RETRIER) {
-                builder.retryConfig(DEFAULT_CONFIG);
+                builder.retryConfig(RetryConfig.DEFAULT_CONFIG);
             }
 
+            // --------------------------------------------------------------------------------
+            // Built In Start or Custom Start
+            // --------------------------------------------------------------------------------
+            // Initially, you can just use the built-in start. You can see the code for that is much simpler
+            // all the management of threads and the executor service is taken care of.
+            // --------------------------------------------------------------------------------
+            // Since we can envision developers wanting more control, the non-built-in code path
+            // demonstrates the developer supplying its own threads for running
+            // the event loops and for providing the ExecutorService for notification.
+            // The custom code here is essentially the same as the built-in, but shows how the
+            // developer can do it themselves.
+            // --------------------------------------------------------------------------------
             if (BUILT_IN_START) {
                 // the publisher is AutoCloseable
                 try (AsyncJsPublisher publisher = builder.start()) {
                     publish(publisher, publishListener);
                 }
             }
+            // --------------------------------------------------------------------------------
             else {
                 // custom notification executor
                 ExecutorService notificationExecutorService = Executors.newFixedThreadPool(1);
