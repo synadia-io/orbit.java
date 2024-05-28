@@ -10,6 +10,12 @@ For how to use, please see [RetrierExample.java](src/examples/java/io/synadia/ex
 
 The [Unit Tests](src/test/java/io/synadia/jnats/extension/RetrierTests.java) may also be of interest.
 
+### Gradle and Maven
+
+See the [Main README.md](../README.md). The group is `io.synadia` The artifact is `retrier`
+
+## License
+
 [![License Apache 2](https://img.shields.io/badge/License-Apache2-blue.svg)](https://www.apache.org/licenses/LICENSE-2.0)
 
 Copyright (c) 2024 Synadia Communications Inc. All Rights Reserved.
