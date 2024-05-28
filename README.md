@@ -55,7 +55,7 @@ dependencies {
 
 ### Maven
 
-The libraries are available on the Maven central repository, and can be imported as a normal dependency in your pom.xml file:
+The libraries are available on the Maven central repository, and can be imported as a normal dependency in your `pom.xml` file:
 
 ```xml
 <dependency>
