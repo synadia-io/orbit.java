@@ -6,6 +6,10 @@ The retrier is a general purpose Java utility that can execute any action (funct
 
 **Current Release**: 0.1.0 &nbsp; **Current Snapshot**: 0.2.0-SNAPSHOT
 
+[![License Apache 2](https://img.shields.io/badge/License-Apache2-blue.svg)](https://www.apache.org/licenses/LICENSE-2.0)
+[![Maven Central](https://maven-badges.herokuapp.com/maven-central/io.synadia/retrier/badge.svg)](https://maven-badges.herokuapp.com/maven-central/io.synadia/retrier)
+[![javadoc](https://javadoc.io/badge2/io.synadia/retrier/javadoc.svg)](https://javadoc.io/doc/io.synadia/retrier)
+
 ### Retrier Usage
 
 For how to use, please see [RetrierExample.java](src/examples/java/io/synadia/examples/RetrierExample.java)
@@ -16,9 +20,6 @@ The [Unit Tests](src/test/java/io/synadia/jnats/extension/RetrierTests.java) may
 
 See the [Main README.md](../README.md). The group is `io.synadia` The artifact is `retrier`
 
-### License
-
-[![License Apache 2](https://img.shields.io/badge/License-Apache2-blue.svg)](https://www.apache.org/licenses/LICENSE-2.0)
 
 Copyright (c) 2024 Synadia Communications Inc. All Rights Reserved.
 See [LICENSE](LICENSE) and [NOTICE](NOTICE) file for details.

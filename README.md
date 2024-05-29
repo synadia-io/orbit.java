@@ -9,14 +9,24 @@ not made until the specific project has a v1.0.0 version.
 
 # Utilities
 
-This is a list of the current utilities hosted here
+## Retrier
 
-| Module                | Description                            | Artifact                      | Docs                                         |
-|-----------------------|----------------------------------------|-------------------------------|----------------------------------------------|
-| Retrier               | Extension for retrying anything.       | `retrier`                     | [README.md](retrier/README.md)               |
-| JS Publish Extensions | Extensions around Jetstream Publishing | `jnats-js-publish-extensions` | [README.md](js-publish-extensions/README.md) |
+Extension for retrying anything. 
 
+[![README](https://img.shields.io/badge/README-blue?style=flat&link=retrier/README.md)](retrier/README.md)
+![Artifact](https://img.shields.io/badge/Artifact-io.synadia:retrier-00BC8E?labelColor=grey&style=flat)
+[![javadoc](https://javadoc.io/badge2/io.synadia/retrier/javadoc.svg)](https://javadoc.io/doc/io.synadia/retrier)
+[![Maven Central](https://maven-badges.herokuapp.com/maven-central/io.synadia/retrier/badge.svg)](https://maven-badges.herokuapp.com/maven-central/io.synadia/retrier)                                         
 
+## JS Publish Extensions
+Extensions around Jetstream Publishing
+
+[![README](https://img.shields.io/badge/README-blue?style=flat&link=retrier/README.md)](js-publish-extensions/README.md)
+![Artifact](https://img.shields.io/badge/Artifact-io.synadia:jnats--js--publish--extensions-00BC8E?labelColor=grey&style=flat)
+[![javadoc](https://javadoc.io/badge2/io.synadia/jnats-js-publish-extensions/javadoc.svg)](https://javadoc.io/doc/io.synadia/jnats-js-publish-extensions)
+[![Maven Central](https://maven-badges.herokuapp.com/maven-central/io.synadia/jnats-js-publish-extensions/badge.svg)](https://maven-badges.herokuapp.com/maven-central/io.synadia/jnats-js-publish-extensions)
+
+# Dependencies
 ### Gradle
 
 The libraries are available in the Maven central repository, and can be imported as a standard dependency in your `build.gradle` file:
