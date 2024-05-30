@@ -16,6 +16,7 @@ import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Supplier;
 
 // TODO ? fine tune holding logic
 // TODO ? Allow the user to define a maximum pre-flight queue size.
@@ -35,6 +36,7 @@ public class AsyncJsPublisher implements AutoCloseable {
 
     private final AtomicLong messageIdGenerator;
     private final JetStream js;
+    private final Supplier<String> messageIdSupplier;
     private final String idPrefix;
     private final int maxInFlight;
     private final int refillAllowedAt;
@@ -46,20 +48,28 @@ public class AsyncJsPublisher implements AutoCloseable {
     private final LinkedBlockingQueue<PreFlight> preFlight;
     private final LinkedBlockingQueue<Flight> inFlight;
     private final AtomicBoolean notHolding;
+    private final AtomicBoolean draining;
     private final AtomicBoolean keepGoingPublishRunner;
     private final AtomicBoolean keepGoingFlightsRunner;
-    private final AtomicBoolean draining;
     private final ExecutorService notificationExecutorService;
-    private final boolean notificationExecutorServiceWasNotSupplied;
+    private final boolean executorWasntUserSupplied;
     private final AtomicReference<Thread> publishRunnerThread;
     private final AtomicReference<Thread> flightsRunnerThread;
     private final CountDownLatch publishRunnerDoneLatch;
     private final CountDownLatch flightsRunnerDoneLatch;
 
     private AsyncJsPublisher(Builder b) {
-        messageIdGenerator = new AtomicLong(0);
         js = b.js;
-        idPrefix = b.idPrefix;
+        if (b.messageIdSupplier == null) {
+            idPrefix = new NUID().nextSequence();
+            messageIdGenerator = new AtomicLong(0);
+            messageIdSupplier = () -> idPrefix + "-" + messageIdGenerator.incrementAndGet();
+        }
+        else {
+            idPrefix = null;
+            messageIdGenerator = null;
+            messageIdSupplier = b.messageIdSupplier;
+        }
         maxInFlight = b.maxInFlight;
         refillAllowedAt = b.refillAllowedAt;
         retryConfig = b.retryConfig;
@@ -70,19 +80,19 @@ public class AsyncJsPublisher implements AutoCloseable {
 
         if (b.notificationExecutorService == null) {
             notificationExecutorService = Executors.newFixedThreadPool(1);
-            notificationExecutorServiceWasNotSupplied = true;
+            executorWasntUserSupplied = true;
         }
         else {
             notificationExecutorService = b.notificationExecutorService;
-            notificationExecutorServiceWasNotSupplied = false;
+            executorWasntUserSupplied = false;
         }
 
         preFlight = new LinkedBlockingQueue<>();
         inFlight = new LinkedBlockingQueue<>();
         notHolding = new AtomicBoolean(true);
+        draining = new AtomicBoolean(false);
         keepGoingPublishRunner = new AtomicBoolean(true);
         keepGoingFlightsRunner = new AtomicBoolean(true);
-        draining = new AtomicBoolean(false);
         publishRunnerThread = new AtomicReference<>();
         flightsRunnerThread = new AtomicReference<>();
 
@@ -123,26 +133,26 @@ public class AsyncJsPublisher implements AutoCloseable {
     }
 
     /**
-     * Shutdown the manager.
+     * shutdown the publisher.
      */
     @Override
     public void close() throws Exception {
         stop();
 
-        if (notificationExecutorServiceWasNotSupplied) {
+        if (executorWasntUserSupplied) {
             notificationExecutorService.shutdown();
         }
 
         if (!publishRunnerDoneLatch.await(pollTime, TimeUnit.MILLISECONDS)) {
             Thread t = publishRunnerThread.get();
-            if (t != null) {
+            if (t != null && t.isAlive()) {
                 t.interrupt();
             }
         }
 
         if (!flightsRunnerDoneLatch.await(pollTime, TimeUnit.MILLISECONDS)) {
             Thread t = flightsRunnerThread.get();
-            if (t != null) {
+            if (t != null && t.isAlive()) {
                 t.interrupt();
             }
         }
@@ -230,10 +240,8 @@ public class AsyncJsPublisher implements AutoCloseable {
                     PreFlight pre = preFlight.poll(pollTime, TimeUnit.MILLISECONDS);
                     if (pre != null) {
                         if (pre == STOP_MARKER) {
-                            keepGoingPublishRunner.set(false);
                             return;
                         }
-
                         CompletableFuture<PublishAck> fpa;
                         if (retryConfig == null) {
                             fpa = js.publishAsync(pre.subject, pre.headers, pre.body, pre.options);
@@ -260,7 +268,8 @@ public class AsyncJsPublisher implements AutoCloseable {
             Thread.currentThread().interrupt();
         }
         finally {
-            flightsRunnerDoneLatch.countDown();
+            keepGoingPublishRunner.set(false);
+            publishRunnerDoneLatch.countDown();
         }
     }
 
@@ -269,29 +278,28 @@ public class AsyncJsPublisher implements AutoCloseable {
      */
     public void flightsRunner() {
         try {
+            Flight flight = null;
             while (keepGoingFlightsRunner.get()) {
-                Flight flight = inFlight.poll(pollTime, TimeUnit.MILLISECONDS);
                 if (flight == null) {
                     if (draining.get() && preFlight.isEmpty() && inFlight.isEmpty()) {
-                        keepGoingFlightsRunner.set(false);
                         return;
                     }
+                    flight = inFlight.poll(pollTime, TimeUnit.MILLISECONDS);
                 }
-                else {
+                if (flight != null) {
                     if (flight.publishAckFuture.isDone()) {
                         if (flight.publishAckFuture.isCompletedExceptionally()) {
                             notifyCompletedExceptionally(flight);
                         }
-                        else if (publishListener != null) {
-                            notifyAcked(flight);
+                        else {
+                            notifyCompleted(flight);
                         }
+                        flight = null;
                     }
                     else if (System.currentTimeMillis() - flight.publishTime > waitTimeout) {
                         flight.publishAckFuture.completeExceptionally(new IOException("Timeout or no response waiting for publish acknowledgement."));
                         notifyTimeout(flight);
-                    }
-                    else {
-                        inFlight.offer(flight); // put it back in the queue for later
+                        flight = null;
                     }
                     // once the in flight empty out, we are allowed to publish again
                     if (inFlight.size() <= refillAllowedAt) {
@@ -304,6 +312,7 @@ public class AsyncJsPublisher implements AutoCloseable {
             Thread.currentThread().interrupt();
         }
         finally {
+            keepGoingFlightsRunner.set(false);
             flightsRunnerDoneLatch.countDown();
         }
     }
@@ -320,7 +329,7 @@ public class AsyncJsPublisher implements AutoCloseable {
         }
     }
 
-    private void notifyAcked(Flight flight) {
+    private void notifyCompleted(Flight flight) {
         if (publishListener != null) {
             notificationExecutorService.submit(() -> publishListener.acked(flight));
         }
@@ -345,7 +354,7 @@ public class AsyncJsPublisher implements AutoCloseable {
      */
     public static class Builder {
         JetStream js;
-        String idPrefix = NUID.nextGlobal();
+        Supplier<String> messageIdSupplier;
         int maxInFlight = DEFAULT_MAX_IN_FLIGHT;
         int refillAllowedAt = DEFAULT_REFILL_AMOUNT;
         RetryConfig retryConfig;
@@ -354,6 +363,8 @@ public class AsyncJsPublisher implements AutoCloseable {
         long holdPauseTime = DEFAULT_PAUSE_TIME;
         long waitTimeout = DEFAULT_WAIT_TIMEOUT;
         ExecutorService notificationExecutorService;
+        String autoOptionStartingExpectedLastId;
+        long autoOptionStartingExpectedLastSeq;
 
         public Builder(JetStream js) {
             if (js == null) {
@@ -362,8 +373,8 @@ public class AsyncJsPublisher implements AutoCloseable {
             this.js = js;
         }
 
-        public Builder idPrefix(String idPrefix) {
-            this.idPrefix = idPrefix;
+        public Builder messageIdSupplier(Supplier<String> messageIdSupplier) {
+            this.messageIdSupplier = messageIdSupplier;
             return this;
         }
 
@@ -407,6 +418,16 @@ public class AsyncJsPublisher implements AutoCloseable {
             return this;
         }
 
+        public Builder autoOptionStartingExpectedLastId(String autoOptionStartingExpectedLastId) {
+            this.autoOptionStartingExpectedLastId = autoOptionStartingExpectedLastId;
+            return this;
+        }
+
+        public Builder autoOptionStartingExpectedLastSeq(long autoOptionStartingExpectedLastSeq) {
+            this.autoOptionStartingExpectedLastSeq = autoOptionStartingExpectedLastSeq;
+            return this;
+        }
+
         /**
          * Builds a AsyncJsPublisher without starting it, for instance to delay its start or to use custom threads
          * @return AsyncJsPublisher instance
@@ -435,14 +456,14 @@ public class AsyncJsPublisher implements AutoCloseable {
      * @param options publish options
      * @return The future
      */
-    public CompletableFuture<Flight> publishAsync(String subject, Headers headers, byte[] body, PublishOptions options) {
-        if (draining.get()) {
-            throw new IllegalStateException("Cannot publish after drain");
+    public PreFlight publishAsync(String subject, Headers headers, byte[] body, PublishOptions options) {
+        if (draining.get() || (!keepGoingPublishRunner.get() && !keepGoingFlightsRunner.get())) {
+            throw new IllegalStateException("Cannot publish once drained or stopped.");
         }
 
-        PreFlight p = new PreFlight(idPrefix + "-" + messageIdGenerator.incrementAndGet(), subject, headers, body, options);
+        PreFlight p = new PreFlight(messageIdSupplier.get(), subject, headers, body, options);
         preFlight.offer(p);
-        return p.flightFuture;
+        return p;
     }
 
     /**
@@ -452,7 +473,7 @@ public class AsyncJsPublisher implements AutoCloseable {
      * @param body the message body
      * @return The future
      */
-    public CompletableFuture<Flight> publishAsync(String subject, byte[] body) {
+    public PreFlight publishAsync(String subject, byte[] body) {
         return publishAsync(subject, null, body, null);
     }
 
@@ -464,7 +485,7 @@ public class AsyncJsPublisher implements AutoCloseable {
      * @param body the message body
      * @return The future
      */
-    public CompletableFuture<Flight> publishAsync(String subject, Headers headers, byte[] body) {
+    public PreFlight publishAsync(String subject, Headers headers, byte[] body) {
         return publishAsync(subject, headers, body, null);
     }
 
@@ -476,7 +497,7 @@ public class AsyncJsPublisher implements AutoCloseable {
      * @param options publish options
      * @return The future
      */
-    public CompletableFuture<Flight> publishAsync(String subject, byte[] body, PublishOptions options) {
+    public PreFlight publishAsync(String subject, byte[] body, PublishOptions options) {
         return publishAsync(subject, null, body, options);
     }
 
@@ -486,7 +507,7 @@ public class AsyncJsPublisher implements AutoCloseable {
      * @param message the message to publish
      * @return The future
      */
-    public CompletableFuture<Flight> publishAsync(Message message) {
+    public PreFlight publishAsync(Message message) {
         return publishAsync(message.getSubject(), message.getHeaders(), message.getData(), null);
     }
 
@@ -497,7 +518,7 @@ public class AsyncJsPublisher implements AutoCloseable {
      * @param options publish options
      * @return The future
      */
-    public CompletableFuture<Flight> publishAsync(Message message, PublishOptions options) {
+    public PreFlight publishAsync(Message message, PublishOptions options) {
         return publishAsync(message.getSubject(), message.getHeaders(), message.getData(), options);
     }
 }

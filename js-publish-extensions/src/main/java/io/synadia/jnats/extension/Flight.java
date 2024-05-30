@@ -32,8 +32,8 @@ public class Flight {
         return publishAckFuture;
     }
 
-    public String getId() {
-        return preFlight.id;
+    public String getMessageId() {
+        return preFlight.messageId;
     }
 
     public String getSubject() {
@@ -54,5 +54,16 @@ public class Flight {
 
     public CompletableFuture<Flight> getFlightFuture() {
         return preFlight.flightFuture;
+    }
+
+    @Override
+    public String toString() {
+        return "Flight{" +
+            "messageId='" + preFlight.messageId + '\'' +
+            ", subject='" + preFlight.subject + '\'' +
+            ", body=" + (preFlight.body == null ? "null" : new String(preFlight.body)) +
+            ", publishTime=" + publishTime +
+            ", publishAckFuture.isDone()=" + publishAckFuture.isDone() +
+            '}';
     }
 }

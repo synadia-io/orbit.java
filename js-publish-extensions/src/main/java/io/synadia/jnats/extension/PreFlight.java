@@ -14,15 +14,15 @@ import java.util.concurrent.CompletableFuture;
  * to a Flight.
  */
 public class PreFlight {
-    public final String id;
+    public final String messageId;
     public final String subject;
     public final Headers headers;
     public final byte[] body;
     public final PublishOptions options;
     public final CompletableFuture<Flight> flightFuture;
 
-    public PreFlight(String id, String subject, Headers headers, byte[] body, PublishOptions options) {
-        this.id = id;
+    public PreFlight(String messageId, String subject, Headers headers, byte[] body, PublishOptions options) {
+        this.messageId = messageId;
         this.subject = subject;
         this.headers = headers;
         this.body = body;
@@ -31,7 +31,7 @@ public class PreFlight {
     }
 
     protected PreFlight(PreFlight preFlight) {
-        this.id = preFlight.id;
+        this.messageId = preFlight.messageId;
         this.subject = preFlight.subject;
         this.headers = preFlight.headers;
         this.body = preFlight.body;
@@ -39,8 +39,8 @@ public class PreFlight {
         flightFuture = preFlight.flightFuture;
     }
 
-    public String getId() {
-        return id;
+    public String getMessageId() {
+        return messageId;
     }
 
     public String getSubject() {
@@ -61,5 +61,14 @@ public class PreFlight {
 
     public CompletableFuture<Flight> getFlightFuture() {
         return flightFuture;
+    }
+
+    @Override
+    public String toString() {
+        return "PreFlight{" +
+            "messageId='" + messageId + '\'' +
+            ", subject='" + subject + '\'' +
+            ", body=" + (body == null ? "null" : new String(body)) +
+            '}';
     }
 }
