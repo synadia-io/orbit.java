@@ -11,7 +11,7 @@ import java.util.concurrent.CompletableFuture;
 /**
  * This object represents the message as given to the AsyncJsPublisher
  * and is carried through until it's actually published, at which time it's converted
- * to a Flight.
+ * to a InFlight.
  */
 public class PreFlight {
     public final String messageId;
@@ -19,7 +19,7 @@ public class PreFlight {
     public final Headers headers;
     public final byte[] body;
     public final PublishOptions options;
-    public final CompletableFuture<Flight> flightFuture;
+    public final CompletableFuture<InFlight> flightFuture;
 
     public PreFlight(String messageId, String subject, Headers headers, byte[] body, PublishOptions options) {
         this.messageId = messageId;
@@ -59,7 +59,7 @@ public class PreFlight {
         return options;
     }
 
-    public CompletableFuture<Flight> getFlightFuture() {
+    public CompletableFuture<InFlight> getFlightFuture() {
         return flightFuture;
     }
 

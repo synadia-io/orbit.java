@@ -3,10 +3,7 @@
 
 package io.synadia.jnats.extension;
 
-import io.nats.client.JetStream;
-import io.nats.client.Message;
-import io.nats.client.NUID;
-import io.nats.client.PublishOptions;
+import io.nats.client.*;
 import io.nats.client.api.PublishAck;
 import io.nats.client.impl.Headers;
 import io.synadia.retrier.RetryConfig;
@@ -46,7 +43,7 @@ public class AsyncJsPublisher implements AutoCloseable {
     private final long holdPauseTime;
     private final long waitTimeout;
     private final LinkedBlockingQueue<PreFlight> preFlight;
-    private final LinkedBlockingQueue<Flight> inFlight;
+    private final LinkedBlockingQueue<InFlight> inFlight;
     private final AtomicBoolean notHolding;
     private final AtomicBoolean draining;
     private final AtomicBoolean keepGoingPublishRunner;
@@ -249,7 +246,7 @@ public class AsyncJsPublisher implements AutoCloseable {
                         else {
                             fpa = PublishRetrier.publishAsync(retryConfig, js, pre.subject, pre.headers, pre.body, pre.options);
                         }
-                        Flight flight = new Flight(fpa, pre);
+                        InFlight flight = new InFlight(fpa, pre);
                         inFlight.offer(flight);
                         pre.flightFuture.complete(flight);
                         notifyPublished(flight);
@@ -278,31 +275,48 @@ public class AsyncJsPublisher implements AutoCloseable {
      */
     public void flightsRunner() {
         try {
-            Flight flight = null;
             while (keepGoingFlightsRunner.get()) {
-                if (flight == null) {
-                    if (draining.get() && preFlight.isEmpty() && inFlight.isEmpty()) {
+                InFlight inFlight = this.inFlight.poll(pollTime, TimeUnit.MILLISECONDS);
+                if (inFlight == null) {
+                    // no inFlight? draining? no more queued? no more in inFlight? we are done!
+                    if (draining.get() && preFlight.isEmpty() && this.inFlight.isEmpty()) {
                         return;
                     }
-                    flight = inFlight.poll(pollTime, TimeUnit.MILLISECONDS);
                 }
-                if (flight != null) {
-                    if (flight.publishAckFuture.isDone()) {
-                        if (flight.publishAckFuture.isCompletedExceptionally()) {
-                            notifyCompletedExceptionally(flight);
-                        }
-                        else {
-                            notifyCompleted(flight);
-                        }
-                        flight = null;
+                else {
+                    try {
+                        PublishAck pa = inFlight.publishAckFuture.get(waitTimeout, TimeUnit.MILLISECONDS);
+                        notifyCompleted(new PostFlight(inFlight, pa));
                     }
-                    else if (System.currentTimeMillis() - flight.publishTime > waitTimeout) {
-                        flight.publishAckFuture.completeExceptionally(new IOException("Timeout or no response waiting for publish acknowledgement."));
-                        notifyTimeout(flight);
-                        flight = null;
+                    catch (ExecutionException e) {
+                        Throwable cause = e.getCause() == null ? e : e.getCause();
+                        if (cause instanceof JetStreamApiException) {
+                            if (cause.getMessage().contains("10060") // expected stream does not match [10060]
+                                || (cause.getMessage().contains("10070")) // wrong last msg ID: [10070]
+                                || (cause.getMessage().contains("10071")) // wrong last sequence: n [10071]
+                            )
+                            {
+                                notifyCompletedExceptionally(new PostFlight(inFlight, false, true, cause));
+                            }
+                            else {
+                                notifyCompletedExceptionally(new PostFlight(inFlight, cause));
+                            }
+                        }
+                        else if (cause instanceof IOException) {
+                            if (cause.getMessage().contains("Timeout or no response")) {
+                                notifyTimeout(new PostFlight(inFlight, true, false, cause));
+                            }
+                            else {
+                                notifyCompletedExceptionally(new PostFlight(inFlight, cause));
+                            }
+                        }
                     }
-                    // once the in flight empty out, we are allowed to publish again
-                    if (inFlight.size() <= refillAllowedAt) {
+                    catch (TimeoutException | InterruptedException e) {
+                        notifyTimeout(new PostFlight(inFlight, true, false, e));
+                    }
+
+                    // once the in inFlight empty out, we are allowed to publish again
+                    if (this.inFlight.size() <= refillAllowedAt) {
                         notHolding.set(true);
                     }
                 }
@@ -317,27 +331,27 @@ public class AsyncJsPublisher implements AutoCloseable {
         }
     }
 
-    private void notifyPublished(Flight flight) {
+    private void notifyPublished(InFlight inFlight) {
         if (publishListener != null) {
-            notificationExecutorService.submit(() -> publishListener.published(flight));
+            notificationExecutorService.submit(() -> publishListener.published(inFlight));
         }
     }
 
-    private void notifyCompletedExceptionally(Flight flight) {
+    private void notifyCompletedExceptionally(PostFlight postFlight) {
         if (publishListener != null) {
-            notificationExecutorService.submit(() -> publishListener.completedExceptionally(flight));
+            notificationExecutorService.submit(() -> publishListener.completedExceptionally(postFlight));
         }
     }
 
-    private void notifyCompleted(Flight flight) {
+    private void notifyCompleted(PostFlight postFlight) {
         if (publishListener != null) {
-            notificationExecutorService.submit(() -> publishListener.acked(flight));
+            notificationExecutorService.submit(() -> publishListener.acked(postFlight));
         }
     }
 
-    private void notifyTimeout(Flight flight) {
+    private void notifyTimeout(PostFlight postFlight) {
         if (publishListener != null) {
-            notificationExecutorService.submit(() -> publishListener.timeout(flight));
+            notificationExecutorService.submit(() -> publishListener.timeout(postFlight));
         }
     }
 

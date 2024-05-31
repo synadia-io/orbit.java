@@ -4,7 +4,8 @@
 package io.synadia.examples;
 
 import io.synadia.jnats.extension.AsyncJsPublishListener;
-import io.synadia.jnats.extension.Flight;
+import io.synadia.jnats.extension.InFlight;
+import io.synadia.jnats.extension.PostFlight;
 
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -15,34 +16,29 @@ class ExamplePublishListener implements AsyncJsPublishListener {
     public AtomicLong timedOut = new AtomicLong();
 
     @Override
-    public void published(Flight flight) {
+    public void published(InFlight flight) {
         published.incrementAndGet();
     }
 
     @Override
-    public void acked(Flight flight) {
+    public void acked(PostFlight postFlight) {
         acked.incrementAndGet();
     }
 
     @Override
-    public void completedExceptionally(Flight flight) {
-        try {
-            exceptioned.incrementAndGet();
-            flight.publishAckFuture.get();
+    public void completedExceptionally(PostFlight postFlight) {
+        exceptioned.incrementAndGet();
+        if (postFlight.expectationFailed) {
+            ExampleUtils.print("Expectation Failed", new String(postFlight.getBody()), postFlight.cause);
         }
-        catch (Exception e) {
-            ExampleUtils.print("completedExceptionally", new String(flight.getBody()), e.toString());
+        else {
+            ExampleUtils.print("Completed Exceptionally", new String(postFlight.getBody()), postFlight.cause);
         }
     }
 
     @Override
-    public void timeout(Flight flight) {
-        try {
-            timedOut.incrementAndGet();
-            flight.publishAckFuture.get();
-        }
-        catch (Exception e) {
-            ExampleUtils.print("timeout", new String(flight.getBody()), e.toString());
-        }
+    public void timeout(PostFlight postFlight) {
+        timedOut.incrementAndGet();
+        ExampleUtils.print("Timed-out", new String(postFlight.getBody()) );
     }
 }
