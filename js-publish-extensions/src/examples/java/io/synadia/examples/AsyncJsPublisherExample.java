@@ -47,15 +47,12 @@ public class AsyncJsPublisherExample {
 
             // The publisher is AutoCloseable
             try (AsyncJsPublisher publisher = builder.start()) {
+
                 for (int x = 1; x <= COUNT; x++) {
                     publisher.publishAsync(SUBJECT, ("data-" + x).getBytes());
                 }
 
-                while (publisher.preFlightSize() > 0) {
-                    ExampleUtils.printStateThenWait(publisher, publishListener);
-                }
-
-                while (publisher.inFlightSize() > 0) {
+                while (publisher.preFlightSize() > 0 || publisher.inFlightSize() > 0) {
                     ExampleUtils.printStateThenWait(publisher, publishListener);
                 }
 

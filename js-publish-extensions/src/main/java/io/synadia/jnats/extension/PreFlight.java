@@ -19,7 +19,7 @@ public class PreFlight {
     public final Headers headers;
     public final byte[] body;
     public final PublishOptions options;
-    public final CompletableFuture<InFlight> flightFuture;
+    public final CompletableFuture<InFlight> inFlightFuture;
 
     public PreFlight(String messageId, String subject, Headers headers, byte[] body, PublishOptions options) {
         this.messageId = messageId;
@@ -27,7 +27,7 @@ public class PreFlight {
         this.headers = headers;
         this.body = body;
         this.options = options;
-        flightFuture = new CompletableFuture<>();
+        inFlightFuture = new CompletableFuture<>();
     }
 
     protected PreFlight(PreFlight preFlight) {
@@ -36,7 +36,7 @@ public class PreFlight {
         this.headers = preFlight.headers;
         this.body = preFlight.body;
         this.options = preFlight.options;
-        flightFuture = preFlight.flightFuture;
+        inFlightFuture = preFlight.inFlightFuture;
     }
 
     public String getMessageId() {
@@ -59,8 +59,8 @@ public class PreFlight {
         return options;
     }
 
-    public CompletableFuture<InFlight> getFlightFuture() {
-        return flightFuture;
+    public CompletableFuture<InFlight> getInFlightFuture() {
+        return inFlightFuture;
     }
 
     @Override

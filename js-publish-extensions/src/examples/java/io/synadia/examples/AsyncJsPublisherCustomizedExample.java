@@ -11,7 +11,7 @@ import io.synadia.jnats.extension.AsyncJsPublisher;
 
 public class AsyncJsPublisherCustomizedExample {
 
-    public static final int COUNT = 100_000;
+    public static final int COUNT = 100_0000;
     public static final String STREAM = "customStream";
     public static final String SUBJECT = "customSubject";
 
@@ -55,11 +55,7 @@ public class AsyncJsPublisherCustomizedExample {
                     publisher.publishAsync(SUBJECT, ("data-" + x).getBytes());
                 }
 
-                while (publisher.preFlightSize() > 0) {
-                    ExampleUtils.printStateThenWait(publisher, publishListener);
-                }
-
-                while (publisher.inFlightSize() > 0) {
+                while (publisher.preFlightSize() > 0 || publisher.inFlightSize() > 0) {
                     ExampleUtils.printStateThenWait(publisher, publishListener);
                 }
 

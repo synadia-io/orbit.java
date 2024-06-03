@@ -47,6 +47,6 @@ public class InFlight {
     }
 
     public CompletableFuture<InFlight> getFlightFuture() {
-        return preFlight.flightFuture;
+        return preFlight.inFlightFuture;
     }
 }

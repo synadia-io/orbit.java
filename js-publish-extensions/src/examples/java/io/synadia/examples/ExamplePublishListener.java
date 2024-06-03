@@ -9,15 +9,21 @@ import io.synadia.jnats.extension.PostFlight;
 
 import java.util.concurrent.atomic.AtomicLong;
 
-class ExamplePublishListener implements AsyncJsPublishListener {
+public class ExamplePublishListener implements AsyncJsPublishListener {
     public AtomicLong published = new AtomicLong();
     public AtomicLong acked = new AtomicLong();
     public AtomicLong exceptioned = new AtomicLong();
     public AtomicLong timedOut = new AtomicLong();
+    public AtomicLong start = new AtomicLong();
 
     @Override
     public void published(InFlight flight) {
+        start.compareAndSet(0, System.currentTimeMillis());
         published.incrementAndGet();
+    }
+
+    public long elapsed() {
+        return System.currentTimeMillis() - start.get();
     }
 
     @Override

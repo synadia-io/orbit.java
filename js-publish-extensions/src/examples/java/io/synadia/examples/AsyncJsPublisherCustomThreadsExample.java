@@ -62,17 +62,13 @@ public class AsyncJsPublisherCustomThreadsExample {
             flightsRunnerThread.start();
 
             // --------------------------------------------------------------------------------
-            // same publish logic as the built-in start
+            // example logic
             // --------------------------------------------------------------------------------
             for (int x = 1; x <= COUNT; x++) {
                 publisher.publishAsync(SUBJECT, ("data-" + x).getBytes());
             }
 
-            while (publisher.preFlightSize() > 0) {
-                ExampleUtils.printStateThenWait(publisher, publishListener);
-            }
-
-            while (publisher.inFlightSize() > 0) {
+            while (publisher.preFlightSize() > 0 || publisher.inFlightSize() > 0) {
                 ExampleUtils.printStateThenWait(publisher, publishListener);
             }
 

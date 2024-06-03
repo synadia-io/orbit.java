@@ -47,6 +47,7 @@ public class ExampleUtils {
 
     public static void printState(AsyncJsPublisher publisher, ExamplePublishListener publishListener) {
         print(
+            "elapsed=" + publishListener.elapsed(),
             "pre-flight=" + publisher.preFlightSize(),
             "in-flight=" + publisher.inFlightSize(),
             "published=" + publishListener.published,
