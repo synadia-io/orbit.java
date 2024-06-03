@@ -8,15 +8,12 @@ import io.nats.client.Nats;
 import io.nats.client.Options;
 import io.nats.client.impl.ErrorListenerConsoleImpl;
 import io.synadia.jnats.extension.AsyncJsPublisher;
-import io.synadia.retrier.RetryConfig;
 
-public class AsyncJsPublisherExample {
+public class AsyncJsPublisherCustomizedExample {
 
-    public static final int COUNT = 100_000;
-    public static final String STREAM = "exampleStream";
-    public static final String SUBJECT = "exampleSubject";
-
-    public static final boolean USE_RETRIER = false;  // set this to true to have each publish use retry logic
+    public static final int COUNT = 100_0000;
+    public static final String STREAM = "customStream";
+    public static final String SUBJECT = "customSubject";
 
     public static void main(String[] args) {
         Options options = Options.builder()
@@ -34,20 +31,26 @@ public class AsyncJsPublisherExample {
             // --------------------------------------------------------------------------------
             ExamplePublishListener publishListener = new ExamplePublishListener();
 
+            // --------------------------------------------------------------------------------
+            // These are the defaults from AsyncJsPublisher...
+            // --------------------------------------------------------------------------------
+            // public static final int DEFAULT_MAX_IN_FLIGHT = 50;
+            // public static final int DEFAULT_REFILL_AMOUNT = 0;
+            // public static final long DEFAULT_POLL_TIME = 100;
+            // public static final long DEFAULT_PAUSE_TIME = 100;
+            // public static final long DEFAULT_WAIT_TIMEOUT = DEFAULT_MAX_IN_FLIGHT * DEFAULT_POLL_TIME;
+            // --------------------------------------------------------------------------------
             AsyncJsPublisher.Builder builder =
                 AsyncJsPublisher.builder(nc.jetStream())
+                    .maxInFlight(250)
+                    .refillAllowedAt(100)
+                    .pollTime(50)
+                    .holdPauseTime(150)
+                    .waitTimeout(3000)
                     .publishListener(publishListener);
-
-            // --------------------------------------------------------------------------------
-            // If you want to use retrying for publishing, you must give a Retry Config
-            // --------------------------------------------------------------------------------
-            if (USE_RETRIER) {
-                builder.retryConfig(RetryConfig.DEFAULT_CONFIG);
-            }
 
             // The publisher is AutoCloseable
             try (AsyncJsPublisher publisher = builder.start()) {
-
                 for (int x = 1; x <= COUNT; x++) {
                     publisher.publishAsync(SUBJECT, ("data-" + x).getBytes());
                 }

@@ -11,36 +11,36 @@ import java.util.concurrent.CompletableFuture;
 /**
  * This object represents the message as given to the AsyncJsPublisher
  * and is carried through until it's actually published, at which time it's converted
- * to a Flight.
+ * to a InFlight.
  */
 public class PreFlight {
-    public final String id;
+    public final String messageId;
     public final String subject;
     public final Headers headers;
     public final byte[] body;
     public final PublishOptions options;
-    public final CompletableFuture<Flight> flightFuture;
+    public final CompletableFuture<InFlight> inFlightFuture;
 
-    public PreFlight(String id, String subject, Headers headers, byte[] body, PublishOptions options) {
-        this.id = id;
+    public PreFlight(String messageId, String subject, Headers headers, byte[] body, PublishOptions options) {
+        this.messageId = messageId;
         this.subject = subject;
         this.headers = headers;
         this.body = body;
         this.options = options;
-        flightFuture = new CompletableFuture<>();
+        inFlightFuture = new CompletableFuture<>();
     }
 
     protected PreFlight(PreFlight preFlight) {
-        this.id = preFlight.id;
+        this.messageId = preFlight.messageId;
         this.subject = preFlight.subject;
         this.headers = preFlight.headers;
         this.body = preFlight.body;
         this.options = preFlight.options;
-        flightFuture = preFlight.flightFuture;
+        inFlightFuture = preFlight.inFlightFuture;
     }
 
-    public String getId() {
-        return id;
+    public String getMessageId() {
+        return messageId;
     }
 
     public String getSubject() {
@@ -59,7 +59,16 @@ public class PreFlight {
         return options;
     }
 
-    public CompletableFuture<Flight> getFlightFuture() {
-        return flightFuture;
+    public CompletableFuture<InFlight> getInFlightFuture() {
+        return inFlightFuture;
+    }
+
+    @Override
+    public String toString() {
+        return "PreFlight{" +
+            "messageId='" + messageId + '\'' +
+            ", subject='" + subject + '\'' +
+            ", body=" + (body == null ? "null" : new String(body)) +
+            '}';
     }
 }

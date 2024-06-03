@@ -13,27 +13,21 @@ import java.util.concurrent.CompletableFuture;
  * This object represents a message in the AsyncJsPublisher workflow
  * after being published.
  */
-public class Flight {
-    public final long publishTime;
+public class InFlight {
     public final CompletableFuture<PublishAck> publishAckFuture;
     public final PreFlight preFlight;
 
-    public Flight(CompletableFuture<PublishAck> publishAckFuture, PreFlight preFlight) {
-        publishTime = System.currentTimeMillis();
+    public InFlight(CompletableFuture<PublishAck> publishAckFuture, PreFlight preFlight) {
         this.publishAckFuture = publishAckFuture;
         this.preFlight = preFlight;
-    }
-
-    public long getPublishTime() {
-        return publishTime;
     }
 
     public CompletableFuture<PublishAck> getPublishAckFuture() {
         return publishAckFuture;
     }
 
-    public String getId() {
-        return preFlight.id;
+    public String getMessageId() {
+        return preFlight.messageId;
     }
 
     public String getSubject() {
@@ -52,7 +46,7 @@ public class Flight {
         return preFlight.options;
     }
 
-    public CompletableFuture<Flight> getFlightFuture() {
-        return preFlight.flightFuture;
+    public CompletableFuture<InFlight> getFlightFuture() {
+        return preFlight.inFlightFuture;
     }
 }

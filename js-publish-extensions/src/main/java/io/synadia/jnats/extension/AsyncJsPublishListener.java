@@ -11,25 +11,25 @@ public interface AsyncJsPublishListener {
      * The message has been published
      * @param flight the flight representing the message
      */
-    void published(Flight flight);
+    void published(InFlight flight);
 
     /**
      * The message has been acked
      * @param flight the flight representing the message
      */
-    void acked(Flight flight);
+    void acked(PostFlight flight);
 
     /**
      * The message has completed exceptionally, for instance a 503 No Responders.
      * Timeouts are notified via the timeout method.
      * @param flight the flight representing the message
      */
-    void completedExceptionally(Flight flight);
+    void completedExceptionally(PostFlight flight);
 
     /**
      * The message has internally timed out waiting for the ack. Usually a sign of
      * lost connection.
      * @param flight the flight representing the message
      */
-    void timeout(Flight flight);
+    void timeout(PostFlight flight);
 }
