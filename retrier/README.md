@@ -21,6 +21,5 @@ The [Unit Tests](src/test/java/io/synadia/jnats/extension/RetrierTests.java) may
 
 See the [Main README.md](../README.md). The group is `io.synadia` The artifact is `retrier`
 
-
 Copyright (c) 2024 Synadia Communications Inc. All Rights Reserved.
 See [LICENSE](LICENSE) and [NOTICE](NOTICE) file for details.
