@@ -385,6 +385,7 @@ public class AsyncJsPublisher implements AutoCloseable {
 
     /**
      * Creates a builder for the AsyncJsPublisher
+     * @param js the JetStream context
      * @return the builder
      */
     public static Builder builder(JetStream js) {
