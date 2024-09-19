@@ -296,17 +296,12 @@ public class AsyncJsPublisher implements AutoCloseable {
                 }
                 else {
                     try {
-                        // if we have to process in order, just get the future
-                        // if the future is done, we can also get it
-                        // if we don't have to process in order and it's not done, we can just
-                        // put it back in the end of queue and check it later
-                        if (processAcksInOrder || head.publishAckFuture.isDone()) {
-                            PublishAck pa = head.publishAckFuture.get(waitTimeout, TimeUnit.MILLISECONDS);
-                            notifyCompleted(new PostFlight(head, pa));
-                        }
-                        else {
-                            inFlights.offer(head);
-                        }
+                        // Turns out processing in order is faster
+                        // I think the reason behind this is that while waiting for the one
+                        // at the head of the queue, plus the processing time,
+                        // allows more acks to complete. It's like head of line blocking but in a good way.
+                        PublishAck pa = head.publishAckFuture.get(waitTimeout, TimeUnit.MILLISECONDS);
+                        notifyCompleted(new PostFlight(head, pa));
                     }
                     catch (ExecutionException e) {
                         handleExecutionException(e, head);
@@ -519,7 +514,10 @@ public class AsyncJsPublisher implements AutoCloseable {
          * in the smae order they were published/queued
          * @param processAcksInOrder the setting
          * @return the builder
+         * @deprecated Turns out processing in order is faster,
+         *             my guess is that by waiting for the get, acks at the end of the queue complete.
          */
+        @Deprecated
         public Builder processAcksInOrder(boolean processAcksInOrder) {
             this.processAcksInOrder = processAcksInOrder;
             return this;
