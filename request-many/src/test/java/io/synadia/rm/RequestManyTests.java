@@ -21,14 +21,18 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class RequestManyTests {
 
+    private static RequestMany maxResponseRequest(Connection nc) {
+        return RequestMany.builder(nc).maxResponses(3).build();
+    }
+
     @Test
     public void testMaxResponseFetch() throws Exception {
         try (Connection nc = connect()) {
             try (Replier replier = new Replier(nc, 5)) {
-                RequestMany rm = RequestMany.builder(nc).maxResponses(3).build();
+                RequestMany rm = maxResponseRequest(nc);
                 List<Message> list = rm.fetch(replier.subject, null);
                 assertEquals(3, list.size());
-                assertEquals(5, replier.responded());
+                assertTrue(replier.latch.await(1, TimeUnit.SECONDS));
             }
         }
     }
@@ -37,7 +41,7 @@ public class RequestManyTests {
     public void testMaxResponseIterate() throws Exception {
         try (Connection nc = connect()) {
             try (Replier replier = new Replier(nc, 5)) {
-                RequestMany rm = RequestMany.builder(nc).maxResponses(3).build();
+                RequestMany rm = maxResponseRequest(nc);
                 LinkedBlockingQueue<Message> it = rm.iterate(replier.subject, null);
                 int count = 0;
                 Message m = it.poll(DEFAULT_TOTAL_WAIT_TIME_MS, TimeUnit.MILLISECONDS);
@@ -46,7 +50,7 @@ public class RequestManyTests {
                     m = it.poll(DEFAULT_TOTAL_WAIT_TIME_MS, TimeUnit.MILLISECONDS);
                 }
                 assertEquals(3, count);
-                assertEquals(5, replier.responded());
+                assertTrue(replier.latch.await(DEFAULT_TOTAL_WAIT_TIME_MS, TimeUnit.MILLISECONDS));
             }
         }
     }
@@ -55,14 +59,22 @@ public class RequestManyTests {
     public void testMaxResponseConsume() throws Exception {
         try (Connection nc = connect()) {
             try (Replier replier = new Replier(nc, 5)) {
+                RequestMany rm = maxResponseRequest(nc);
                 TestRmConsumer tmc = new TestRmConsumer();
-                RequestMany rm = RequestMany.builder(nc).maxResponses(3).build();
                 rm.consume(replier.subject, null, tmc);
-                assertTrue(tmc.notified.await(3, TimeUnit.SECONDS));
-                assertEquals(3, tmc.received.get());
-                assertEquals(5, replier.responded());
-            }
+                assertTrue(tmc.eodReceived.await(3, TimeUnit.SECONDS));
+                assertEquals(3, tmc.msgReceived.get());
+                assertTrue(replier.latch.await(1, TimeUnit.SECONDS));
+             }
         }
+    }
+
+    private static RequestMany maxWaitTimeRequest(Connection nc) {
+        return RequestMany.builder(nc).build();
+    }
+
+    private static RequestMany maxWaitTimeRequest(Connection nc, long totalWaitTime) {
+        return RequestMany.builder(nc).totalWaitTime(totalWaitTime).build();
     }
 
     @Test
@@ -74,25 +86,24 @@ public class RequestManyTests {
     }
 
     private static void _testMaxWaitTimeFetch(Connection nc, long wait) throws Exception {
-        String subject = NUID.nextGlobalSequence();
-        try (Replier replier = new Replier(nc, 1, DEFAULT_TOTAL_WAIT_TIME_MS, 1)) {
-            RequestMany rm = RequestMany.builder(nc).build();
+        try (Replier replier = new Replier(nc, 1, wait + 200, 1)) {
+            RequestMany rm = maxWaitTimeRequest(nc, wait);
 
             long start = System.currentTimeMillis();
-            List<Message> list = rm.fetch(subject, null);
+            List<Message> list = rm.fetch(replier.subject, null);
             long elapsed = System.currentTimeMillis() - start;
 
             assertTrue(elapsed > wait);
             assertEquals(1, list.size());
-            assertEquals(1, replier.responded());
+            assertTrue(replier.latch.await(1, TimeUnit.SECONDS));
         }
     }
 
     @Test
     public void testMaxWaitTimeIterate() throws Exception {
         try (Connection nc = connect()) {
-            try (Replier replier = new Replier(nc, 1, DEFAULT_TOTAL_WAIT_TIME_MS, 1)) {
-                RequestMany rm = RequestMany.builder(nc).build();
+            try (Replier replier = new Replier(nc, 1, 1200, 1)) {
+                RequestMany rm = maxWaitTimeRequest(nc);
 
                 LinkedBlockingQueue<Message> it = rm.iterate(replier.subject, null);
                 int received = 0;
@@ -103,7 +114,7 @@ public class RequestManyTests {
                 }
 
                 assertEquals(1, received);
-                assertEquals(1, replier.responded());
+                assertTrue(replier.latch.await(1, TimeUnit.SECONDS));
             }
         }
     }
@@ -111,18 +122,18 @@ public class RequestManyTests {
     @Test
     public void testMaxWaitTimeConsume() throws Exception {
         try (Connection nc = connect()) {
-            try (Replier replier = new Replier(nc, 1, DEFAULT_TOTAL_WAIT_TIME_MS, 1)) {
-                RequestMany rm = RequestMany.builder(nc).build();
+            try (Replier replier = new Replier(nc, 1, 1200, 1)) {
+                RequestMany rm = maxWaitTimeRequest(nc);
 
                 TestRmConsumer tmc = new TestRmConsumer();
                 long start = System.currentTimeMillis();
                 rm.consume(replier.subject, null, tmc);
-                assertTrue(tmc.notified.await(DEFAULT_TOTAL_WAIT_TIME_MS * 2, TimeUnit.MILLISECONDS));
+                assertTrue(tmc.eodReceived.await(DEFAULT_TOTAL_WAIT_TIME_MS * 3 / 2, TimeUnit.MILLISECONDS));
                 long elapsed = System.currentTimeMillis() - start;
 
                 assertTrue(elapsed > DEFAULT_TOTAL_WAIT_TIME_MS && elapsed < (DEFAULT_TOTAL_WAIT_TIME_MS * 2));
-                assertEquals(1, tmc.received.get());
-                assertEquals(1, replier.responded());
+                assertEquals(1, tmc.msgReceived.get());
+                assertTrue(replier.latch.await(1, TimeUnit.SECONDS));
             }
         }
     }
@@ -131,16 +142,16 @@ public class RequestManyTests {
     // Support Classes
     // ----------------------------------------------------------------------------------------------------
     static class TestRmConsumer implements RmConsumer {
-        public final CountDownLatch notified = new CountDownLatch(1);
-        public final AtomicInteger received = new AtomicInteger();
+        public final CountDownLatch eodReceived = new CountDownLatch(1);
+        public final AtomicInteger msgReceived = new AtomicInteger();
 
         @Override
         public boolean consume(Message m) {
             if (m == RequestMany.EOD) {
-                notified.countDown();
+                eodReceived.countDown();
             }
             else {
-                received.incrementAndGet();
+                msgReceived.incrementAndGet();
             }
             return true;
         }
@@ -149,11 +160,7 @@ public class RequestManyTests {
     static class Replier implements AutoCloseable {
         final Dispatcher dispatcher;
         public final String subject;
-        public final AtomicInteger responded;
-
-        public int responded() {
-            return responded.get();
-        }
+        public final CountDownLatch latch;
 
         public Replier(final Connection nc, final int count) {
             this(nc, count, -1, -1);
@@ -161,18 +168,18 @@ public class RequestManyTests {
 
         public Replier(final Connection nc, final int count, final long pause, final int count2) {
             this.subject = NUID.nextGlobalSequence();
+            latch = new CountDownLatch(count + (pause > 0 ? count2 : 0));
 
-            responded = new AtomicInteger();
             dispatcher = nc.createDispatcher(m -> {
                 for (int x = 0; x < count; x++) {
                     nc.publish(m.getReplyTo(), null);
-                    responded.incrementAndGet();
+                    latch.countDown();
                 }
                 if (pause > 0) {
                     sleep(pause);
                     for (int x = 0; x < count2; x++) {
                         nc.publish(m.getReplyTo(), null);
-                        responded.incrementAndGet();
+                        latch.countDown();
                     }
                 }
             });
