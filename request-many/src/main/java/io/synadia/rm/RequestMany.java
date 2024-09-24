@@ -103,9 +103,7 @@ public class RequestMany {
         final LinkedBlockingQueue<Message> q = new LinkedBlockingQueue<>();
         conn.getOptions().getExecutor().submit(() -> {
             consume(subject, headers, payload, msg -> {
-                if (msg != EOD) {
-                    q.add(msg);
-                }
+                q.add(msg);
                 return true;
             });
         });
