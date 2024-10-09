@@ -23,7 +23,7 @@ import java.util.concurrent.TimeUnit;
 /**
  * Iterate returns immediately with an unbounded queue, then runs on an executor thread
  */
-public class RmQueueExample {
+public class QueueExample {
     static final String RESPOND_SUBJECT = "rsvp";
     static final int RESPONDERS = 3;
 

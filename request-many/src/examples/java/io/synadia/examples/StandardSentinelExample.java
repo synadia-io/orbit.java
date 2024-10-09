@@ -26,7 +26,7 @@ import java.util.concurrent.TimeUnit;
  * <p>Standard sentinel works with the RequestMany.fetch, RequestMany.iterate and RequestMany.request,
  * although you probably would not use it with request as you can provide your own sentinel handling.
  */
-public class RmStandardSentinelExample {
+public class StandardSentinelExample {
     static final String RESPOND_SUBJECT = "rsvp";
     static final int MESSAGES_BEFORE_SENTINEL = 3;
 
