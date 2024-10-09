@@ -1,217 +1,515 @@
 package io.synadia.rm;
 
 import io.nats.client.*;
+import io.nats.client.impl.NatsMessage;
 import nats.io.ConsoleOutput;
 import nats.io.NatsServerRunner;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
-import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 
-import static io.synadia.rm.RequestMany.DEFAULT_TOTAL_WAIT_TIME_MS;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static io.nats.client.impl.ImplUtils.createStatusMessage;
+import static io.nats.client.support.NatsConstants.NANOS_PER_MILLI;
+import static io.synadia.rm.RequestMany.DEFAULT_SENTINEL_STRATEGY_TOTAL_WAIT;
+import static org.junit.jupiter.api.Assertions.*;
 
 public class RequestManyTests {
 
-    private static RequestMany maxResponseRequest(Connection nc) {
-        return RequestMany.builder(nc).maxResponses(3).build();
+    private static final long MAX_MILLIS = Long.MAX_VALUE / NANOS_PER_MILLI; // copied b/c I didn't want it public in the code
+
+    public static final int TEST_TWT = 1000;
+    public static final int MAX_WAIT_PAUSE = 1200;
+    public static final int STALL_WAIT = 300;
+    public static final int STALL_PAUSE = 400;
+    public static final int SHORT_CIRCUIT_TIME = 500;
+    public static final int MAX_RESPONSES_RESPONDERS = 5;
+    public static final int MAX_RESPONSES = 2;
+
+    enum Last{ Normal, Status, Ex, None }
+
+    private static RequestMany.Builder builder() {
+        return RequestMany.builder(NC);
     }
 
-    @Test
-    public void testMaxResponseFetch() throws Exception {
-        try (Connection nc = connect()) {
-            try (Replier replier = new Replier(nc, 5)) {
-                RequestMany rm = maxResponseRequest(nc);
-                List<Message> list = rm.fetch(replier.subject, null);
-                assertEquals(3, list.size());
-                assertTrue(replier.latch.await(1, TimeUnit.SECONDS));
+    private void assertMessages(int regularMessages, Last last, List<RmMessage> list) {
+        for (int x = 0; x < regularMessages; x++) {
+            assertTrue(list.get(x).isDataMessage());
+        }
+        if (last == Last.None) {
+            assertEquals(regularMessages, list.size());
+        }
+        else {
+            assertEquals(regularMessages + 1, list.size());
+            RmMessage lastRmm = list.get(regularMessages);
+            switch (last) {
+                case Normal: assertTrue(lastRmm.isNormalEndOfData()); break;
+                case Status: assertTrue(lastRmm.isStatusMessage()); break;
+                case Ex: assertTrue(lastRmm.isException()); break;
             }
         }
     }
 
-    @Test
-    public void testMaxResponseIterate() throws Exception {
-        try (Connection nc = connect()) {
-            try (Replier replier = new Replier(nc, 5)) {
-                RequestMany rm = maxResponseRequest(nc);
-                LinkedBlockingQueue<Message> it = rm.iterate(replier.subject, null);
-                int count = 0;
-                Message m = it.poll(DEFAULT_TOTAL_WAIT_TIME_MS, TimeUnit.MILLISECONDS);
-                while (m != null && m != RequestMany.EOD) {
-                    count++;
-                    m = it.poll(DEFAULT_TOTAL_WAIT_TIME_MS, TimeUnit.MILLISECONDS);
+    private static RmHandlerAndResult _request(RequestMany rm, String subject) {
+        RmHandlerAndResult handler = new RmHandlerAndResult();
+        long start = System.currentTimeMillis();
+        rm.request(subject, null, handler);
+        handler.elapsed = System.currentTimeMillis() - start;
+        return handler;
+    }
+
+    private static Result _fetch(RequestMany rm, String subject) {
+        Result result = new Result();
+        long start = System.currentTimeMillis();
+        result.list = rm.fetch(subject, null);
+        result.elapsed = System.currentTimeMillis() - start;
+        return result;
+    }
+
+    private static Result _queue(RequestMany rm, String subject) throws InterruptedException {
+        LinkedBlockingQueue<RmMessage> it = rm.queue(subject, null);
+        Result result = new Result();
+        long start = System.nanoTime();
+        long stop = start + (DEFAULT_TIMEOUT * NANOS_PER_MILLI);
+        while (System.nanoTime() < stop) {
+            RmMessage m = it.poll(1, TimeUnit.MILLISECONDS);
+            if (m != null) {
+                result.list.add(m);
+                if (m.isEndOfData()) {
+                    break;
                 }
-                assertEquals(3, count);
-                assertTrue(replier.latch.await(DEFAULT_TOTAL_WAIT_TIME_MS, TimeUnit.MILLISECONDS));
             }
         }
+        result.elapsed = (System.nanoTime() - start) / NANOS_PER_MILLI;
+        return result;
+    }
+
+    public String random() {
+        return NUID.nextGlobalSequence();
     }
 
     @Test
-    public void testMaxResponseConsume() throws Exception {
-        try (Connection nc = connect()) {
-            try (Replier replier = new Replier(nc, 5)) {
-                RequestMany rm = maxResponseRequest(nc);
-                TestRmConsumer tmc = new TestRmConsumer();
-                rm.consume(replier.subject, null, tmc);
-                assertTrue(tmc.eodReceived.await(3, TimeUnit.SECONDS));
-                assertEquals(3, tmc.msgReceived.get());
-                assertTrue(replier.latch.await(1, TimeUnit.SECONDS));
-             }
-        }
-    }
-
-    private static RequestMany maxWaitTimeRequest(Connection nc) {
-        return RequestMany.builder(nc).build();
-    }
-
-    private static RequestMany maxWaitTimeRequest(Connection nc, long totalWaitTime) {
-        return RequestMany.builder(nc).totalWaitTime(totalWaitTime).build();
+    public void testNoRespondersRequest() throws Exception {
+        RequestMany rm = builder().build();
+        RmHandlerAndResult result = _request(rm, random());
+        assertMessages(0, Last.Status, result.list);
+        assertTrue(result.elapsed < SHORT_CIRCUIT_TIME);
+        assertTrue(result.eodReceived.await(SHORT_CIRCUIT_TIME, TimeUnit.MILLISECONDS));
     }
 
     @Test
-    public void testMaxWaitTimeFetch() throws Exception {
-        try (Connection nc = connect()) {
-            _testMaxWaitTimeFetch(nc, DEFAULT_TOTAL_WAIT_TIME_MS);
-            _testMaxWaitTimeFetch(nc, 500);
-        }
+    public void testNoRespondersFetch() throws Exception {
+        RequestMany rm = builder().build();
+        Result result = _fetch(rm, random());
+        assertMessages(0, Last.Status, result.list);
+        assertTrue(result.elapsed < SHORT_CIRCUIT_TIME);
     }
 
-    private static void _testMaxWaitTimeFetch(Connection nc, long wait) throws Exception {
-        try (Replier replier = new Replier(nc, 1, wait + 200, 1)) {
-            RequestMany rm = maxWaitTimeRequest(nc, wait);
+    @Test
+    public void testNoRespondersQueue() throws Exception {
+        RequestMany rm = builder().build();
+        Result result = _queue(rm, random());
+        assertMessages(0, Last.Status, result.list);
+        assertTrue(result.elapsed < SHORT_CIRCUIT_TIME);
+    }
 
-            long start = System.currentTimeMillis();
-            List<Message> list = rm.fetch(replier.subject, null);
-            long elapsed = System.currentTimeMillis() - start;
-
-            assertTrue(elapsed > wait);
-            assertEquals(1, list.size());
-            assertTrue(replier.latch.await(1, TimeUnit.SECONDS));
+    @Test
+    public void testMaxWaitRequest() throws Exception {
+        try (Responder responder = new Responder(1, MAX_WAIT_PAUSE, 1)) {
+            RequestMany rm = builder().totalWaitTime(TEST_TWT).build();
+            RmHandlerAndResult result = _request(rm, responder.subject);
+            assertMessages(1, Last.Normal, result.list);
+            assertTrue(result.elapsed >= TEST_TWT);
+            assertTrue(result.eodReceived.await(TEST_TWT * 2, TimeUnit.MILLISECONDS));
         }
     }
 
     @Test
-    public void testMaxWaitTimeIterate() throws Exception {
-        try (Connection nc = connect()) {
-            try (Replier replier = new Replier(nc, 1, 1200, 1)) {
-                RequestMany rm = maxWaitTimeRequest(nc);
-
-                LinkedBlockingQueue<Message> it = rm.iterate(replier.subject, null);
-                int received = 0;
-                Message m = it.poll(DEFAULT_TOTAL_WAIT_TIME_MS, TimeUnit.MILLISECONDS);
-                while (m != null && m != RequestMany.EOD) {
-                    received++;
-                    m = it.poll(DEFAULT_TOTAL_WAIT_TIME_MS, TimeUnit.MILLISECONDS);
-                }
-
-                assertEquals(1, received);
-                assertTrue(replier.latch.await(1, TimeUnit.SECONDS));
-            }
+    public void testMaxWaitFetch() throws Exception {
+        try (Responder responder = new Responder(1, MAX_WAIT_PAUSE, 1)) {
+            RequestMany rm = builder().totalWaitTime(TEST_TWT).build();
+            Result result = _fetch(rm, responder.subject);
+            assertMessages(1, Last.None, result.list);
+            assertTrue(result.elapsed >= TEST_TWT);
         }
     }
 
     @Test
-    public void testMaxWaitTimeConsume() throws Exception {
-        try (Connection nc = connect()) {
-            try (Replier replier = new Replier(nc, 1, 1200, 1)) {
-                RequestMany rm = maxWaitTimeRequest(nc);
-
-                TestRmConsumer tmc = new TestRmConsumer();
-                long start = System.currentTimeMillis();
-                rm.consume(replier.subject, null, tmc);
-                assertTrue(tmc.eodReceived.await(DEFAULT_TOTAL_WAIT_TIME_MS * 3 / 2, TimeUnit.MILLISECONDS));
-                long elapsed = System.currentTimeMillis() - start;
-
-                assertTrue(elapsed > DEFAULT_TOTAL_WAIT_TIME_MS && elapsed < (DEFAULT_TOTAL_WAIT_TIME_MS * 2));
-                assertEquals(1, tmc.msgReceived.get());
-                assertTrue(replier.latch.await(1, TimeUnit.SECONDS));
-            }
+    public void testMaxWaitQueue() throws Exception {
+        try (Responder responder = new Responder(1, MAX_WAIT_PAUSE, 1)) {
+            RequestMany rm = builder().totalWaitTime(TEST_TWT).build();
+            Result result = _queue(rm, responder.subject);
+            assertMessages(1, Last.Normal, result.list);
+            assertTrue(result.elapsed >= TEST_TWT);
         }
+    }
+
+    @Test
+    public void testStallRequest() throws Exception {
+        try (Responder responder = new Responder(1, STALL_PAUSE, 1)) {
+            RequestMany rm = builder().stallTime(STALL_WAIT).build();
+            RmHandlerAndResult result = _request(rm, responder.subject);
+            assertMessages(1, Last.Normal, result.list);
+            assertTrue(result.elapsed <= DEFAULT_TIMEOUT);
+            assertTrue(result.eodReceived.await(STALL_WAIT * 2, TimeUnit.MILLISECONDS));
+        }
+    }
+
+    @Test
+    public void testStallFetch() throws Exception {
+        try (Responder responder = new Responder(1, STALL_PAUSE, 1)) {
+            RequestMany rm = builder().stallTime(STALL_WAIT).build();
+            Result result = _fetch(rm, responder.subject);
+            assertMessages(1, Last.None, result.list);
+            assertTrue(result.elapsed <= DEFAULT_TIMEOUT);
+
+            rm = RequestMany.stall(NC);
+            result = _fetch(rm, responder.subject);
+            assertMessages(1, Last.None, result.list);
+            assertTrue(result.elapsed <= DEFAULT_TIMEOUT);
+        }
+    }
+
+    @Test
+    public void testStallQueue() throws Exception {
+        try (Responder responder = new Responder(1, STALL_PAUSE, 1)) {
+            RequestMany rm = builder().stallTime(STALL_WAIT).build();
+            Result result = _queue(rm, responder.subject);
+            assertMessages(1, Last.Normal, result.list);
+            assertTrue(result.elapsed <= DEFAULT_TIMEOUT);
+
+            rm = RequestMany.stall(NC);
+            result = _queue(rm, responder.subject);
+            assertMessages(1, Last.Normal, result.list);
+            assertTrue(result.elapsed <= DEFAULT_TIMEOUT);
+        }
+    }
+
+    @Test
+    public void testMaxResponsesRequest() throws Exception {
+        try (Responder responder = new Responder(MAX_RESPONSES_RESPONDERS)) {
+            RequestMany rm = builder().maxResponses(MAX_RESPONSES).build();
+            RmHandlerAndResult result = _request(rm, responder.subject);
+            assertMessages(MAX_RESPONSES, Last.Normal, result.list);
+            assertTrue(result.elapsed < SHORT_CIRCUIT_TIME);
+            assertTrue(result.eodReceived.await(SHORT_CIRCUIT_TIME, TimeUnit.SECONDS));
+        }
+    }
+
+    @Test
+    public void testMaxResponsesFetch() throws Exception {
+        try (Responder responder = new Responder(MAX_RESPONSES_RESPONDERS)) {
+            RequestMany rm = builder().maxResponses(MAX_RESPONSES).build();
+            Result result = _fetch(rm, responder.subject);
+            assertMessages(MAX_RESPONSES, Last.None, result.list);
+            assertTrue(result.elapsed < SHORT_CIRCUIT_TIME);
+
+            rm = RequestMany.maxResponses(NC, MAX_RESPONSES);
+            result = _fetch(rm, responder.subject);
+            assertMessages(MAX_RESPONSES, Last.None, result.list);
+            assertTrue(result.elapsed < SHORT_CIRCUIT_TIME);
+        }
+    }
+
+    @Test
+    public void testMaxResponsesQueue() throws Exception {
+        try (Responder responder = new Responder(MAX_RESPONSES_RESPONDERS)) {
+            RequestMany rm = builder().maxResponses(MAX_RESPONSES).build();
+            Result result = _queue(rm, responder.subject);
+            assertMessages(MAX_RESPONSES, Last.Normal, result.list);
+            assertTrue(result.elapsed < SHORT_CIRCUIT_TIME);
+
+            rm = RequestMany.maxResponses(NC, MAX_RESPONSES);
+            result = _queue(rm, responder.subject);
+            assertMessages(MAX_RESPONSES, Last.Normal, result.list);
+            assertTrue(result.elapsed < SHORT_CIRCUIT_TIME);
+        }
+    }
+
+    @Test
+    public void testSentinelRequest() throws Exception {
+        try (Responder responder = new Responder(2, true)) {
+            RequestMany rm = builder().standardSentinel().build();
+            List<RmMessage> list = new ArrayList<>();
+            rm.request(responder.subject, null, rmm -> {
+                list.add(rmm);
+                return true;
+            });
+            assertMessages(2, Last.Normal, list);
+        }
+    }
+
+    @Test
+    public void testSentinelFetch() throws Exception {
+        try (Responder responder = new Responder(2, true)) {
+            RequestMany rm = builder().standardSentinel().build();
+            Result result = _fetch(rm, responder.subject);
+            assertMessages(2, Last.None, result.list);
+            assertTrue(result.elapsed <= DEFAULT_TIMEOUT);
+
+            rm = RequestMany.standardSentinel(NC);
+            result = _fetch(rm, responder.subject);
+            assertMessages(2, Last.None, result.list);
+            assertTrue(result.elapsed <= DEFAULT_TIMEOUT);
+        }
+    }
+
+    @Test
+    public void testSentinelQueue() throws Exception {
+        try (Responder responder = new Responder(2, true)) {
+            RequestMany rm = builder().standardSentinel().build();
+            Result result = _queue(rm, responder.subject);
+            assertMessages(2, Last.Normal, result.list);
+            assertTrue(result.elapsed <= DEFAULT_TIMEOUT);
+
+            rm = RequestMany.standardSentinel(NC);
+            result = _queue(rm, responder.subject);
+            assertMessages(2, Last.Normal, result.list);
+            assertTrue(result.elapsed <= DEFAULT_TIMEOUT);
+        }
+    }
+
+    @Test
+    public void testUserSentinel() throws Exception {
+        try (Responder responder = new Responder(MAX_RESPONSES_RESPONDERS)) {
+            RequestMany rm = builder().build();
+            List<RmMessage> list = new ArrayList<>();
+            rm.request(responder.subject, null, rmm -> {
+                list.add(rmm);
+                return list.size() < 2;
+            });
+            assertMessages(2, Last.None, list);
+        }
+    }
+
+    @Test
+    public void testRequestManyBuilder() {
+        // totalWaitTime
+        assertBuilder(-1, -1, -1, false, builder().build());
+        assertBuilder(1000, -1, -1, false, builder().totalWaitTime(1000).build());
+        assertBuilder(MAX_MILLIS, -1, -1, false, builder().totalWaitTime(MAX_MILLIS).build());
+        assertBuilder(MAX_MILLIS, -1, -1, false, builder().totalWaitTime(MAX_MILLIS + 1).build());
+        assertBuilder(-1, -1, -1, false, builder().totalWaitTime(0).build());
+        assertBuilder(-1, -1, -1, false, builder().totalWaitTime(-1).build());
+
+        // wait strategy
+        assertBuilder(-1, -1, -1, false, RequestMany.wait(NC));
+        assertBuilder(1000, -1, -1, false, RequestMany.wait(NC, 1000));
+        assertBuilder(MAX_MILLIS, -1, -1, false, RequestMany.wait(NC, MAX_MILLIS));
+        assertBuilder(MAX_MILLIS, -1, -1, false, RequestMany.wait(NC, MAX_MILLIS + 1));
+        assertBuilder(-1, -1, -1, false, RequestMany.wait(NC, 0));
+        assertBuilder(-1, -1, -1, false, RequestMany.wait(NC, -1));
+
+        // stallTime
+        assertBuilder(-1, 1, -1, false, builder().stallTime(1).build());
+        assertBuilder(-1, MAX_MILLIS, -1, false, builder().stallTime(MAX_MILLIS).build());
+        assertBuilder(-1, MAX_MILLIS, -1, false, builder().stallTime(MAX_MILLIS + 1).build());
+        assertBuilder(-1, -1, -1, false, builder().stallTime(0).build());
+        assertBuilder(-1, -1, -1, false, builder().stallTime(-1).build());
+
+        // stall strategy
+        assertBuilder(-1, DEFAULT_TIMEOUT / 10, -1, false, RequestMany.stall(NC));
+        assertBuilder(MAX_MILLIS, DEFAULT_TIMEOUT, -1, false, RequestMany.stall(NC, MAX_MILLIS));
+        assertBuilder(MAX_MILLIS, DEFAULT_TIMEOUT, -1, false, RequestMany.stall(NC, MAX_MILLIS + 1));
+        assertBuilder(-1, DEFAULT_TIMEOUT / 10, -1, false, RequestMany.stall(NC, 0));
+        assertBuilder(-1, DEFAULT_TIMEOUT / 10, -1, false, RequestMany.stall(NC, -1));
+
+        // maxResponse
+        assertBuilder(-1, -1, 1, false, builder().maxResponses(1).build());
+        assertBuilder(-1, -1, Long.MAX_VALUE, false, builder().maxResponses(Long.MAX_VALUE).build());
+        assertBuilder(-1, -1, -1, false, builder().maxResponses(0).build());
+        assertBuilder(-1, -1, -1, false, builder().maxResponses(-1).build());
+
+        // maxResponse strategy
+        assertBuilder(-1, -1, 1, false, RequestMany.maxResponses(NC, 1));
+        assertBuilder(-1, -1, Long.MAX_VALUE, false, RequestMany.maxResponses(NC, Long.MAX_VALUE));
+        assertBuilder(-1, -1, -1, false, RequestMany.maxResponses(NC, 0));
+        assertBuilder(-1, -1, -1, false, RequestMany.maxResponses(NC, -1));
+
+        // standardSentinel
+        assertBuilder(-1, -1, -1, true, builder().standardSentinel().build());
+
+        // standardSentinel strategy
+        assertBuilder(DEFAULT_SENTINEL_STRATEGY_TOTAL_WAIT, DEFAULT_TIMEOUT, -1, true, RequestMany.standardSentinel(NC));
+        assertBuilder(MAX_MILLIS, DEFAULT_TIMEOUT, -1, true, RequestMany.standardSentinel(NC, MAX_MILLIS));
+    }
+
+    private void assertBuilder(long exTo, long exStall, long exResp, boolean stdSentinel, RequestMany rm) {
+        assertEquals(exTo == -1 ? Options.DEFAULT_CONNECTION_TIMEOUT.toMillis() : exTo, rm.getTotalWaitTime());
+        assertEquals(exStall, rm.getStallTime());
+        assertEquals(exResp, rm.getMaxResponses());
+        String s = rm.toString();
+        if (exStall == -1) {
+            assertTrue(s.contains("<no stall>"));
+        }
+        else {
+            assertTrue(s.contains("maxStall"));
+        }
+        if (exResp == -1) {
+            assertTrue(s.contains("<no max>"));
+        }
+        else {
+            assertTrue(s.contains("maxResponses"));
+        }
+        assertEquals(stdSentinel, rm.isStandardSentinel());
+    }
+
+
+    @Test
+    public void testRmMessageConstruction() {
+        Message m = NatsMessage.builder().subject("foo").build();
+        RmMessage rmm = new RmMessage(m);
+        assertTrue(rmm.isDataMessage());
+        assertFalse(rmm.isStatusMessage());
+        assertFalse(rmm.isException());
+        assertFalse(rmm.isEndOfData());
+        assertFalse(rmm.isNormalEndOfData());
+        assertFalse(rmm.isAbnormalEndOfData());
+        assertTrue(rmm.toString().contains("Data Message"));
+        assertTrue(rmm.toString().contains("Empty Payload"));
+        assertNotNull(rmm.getMessage());
+        assertNull(rmm.getStatusMessage());
+        assertNull(rmm.getException());
+
+        m = NatsMessage.builder().subject("foo").data(new byte[1]).build();
+        rmm = new RmMessage(m);
+        assertTrue(rmm.isDataMessage());
+        assertFalse(rmm.isStatusMessage());
+        assertFalse(rmm.isException());
+        assertFalse(rmm.isEndOfData());
+        assertFalse(rmm.isNormalEndOfData());
+        assertFalse(rmm.isAbnormalEndOfData());
+        assertTrue(rmm.toString().contains("Data Message"));
+        assertFalse(rmm.toString().contains("Empty Payload"));
+        assertNotNull(rmm.getMessage());
+        assertNull(rmm.getStatusMessage());
+        assertNull(rmm.getException());
+
+        m = createStatusMessage();
+        rmm = new RmMessage(m);
+        assertFalse(rmm.isDataMessage());
+        assertTrue(rmm.isStatusMessage());
+        assertFalse(rmm.isException());
+        assertTrue(rmm.isEndOfData());
+        assertFalse(rmm.isNormalEndOfData());
+        assertTrue(rmm.isAbnormalEndOfData());
+        assertTrue(rmm.toString().contains("Abnormal"));
+        assertNotNull(rmm.getMessage());
+        assertNotNull(rmm.getStatusMessage());
+        assertNull(rmm.getException());
+
+        rmm = new RmMessage(new Exception());
+        assertFalse(rmm.isDataMessage());
+        assertFalse(rmm.isStatusMessage());
+        assertTrue(rmm.isException());
+        assertTrue(rmm.isEndOfData());
+        assertFalse(rmm.isNormalEndOfData());
+        assertTrue(rmm.isAbnormalEndOfData());
+        assertTrue(rmm.toString().contains("Abnormal"));
+        assertNull(rmm.getMessage());
+        assertNull(rmm.getStatusMessage());
+        assertNotNull(rmm.getException());
+
+        rmm = new RmMessage((Message)null);
+        assertFalse(rmm.isDataMessage());
+        assertFalse(rmm.isStatusMessage());
+        assertFalse(rmm.isException());
+        assertTrue(rmm.isEndOfData());
+        assertTrue(rmm.isNormalEndOfData());
+        assertFalse(rmm.isAbnormalEndOfData());
+        assertTrue(rmm.toString().contains("Normal"));
+        assertNull(rmm.getMessage());
+        assertNull(rmm.getStatusMessage());
+        assertNull(rmm.getException());
     }
 
     // ----------------------------------------------------------------------------------------------------
     // Support Classes
     // ----------------------------------------------------------------------------------------------------
-    static class TestRmConsumer implements RmConsumer {
+
+    static class Result {
+        public List<RmMessage> list = new ArrayList<>();
+        public long elapsed;
+    }
+
+    static class RmHandlerAndResult extends Result implements RmHandler {
         public final CountDownLatch eodReceived = new CountDownLatch(1);
-        public final AtomicInteger msgReceived = new AtomicInteger();
 
         @Override
-        public boolean consume(Message m) {
-            if (m == RequestMany.EOD) {
+        public boolean handle(RmMessage rmm) {
+            list.add(rmm);
+            if (rmm.isEndOfData()) {
                 eodReceived.countDown();
-            }
-            else {
-                msgReceived.incrementAndGet();
             }
             return true;
         }
     }
 
-    static class Replier implements AutoCloseable {
+    static class Responder implements AutoCloseable {
         final Dispatcher dispatcher;
+        final boolean sentinel;
         public final String subject;
-        public final CountDownLatch latch;
 
-        public Replier(final Connection nc, final int count) {
-            this(nc, count, -1, -1);
+        public Responder(final int count) {
+            this(count, -1, -1, false);
         }
 
-        public Replier(final Connection nc, final int count, final long pause, final int count2) {
-            this.subject = NUID.nextGlobalSequence();
-            latch = new CountDownLatch(count + (pause > 0 ? count2 : 0));
+        public Responder(final int count, boolean sentinel) {
+            this(count, -1, -1, sentinel);
+        }
 
-            dispatcher = nc.createDispatcher(m -> {
+        public Responder(final int count, final long pause, final int count2) {
+            this(count, pause, count2, false);
+        }
+
+        public Responder(final int count, final long pause, final int count2, boolean sentinel) {
+            this.subject = NUID.nextGlobalSequence();
+            this.sentinel = sentinel;
+
+            dispatcher = NC.createDispatcher(m -> {
                 for (int x = 0; x < count; x++) {
-                    nc.publish(m.getReplyTo(), null);
-                    latch.countDown();
+                    NC.publish(m.getReplyTo(), ("" + x).getBytes());
                 }
                 if (pause > 0) {
                     sleep(pause);
                     for (int x = 0; x < count2; x++) {
-                        nc.publish(m.getReplyTo(), null);
-                        latch.countDown();
+                        NC.publish(m.getReplyTo(), ("" + x).getBytes());
                     }
+                }
+                if (sentinel) {
+                    NC.publish(m.getReplyTo(), null);
                 }
             });
             dispatcher.subscribe(subject);
         }
 
         public void close() throws Exception {
-            dispatcher.unsubscribe(subject);
-        }
-    }
-
-    private static void sleep(long pause) {
-        try {
-            Thread.sleep(pause);
-        }
-        catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            throw new RuntimeException(e);
+            try {
+                dispatcher.unsubscribe(subject);
+            }
+            catch (Exception ignore) {}
         }
     }
 
     // ----------------------------------------------------------------------------------------------------
     // Connection / Server Runner
     // ----------------------------------------------------------------------------------------------------
-    static NatsServerRunner runner;
+    static NatsServerRunner TS;
+    static Connection NC;
+    static long DEFAULT_TIMEOUT;
 
     private static Connection connect() throws Exception {
         return Nats.connect(getOptions());
     }
 
     private static Options getOptions() {
-        return Options.builder().server(runner.getURI()).build();
+        return Options.builder().server(TS.getURI()).build();
     }
 
     @BeforeAll
@@ -219,9 +517,13 @@ public class RequestManyTests {
         NatsServerRunner.setDefaultOutputSupplier(ConsoleOutput::new);
         NatsServerRunner.setDefaultOutputLevel(Level.WARNING);
         try {
-            runner = NatsServerRunner.builder().build();
+            TS = NatsServerRunner.builder().build();
+            sleep(200); // just give the server some time to be running
+            NC = Nats.connect(Options.builder().server(TS.getURI()).build());
+            sleep(200); // just give the connection time to be ready
+            DEFAULT_TIMEOUT = NC.getOptions().getConnectionTimeout().toMillis();
         }
-        catch (IOException e) {
+        catch (Exception e) {
             throw new RuntimeException(e);
         }
 
@@ -230,10 +532,16 @@ public class RequestManyTests {
     @AfterAll
     public static void afterAll() {
         try {
-            runner.close();
+            NC.close();
         }
-        catch (Exception e) {
-            throw new RuntimeException(e);
+        catch (Exception ignore) {}
+        try {
+            TS.close();
         }
+        catch (Exception ignore) {}
+    }
+
+    static void sleep(long ms) {
+        try { Thread.sleep(ms); } catch (InterruptedException ignored) { /* ignored */ }
     }
 }

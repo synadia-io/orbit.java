@@ -13,7 +13,7 @@ plugins {
     id 'signing'
 }
 
-def jarVersion = "0.0.1"
+def jarVersion = "0.1.0"
 group = 'io.synadia'
 
 def isMerge = System.getenv("BUILD_EVENT") == "push"
@@ -38,7 +38,7 @@ repositories {
 }
 
 dependencies {
-    implementation 'io.nats:jnats:2.20.2-SNAPSHOT'
+    implementation 'io.nats:jnats:2.20.2'
 
     testImplementation 'io.nats:jnats-server-runner:1.2.8'
     testImplementation 'org.junit.jupiter:junit-jupiter:5.9.0'
