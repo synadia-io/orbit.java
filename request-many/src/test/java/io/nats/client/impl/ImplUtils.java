@@ -12,8 +12,6 @@ public class ImplUtils {
             new IncomingMessageFactory("sid", "subj", "replyTo", 0, false);
         factory.setHeaders(incomingHeadersProcessor);
         factory.setData(null); // coverage
-
-        Message m = factory.getMessage();
-        return m;
+        return factory.getMessage();
     }
 }
