@@ -3,13 +3,13 @@
 # Request Many Utility
 
 The Request Many utility is a full implementation for an often asked for feature, 
-that's being the ability to get many responses from a single core request, 
+which is the ability to get many responses from a single core request, 
 instead of the usual first response for a request. This allows you to implement patterns like:
 
 * Scatter-gather pattern, getting responses from many workers.
 * Many responses, for instance a multipart payload, from a single worker.  
 
-**Current Release**: 0.1.0 &nbsp; **Current Snapshot**: 0.2.0-SNAPSHOT
+**Current Release**: 0.0.1 &nbsp; **Current Snapshot**: 0.1.0-SNAPSHOT
 
 ![Artifact](https://img.shields.io/badge/Artifact-io.synadia:retrier-00BC8E?labelColor=grey&style=flat)
 [![License Apache 2](https://img.shields.io/badge/License-Apache2-blue.svg)](https://www.apache.org/licenses/LICENSE-2.0)
