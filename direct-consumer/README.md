@@ -2,6 +2,9 @@
 
 # Direct Consumer
 
+DIRECT CONSUMER IS PURELY EXPERIMENTAL. IT ONLY WORKS WITH THE 2.11.x NATS SERVER 
+and the JNATS 2.20.5.main-2-11-SNAPSHOT 
+
 The direct consumer behaves similar to a JetStream consumer but uses the direct api under the covers. 
 
 **Current Release**: N/A &nbsp; **Current Snapshot**: 0.1.0-SNAPSHOT

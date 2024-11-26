@@ -9,9 +9,10 @@ import java.time.ZonedDateTime;
 
 public class DirectConsumerBuilder {
 
-    public static final long[] DEFAULT_BACKOFF_POLICY = {100, 500, 1000, 2000};
-
-    public static final int DEFAULT_BATCH_SIZE = 50;
+    // private for now in case they change
+    private static final long[] DEFAULT_BACKOFF_POLICY = {2000, 1000, 500, 100};
+    private static final int DEFAULT_BATCH_SIZE = 100;
+    private static final int MAXIMUM_BATCH_SIZE = 1000;
 
     JetStreamManagement jsm;
     String stream;
@@ -28,7 +29,10 @@ public class DirectConsumerBuilder {
     }
 
     public DirectConsumerBuilder batch(int batch) {
-        this.batch = batch;
+        if (batch > MAXIMUM_BATCH_SIZE) {
+            throw new IllegalArgumentException("The maximum batch size is " + MAXIMUM_BATCH_SIZE);
+        }
+        this.batch = batch < 1 ? DEFAULT_BATCH_SIZE : batch;
         return this;
     }
 

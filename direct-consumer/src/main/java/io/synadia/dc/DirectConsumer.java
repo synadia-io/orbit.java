@@ -32,7 +32,8 @@ public class DirectConsumer {
     final int backoffPolicies;
 
     final LinkedBlockingQueue<MessageInfo> queue;
-    final AtomicLong lastSeq;
+    final AtomicLong expectedLastSequence;
+    final AtomicLong nextStartSequence;
     final AtomicLong numPending;
     final AtomicInteger statusesInARow;
     final AtomicInteger inFlight;
@@ -51,7 +52,8 @@ public class DirectConsumer {
         backoffPolicies = b.backoffPolicy.length;
 
         queue = new LinkedBlockingQueue<>();
-        lastSeq = new AtomicLong(b.startSequence == null || b.startSequence < 2 ? 0 : b.startSequence - 1);
+        expectedLastSequence = new AtomicLong(0);
+        nextStartSequence = new AtomicLong(b.startSequence == null || b.startSequence < 2 ? 0 : b.startSequence);
         numPending = new AtomicLong(-1);
 
         statusesInARow = new AtomicInteger();
@@ -62,36 +64,36 @@ public class DirectConsumer {
     }
 
     public MessageInfo next() {
-        start();
+        startWorking();
         AtomicReference<MessageInfo> ref = new AtomicReference<>();
-        requestBatch(1, ref::set);
+        requestBatch(1, true, ref::set);
         return ref.get();
     }
 
     public List<MessageInfo> fetch() {
-        start();
+        startWorking();
         List<MessageInfo> list = new ArrayList<>();
-        requestBatch(batch, list::add);
+        requestBatch(batch, true, list::add);
         return list;
     }
 
     public CompletableFuture<Boolean> consume(ExecutorService executor, MessageInfoHandler handler) {
-        start();
+        startWorking();
         return CompletableFuture.supplyAsync(() -> _consume(handler), executor);
     }
 
     public LinkedBlockingQueue<MessageInfo> queueConsume(ExecutorService executor) {
-        start();
+        startWorking();
         final LinkedBlockingQueue<MessageInfo> q = new LinkedBlockingQueue<>();
         consume(executor, q::add);
         return q;
     }
 
-    private void start() {
+    private void startWorking() {
         if (working) {
             throw new IllegalStateException(ERROR_ONE_AT_A_TIME);
         }
-        stopConsuming = false;
+        working = true;
     }
 
     public void stopConsuming() {
@@ -107,6 +109,7 @@ public class DirectConsumer {
     }
 
     private boolean _consume(MessageInfoHandler handler) {
+        stopConsuming = false;
         while (!stopConsuming) {
             if (requestDelay.get() > 0) {
                 try {
@@ -116,34 +119,42 @@ public class DirectConsumer {
                 catch (InterruptedException e) {
                     Thread.currentThread().interrupt();
                     stopConsuming();
+                    working = false;
                     return false;
                 }
             }
-            requestBatch(batch, handler);
+            requestBatch(batch, false, handler);
         }
+        working = false;
         return true;
     }
 
-    private boolean requestBatch(int batch, MessageInfoHandler handler) {
+    private void requestBatch(int batch, boolean clearWorking, MessageInfoHandler handler) {
         try {
             working = true;
             resetDelay();
 
             MessageBatchGetRequest mbgr;
             if (startTime.get() == null) {
-                mbgr = MessageBatchGetRequest.batch(subject, batch, lastSeq.get() + 1);
+                mbgr = MessageBatchGetRequest.batch(subject, batch, nextStartSequence.get());
             }
             else {
                 mbgr = MessageBatchGetRequest.batch(subject, batch, startTime.get());
                 startTime.set(null); // all subsequent requests will start at last seq
             }
+            expectedLastSequence.set(0);
 
-            return jsm.requestMessageBatch(stream, mbgr, mi -> {
+            jsm.requestMessageBatch(stream, mbgr, mi -> {
                 if (mi.isMessage()) {
-                    handler.onMessageInfo(mi);
-                    lastSeq.set(mi.getSeq());
+                    System.out.println(mi);
+//                    if (expectedLastSequence.get() != mi.getLastSeq()) {
+//                        throw new Exception("Unexpected messages sequence received.");
+//                    }
+                    expectedLastSequence.set(mi.getSeq());
+                    nextStartSequence.set(mi.getSeq() + 1);
                     numPending.set(mi.getNumPending());
                     statusesInARow.set(0);
+                    handler.onMessageInfo(mi);
                     resetDelay();
                 }
                 else {
@@ -162,10 +173,11 @@ public class DirectConsumer {
         catch (Exception e) {
             MessageInfo mi = new MessageInfo(new Status(400, e.getMessage()), stream, true);
             handler.onMessageInfo(mi);
-            return false;
         }
         finally {
-            working = false;
+            if (clearWorking) {
+                working = false;
+            }
         }
     }
 

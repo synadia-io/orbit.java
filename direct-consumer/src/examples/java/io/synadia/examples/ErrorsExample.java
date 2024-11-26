@@ -7,6 +7,8 @@ import io.nats.client.Nats;
 import io.synadia.dc.DirectConsumer;
 import io.synadia.dc.DirectConsumerBuilder;
 
+import java.util.concurrent.CompletableFuture;
+
 import static io.synadia.examples.Utils.*;
 
 public class ErrorsExample {
@@ -32,6 +34,20 @@ public class ErrorsExample {
                 .batch(10)
                 .build();
             Utils.printResults(dc.fetch());
+
+            // multiple parallel requests
+            System.out.println("\nInvalid Call:");
+            dc = new DirectConsumerBuilder(jsm, STREAM, SUBJECT)
+                .batch(10)
+                .build();
+            CompletableFuture<Boolean> f = dc.consume(nc.getOptions().getExecutor(), mi -> {});
+            try {
+                dc.next();
+            }
+            catch (Exception e) {
+                System.out.println(e);
+            }
+            dc.stopConsuming();
         }
         catch (Exception e) {
             e.printStackTrace();
