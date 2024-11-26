@@ -13,7 +13,8 @@ The direct consumer behaves similar to a JetStream consumer but uses the direct 
 
 ### Direct Usage
 
-For how to use, please see the examples
+For how to use, please see the examples:
+
 [ConsumeExample.java](src/examples/java/io/synadia/examples/ConsumeExample.java)
 
 [StartSequenceExample.java](src/examples/java/io/synadia/examples/StartSequenceExample.java)
