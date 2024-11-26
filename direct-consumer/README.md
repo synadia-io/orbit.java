@@ -15,10 +15,15 @@ The direct consumer behaves similar to a JetStream consumer but uses the direct 
 
 For how to use, please see the examples
 [ConsumeExample.java](src/examples/java/io/synadia/examples/ConsumeExample.java)
+
 [StartSequenceExample.java](src/examples/java/io/synadia/examples/StartSequenceExample.java)
+
 [StartTimeExample.java](src/examples/java/io/synadia/examples/StartTimeExample.java)
+
 [FetchExample.java](src/examples/java/io/synadia/examples/FetchExample.java)
+
 [QueueConsumeExample.java](src/examples/java/io/synadia/examples/QueueConsumeExample.java)
+
 [ErrorsExample.java](src/examples/java/io/synadia/examples/ErrorsExample.java)
 
 The [Unit Tests](src/test/java/io/synadia/jnats/extension/DirectConsumerTests.java) may also be of interest.
