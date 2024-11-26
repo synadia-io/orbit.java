@@ -1,4 +1,4 @@
-name: Build Request Many Main
+name: Build Direct Consumer Main
 
 on:
   push:

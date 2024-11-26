@@ -1,4 +1,4 @@
-name: Build Request Many Pull Request
+name: Build Direct Consumer Pull Request
 
 on:
   pull_request:

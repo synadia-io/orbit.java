@@ -1,4 +1,4 @@
-name: Release Request Many
+name: Release Direct Consumer
 
 on:
   push:
