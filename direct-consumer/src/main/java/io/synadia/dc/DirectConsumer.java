@@ -123,7 +123,9 @@ public class DirectConsumer {
                     return false;
                 }
             }
-            requestBatch(batch, false, handler);
+            if (!stopConsuming) {
+                requestBatch(batch, false, handler);
+            }
         }
         working = false;
         return true;
@@ -146,22 +148,25 @@ public class DirectConsumer {
 
             jsm.requestMessageBatch(stream, mbgr, mi -> {
                 if (mi.isMessage()) {
-                    System.out.println(mi);
-//                    if (expectedLastSequence.get() != mi.getLastSeq()) {
-//                        throw new Exception("Unexpected messages sequence received.");
-//                    }
-                    expectedLastSequence.set(mi.getSeq());
-                    nextStartSequence.set(mi.getSeq() + 1);
-                    numPending.set(mi.getNumPending());
-                    statusesInARow.set(0);
-                    handler.onMessageInfo(mi);
-                    resetDelay();
+                    if (expectedLastSequence.get() != mi.getLastSeq()) {
+                        statusesInARow.set(1);
+                        updateDelay();
+                        sendErrorMessage(handler, "Unexpected message sequence received.");
+                    }
+                    else {
+                        expectedLastSequence.set(mi.getSeq());
+                        nextStartSequence.set(mi.getSeq() + 1);
+                        numPending.set(mi.getNumPending());
+                        statusesInARow.set(0);
+                        handler.onMessageInfo(mi);
+                        resetDelay();
+                    }
                 }
                 else {
                     statusesInARow.incrementAndGet();
                     int code = mi.getStatus().getCode();
                     if (code == 204 || code == 404) {
-                        nextDelay();
+                        updateDelay();
                     }
                     else {
                         handler.onMessageInfo(mi);
@@ -171,8 +176,7 @@ public class DirectConsumer {
             });
         }
         catch (Exception e) {
-            MessageInfo mi = new MessageInfo(new Status(400, e.getMessage()), stream, true);
-            handler.onMessageInfo(mi);
+            sendErrorMessage(handler, e.getMessage());
         }
         finally {
             if (clearWorking) {
@@ -181,11 +185,16 @@ public class DirectConsumer {
         }
     }
 
+    private void sendErrorMessage(MessageInfoHandler handler, String message) {
+        MessageInfo mi = new MessageInfo(new Status(400, message), stream);
+        handler.onMessageInfo(mi);
+    }
+
     private void resetDelay() {
         requestDelay.set(0);
     }
 
-    private void nextDelay() {
+    private void updateDelay() {
         requestDelay.set(backoffPolicy[(statusesInARow.get() - 1) % backoffPolicies]);
     }
 

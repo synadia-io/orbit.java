@@ -47,7 +47,8 @@ public class ErrorsExample {
             catch (Exception e) {
                 System.out.println(e);
             }
-            dc.stopConsuming();
+//            dc.stopConsuming();
+            f.cancel(true);
         }
         catch (Exception e) {
             e.printStackTrace();
