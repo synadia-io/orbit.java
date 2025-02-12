@@ -25,6 +25,13 @@ public class DirectBatch {
     private final String streamName;
     final Duration timeout;
 
+    /**
+     * Construct a DirectBatch instance.
+     * @param conn the connection to operate under
+     * @param streamName the stream name
+     * @throws IOException
+     * @throws JetStreamApiException
+     */
     public DirectBatch(Connection conn, String streamName) throws IOException, JetStreamApiException {
         this(conn, null, streamName);
     }
@@ -49,6 +56,7 @@ public class DirectBatch {
 
     /**
      * Request a batch of messages using a {@link MessageBatchGetRequest}.
+     * This ia a blocking call that returns when the entire batch has been satisfied.
      * <p>
      * @param messageBatchGetRequest the request details
      * @return a list containing {@link MessageInfo}
@@ -67,6 +75,8 @@ public class DirectBatch {
 
     /**
      * Request a batch of messages using a {@link MessageBatchGetRequest}.
+     * This call is non-blocking and run's on the Connection Option's executor.
+     * All MessageInfo's will be added to the queue.
      * <p>
      * @param messageBatchGetRequest the request details
      * @return a queue used to asynchronously receive {@link MessageInfo}
@@ -81,6 +91,14 @@ public class DirectBatch {
 
     /**
      * Request a batch of messages using a {@link MessageBatchGetRequest}.
+     * This call is a blocking call that returns true if the operation ended without an error status
+     * or false if it did. It's mostly a redundant flag since the error will always be given to the handler.
+     * <p>
+     * Since it's a blocking call, either the caller or the handler needs to run on a different thread.
+     * The queueMessageBatch implementation uses this under the covers and can be looked at as an example
+     * <p>
+     * This is an advanced api. The main caveat is that the handler is called in a blocking fashion.
+     * A RuntimeException produced by the handler allowed to propagate.
      * <p>
      * @param messageBatchGetRequest the request details
      * @param handler                the handler used for receiving {@link MessageInfo}
