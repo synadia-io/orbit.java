@@ -1,4 +1,4 @@
-name: Build Direct Consumer Main
+name: Build Direct Batch Main
 
 on:
   push:

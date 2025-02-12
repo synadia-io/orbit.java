@@ -1,4 +1,4 @@
-name: Release Direct Consumer
+name: Release Direct Batch
 
 on:
   push:
