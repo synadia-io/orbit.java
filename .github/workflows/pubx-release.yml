@@ -1,4 +1,4 @@
-name: Release Publish Extensions
+name: Publish Extensions Release
 
 on:
   push:

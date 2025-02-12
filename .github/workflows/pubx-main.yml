@@ -1,4 +1,4 @@
-name: Build Publish Extensions Main
+name: Publish Extensions Main Release
 
 on:
   push:

@@ -1,4 +1,4 @@
-name: Release Retrier
+name: Retrier Release
 
 on:
   push:

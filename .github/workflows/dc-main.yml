@@ -1,4 +1,4 @@
-name: Build Direct Consumer Main
+name: Direct Consumer Main
 
 on:
   push:

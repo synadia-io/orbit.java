@@ -1,4 +1,4 @@
-name: Release Request Many
+name: Request Many Release
 
 on:
   push:

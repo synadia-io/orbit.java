@@ -1,4 +1,4 @@
-name: Build Direct Batch Main
+name: Direct Batch Main
 
 on:
   push:

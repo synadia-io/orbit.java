@@ -1,4 +1,4 @@
-name: Build Request Many Main
+name: Request Many Main
 
 on:
   push:

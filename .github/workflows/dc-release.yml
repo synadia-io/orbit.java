@@ -1,4 +1,4 @@
-name: Release Direct Consumer
+name: Direct Consumer Release
 
 on:
   push:

@@ -1,4 +1,4 @@
-name: Release Direct Batch
+name: Direct Batch Release
 
 on:
   push:
