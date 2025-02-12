@@ -5,8 +5,8 @@ import io.nats.client.JetStream;
 import io.nats.client.JetStreamManagement;
 import io.nats.client.Nats;
 import io.nats.client.api.MessageInfo;
-import io.synadia.dc.DirectConsumer;
-import io.synadia.dc.DirectConsumerBuilder;
+import io.synadia.direct.DirectConsumer;
+import io.synadia.direct.DirectConsumerBuilder;
 
 import java.time.ZonedDateTime;
 

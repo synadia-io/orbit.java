@@ -13,7 +13,7 @@ plugins {
     id 'signing'
 }
 
-def jarVersion = "0.3.1"
+def jarVersion = "0.1.0"
 group = 'io.synadia'
 
 def isMerge = System.getenv("BUILD_EVENT") == "push"
@@ -35,14 +35,10 @@ repositories {
     maven {
         url "https://oss.sonatype.org/content/repositories/snapshots"
     }
-    maven {
-        url "https://s01.oss.sonatype.org/content/repositories/snapshots/"
-    }
 }
 
 dependencies {
-    implementation 'io.nats:jnats:2.20.5'
-    implementation 'io.synadia:retrier:0.2.0'
+    implementation 'io.nats:jnats:2.20.5.main-2-11-SNAPSHOT'
 
     testImplementation 'io.nats:jnats-server-runner:1.2.8'
     testImplementation 'org.junit.jupiter:junit-jupiter:5.9.0'
@@ -70,9 +66,9 @@ task bundle(type: Bundle) {
 
 jar {
     manifest {
-        attributes('Automatic-Module-Name': 'io.synadia.jnats-js-publish-extensions')
+        attributes('Automatic-Module-Name': 'io.synadia.direct-batch')
     }
-    bnd (['Implementation-Title': 'JNATS JetStream Publish Extensions',
+    bnd (['Implementation-Title': 'Direct Batch',
           'Implementation-Version': jarVersion,
           'Implementation-Vendor': 'synadia.io']
     )
@@ -87,7 +83,7 @@ test {
 javadoc {
     options.overview = 'src/main/javadoc/overview.html' // relative to source root
     source = sourceSets.main.allJava
-    title = "Synadia Communications Inc. JNATS JetStream Publish Extensions"
+    title = "Synadia Communications Inc. Direct Batch"
     classpath = sourceSets.main.runtimeClasspath
     doLast {
         if (!OperatingSystem.current().isWindows()) {
@@ -109,7 +105,7 @@ javadoc {
 task examplesJar(type: Jar) {
     archiveClassifier.set('examples')
     manifest {
-        attributes('Implementation-Title': 'JNATS JetStream Publish Extensions Examples',
+        attributes('Implementation-Title': 'Direct Batch Examples',
                 'Implementation-Version': jarVersion,
                 'Implementation-Vendor': 'synadia.io')
     }
@@ -149,15 +145,13 @@ artifacts {
     archives javadocJar, sourcesJar, examplesJar
 }
 
-if (isMerge || isRelease) {
-    nexusPublishing {
-        repositories {
-            sonatype {
-                nexusUrl.set(uri("https://s01.oss.sonatype.org/service/local/"))
-                snapshotRepositoryUrl.set(uri("https://s01.oss.sonatype.org/content/repositories/snapshots/"))
-                username = System.getenv('OSSRH_USERNAME')
-                password = System.getenv('OSSRH_PASSWORD')
-            }
+nexusPublishing {
+    repositories {
+        sonatype {
+            nexusUrl.set(uri("https://s01.oss.sonatype.org/service/local/"))
+            snapshotRepositoryUrl.set(uri("https://s01.oss.sonatype.org/content/repositories/snapshots/"))
+            username = System.getenv('OSSRH_USERNAME')
+            password = System.getenv('OSSRH_PASSWORD')
         }
     }
 }
@@ -170,11 +164,11 @@ publishing {
             artifact examplesJar
             artifact javadocJar
             pom {
-                name = rootProject.name
+                name = 'direct-batch'
                 packaging = 'jar'
                 groupId = group
                 artifactId = archivesBaseName
-                description = 'Synadia Communications Inc. JNATS JetStream Publish Extensions'
+                description = 'Synadia Communications Inc. Direct Batch'
                 url = 'https://github.com/synadia-io/orbit.java'
                 licenses {
                     license {

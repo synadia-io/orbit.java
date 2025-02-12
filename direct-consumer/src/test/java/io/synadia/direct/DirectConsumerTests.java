@@ -1,4 +1,4 @@
-package io.synadia.dc;
+package io.synadia.direct;
 
 import org.junit.jupiter.api.Test;
 

@@ -1,0 +1,116 @@
+package io.synadia.examples;
+
+import io.nats.client.Connection;
+import io.nats.client.JetStreamApiException;
+import io.nats.client.JetStreamManagement;
+import io.nats.client.Nats;
+import io.nats.client.api.StorageType;
+import io.nats.client.api.StreamConfiguration;
+import io.synadia.direct.DirectBatch;
+import io.synadia.direct.MessageBatchGetRequest;
+
+import java.io.IOException;
+
+public class ErrorExamples {
+    static final String NATS_URL = "nats://localhost:4222";
+
+    public static void main(String[] args) {
+        try (Connection nc = Nats.connect(NATS_URL)) {
+            JetStreamManagement jsm = nc.jetStreamManagement();
+
+            String stream = unique();
+            String subject = unique();
+            StreamConfiguration sc = StreamConfiguration.builder()
+                .name(stream)
+                .storageType(StorageType.Memory)
+                .subjects(subject)
+                .build();
+            jsm.addStream(sc);
+
+            System.out.println("1. Stream must have allow direct set.");
+            // 1A. Stream must have allow direct set
+            try {
+                new DirectBatch(nc, stream);
+            }
+            catch (IllegalArgumentException iae) {
+                System.out.println("  A. Expected! IllegalArgumentException '" + iae.getMessage() + "'");
+            }
+            jsm.deleteStream(stream); // clean up the stream for the next part
+
+            // 1B. Create the stream with the allow direct flag set to true
+            sc = StreamConfiguration.builder()
+                .name(stream)
+                .storageType(StorageType.Memory)
+                .subjects(subject)
+                .allowDirect(true)
+                .build();
+            jsm.addStream(sc);
+
+            DirectBatch db = new DirectBatch(nc, stream);
+            System.out.println("  B. DirectBatch created: " + db);
+
+            System.out.println("\n2. When creating a DirectBatch object...");
+            // 2.A Connection required, cannot be null
+            try {
+                new DirectBatch(null, stream);
+            }
+            catch (IllegalArgumentException iae) {
+                System.out.println("  A. Expected! IllegalArgumentException '" + iae.getMessage() + "'");
+            }
+
+            // 2B/2C. Stream name required, cannot be null or empty
+            try {
+                new DirectBatch(nc, null);
+            }
+            catch (IllegalArgumentException iae) {
+                System.out.println("  B. Expected! IllegalArgumentException '" + iae.getMessage() + "'");
+            }
+            try {
+                new DirectBatch(nc, "");
+            }
+            catch (IllegalArgumentException iae) {
+                System.out.println("  C. Expected! IllegalArgumentException '" + iae.getMessage() + "'");
+            }
+
+            System.out.println("\n3. When creating a MessageBatchGetRequest object...");
+            // 3A. Subject cannot be null or empty
+            try {
+                MessageBatchGetRequest.batch(null, 1);
+            }
+            catch (IllegalArgumentException iae) {
+                System.out.println("  A. Expected! IllegalArgumentException '" + iae.getMessage() + "'");
+            }
+
+            // 3B. MessageBatchGetRequest... Subject cannot be null or empty
+            try {
+                MessageBatchGetRequest.batch("", 1);
+            }
+            catch (IllegalArgumentException iae) {
+                System.out.println("  B. Expected! IllegalArgumentException '" + iae.getMessage() + "'");
+            }
+
+            // 3C. MessageBatchGetRequest... Batch must be greater than zero
+            try {
+                MessageBatchGetRequest.batch(">", 0);
+            }
+            catch (IllegalArgumentException iae) {
+                System.out.println("  C. Expected! IllegalArgumentException '" + iae.getMessage() + "'");
+            }
+
+            // 3D. MessageBatchGetRequest... Subjects cannot be null or empty.
+            try {
+                MessageBatchGetRequest.multiLastForSubjects(null);
+            }
+            catch (IllegalArgumentException iae) {
+                System.out.println("  D. Expected! IllegalArgumentException '" + iae.getMessage() + "'");
+            }
+        }
+        catch (IOException | InterruptedException | JetStreamApiException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private static String unique() {
+        return io.nats.client.NUID.nextGlobalSequence();
+    }
+}
