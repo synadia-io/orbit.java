@@ -150,12 +150,16 @@ public class DirectBatchTests {
 
                 byte[] payload = new byte[1000];
                 for (int per = 1; per <= 5; per++) {
+                    if (per > 1) {
+                        Thread.sleep(2500);
+                    }
                     for (char c = 'A'; c <= 'E'; c++) {
+                        if (c > 'A') {
+                            Thread.sleep(10); // make sure there are no duplicate times
+                        }
                         String s = subject + "." + c;
                         js.publish(s, payload);
-                        Thread.sleep(10); // make sure there are no duplicate times
                     }
-                    Thread.sleep(2500);
                 }
                 ZonedDateTime time = jsm.getMessage(stream, 6).getTime().minusSeconds(1);
 

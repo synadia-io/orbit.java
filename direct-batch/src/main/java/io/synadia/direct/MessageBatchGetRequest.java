@@ -108,9 +108,11 @@ public class MessageBatchGetRequest implements JsonSerializable {
         return new MessageBatchGetRequest(subject, batch, maxBytes, -1, startTime);
     }
 
-    // multi for constructor
+    // multi last for constructor
     private MessageBatchGetRequest(List<String> subjects, long upToSequence, ZonedDateTime upToTime, int batch) {
-        Validator.required(subjects, "Subjects");
+        if (subjects == null || subjects.isEmpty()) {
+            throw new IllegalArgumentException("Subjects are required.");
+        }
         this.batch = batch;
         nextBySubject = null;
         this.maxBytes = -1;
@@ -121,26 +123,63 @@ public class MessageBatchGetRequest implements JsonSerializable {
         this.upToTime = upToTime;
     }
 
+    /**
+     * Get the last messages for the subjects specified subject
+     * @param subjects the subjects, may include wildcards.
+     * @return a MessageBatchGetRequest instance
+     */
     public static MessageBatchGetRequest multiLastForSubjects(List<String> subjects) {
         return new MessageBatchGetRequest(subjects, -1, null, -1);
     }
 
+    /**
+     * Get the last messages for the subjects, where the last message is less than or equal to the up to sequence.
+     * @param subjects the subjects, may include wildcards.
+     * @param upToSequence the highest sequence, inclusive, to return as part of the results
+     * @return a MessageBatchGetRequest instance
+     */
     public static MessageBatchGetRequest multiLastForSubjects(List<String> subjects, long upToSequence) {
         return new MessageBatchGetRequest(subjects, upToSequence, null, -1);
     }
 
+    /**
+     * Get the last messages for the subjects, where the last message is less than or equal to the up to time.
+     * @param subjects the subjects, may include wildcards.
+     * @param upToTime the message time stamp, up to and inclusive, to return as part of the results
+     * @return a MessageBatchGetRequest instance
+     */
     public static MessageBatchGetRequest multiLastForSubjects(List<String> subjects, ZonedDateTime upToTime) {
         return new MessageBatchGetRequest(subjects, -1, upToTime, -1);
     }
 
+    /**
+     * Get the last messages for the subjects specified subject, limited by batch size
+     * @param subjects the subjects, may include wildcards.
+     * @param batch the maximum number of messages to get
+     * @return a MessageBatchGetRequest instance
+     */
     public static MessageBatchGetRequest multiLastForSubjectsBatch(List<String> subjects, int batch) {
         return new MessageBatchGetRequest(subjects, -1, null, batch);
     }
 
+    /**
+     * Get the last messages for the subjects, where the last message is less than or equal to the up to sequence, limited by batch size.
+     * @param subjects the subjects, may include wildcards.
+     * @param upToSequence the highest sequence, inclusive, to return as part of the results
+     * @param batch the maximum number of messages to get
+     * @return a MessageBatchGetRequest instance
+     */
     public static MessageBatchGetRequest multiLastForSubjectsBatch(List<String> subjects, long upToSequence, int batch) {
         return new MessageBatchGetRequest(subjects, upToSequence, null, batch);
     }
 
+    /**
+     * Get the last messages for the subjects, where the last message is less than or equal to the up to time, limited by batch size.
+     * @param subjects the subjects, may include wildcards.
+     * @param upToTime the message time stamp, up to and inclusive, to return as part of the results
+     * @param batch the maximum number of messages to get
+     * @return a MessageBatchGetRequest instance
+     */
     public static MessageBatchGetRequest multiLastForSubjectsBatch(List<String> subjects, ZonedDateTime upToTime, int batch) {
         return new MessageBatchGetRequest(subjects, -1, upToTime, batch);
     }

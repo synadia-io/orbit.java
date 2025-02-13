@@ -18,8 +18,8 @@ public class FetchMessageBatchExamples {
             JetStreamManagement jsm = nc.jetStreamManagement();
             JetStream js = nc.jetStream();
 
-            String stream = ExampleUtils.appendRandomString("rmb-stream-");
-            String subject = ExampleUtils.appendRandomString("rmb-subject-");
+            String stream = ExampleUtils.appendRandomString("fmb-stream-");
+            String subject = ExampleUtils.appendRandomString("fmb-subject-");
 
             // Create the stream with the allow direct flag set to true
             StreamConfiguration sc = StreamConfiguration.builder()

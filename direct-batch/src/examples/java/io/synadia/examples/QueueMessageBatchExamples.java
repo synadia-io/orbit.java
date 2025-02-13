@@ -18,8 +18,8 @@ public class QueueMessageBatchExamples {
             JetStreamManagement jsm = nc.jetStreamManagement();
             JetStream js = nc.jetStream();
 
-            String stream = ExampleUtils.appendRandomString("rmb-stream-");
-            String subject = ExampleUtils.appendRandomString("rmb-subject-");
+            String stream = ExampleUtils.appendRandomString("qmb-stream-");
+            String subject = ExampleUtils.appendRandomString("qmb-subject-");
 
             // Create the stream with the allow direct flag set to true
             StreamConfiguration sc = StreamConfiguration.builder()

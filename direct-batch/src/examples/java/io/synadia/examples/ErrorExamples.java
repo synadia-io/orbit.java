@@ -10,6 +10,7 @@ import io.synadia.direct.DirectBatchContext;
 import io.synadia.direct.MessageBatchGetRequest;
 
 import java.io.IOException;
+import java.util.List;
 
 public class ErrorExamples {
     static final String NATS_URL = "nats://localhost:4222";
@@ -97,9 +98,10 @@ public class ErrorExamples {
                 System.out.println("  C. Expected! IllegalArgumentException '" + iae.getMessage() + "'");
             }
 
-            // 3D. MessageBatchGetRequest... Subjects cannot be null or empty.
+            // 3D. MessageBatchGetRequest... Subjects are required.
             try {
-                MessageBatchGetRequest.multiLastForSubjects(null);
+                List<String> subjects = null;
+                MessageBatchGetRequest.multiLastForSubjects(subjects);
             }
             catch (IllegalArgumentException iae) {
                 System.out.println("  D. Expected! IllegalArgumentException '" + iae.getMessage() + "'");
