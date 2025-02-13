@@ -42,7 +42,7 @@ public class MessageBatchGetRequest implements JsonSerializable {
     }
 
     /**
-     * Get up to batch number of messages where the message sequence is >= 1 and for the specified subject
+     * Get up to batch number of messages where the message sequence is &gt;= 1 and for the specified subject
      * @param subject the subject
      * @param batch the size of the batch
      * @return a MessageBatchGetRequest instance
@@ -52,7 +52,7 @@ public class MessageBatchGetRequest implements JsonSerializable {
     }
 
     /**
-     * Get up to batch number of messages where the message sequence is >= the specified sequence and for the specified subject
+     * Get up to batch number of messages where the message sequence is &gt;= the specified sequence and for the specified subject
      * @param subject the subject
      * @param batch the size of the batch
      * @param minSequence the smallest sequence to consider
@@ -63,7 +63,7 @@ public class MessageBatchGetRequest implements JsonSerializable {
     }
 
     /**
-     * Get up to batch number of messages where the message timestamp is >= than start time and for the specified subject
+     * Get up to batch number of messages where the message timestamp is &gt;= than start time and for the specified subject
      * @param subject the subject
      * @param batch the size of the batch
      * @param startTime the earliest message timestamp to consider
@@ -74,7 +74,7 @@ public class MessageBatchGetRequest implements JsonSerializable {
     }
 
     /**
-     * Get up to batch number of messages where the message sequence is >= 1, for the specified subject, and limited by max bytes
+     * Get up to batch number of messages where the message sequence is &gt;= 1, for the specified subject, and limited by max bytes
      * @param subject the subject
      * @param batch the size of the batch
      * @param maxBytes the limit of messages in bytes, determined by consumeByteCount
@@ -85,7 +85,7 @@ public class MessageBatchGetRequest implements JsonSerializable {
     }
 
     /**
-     * Get up to batch number of messages where the message sequence is >= than the specified sequence, for the specified subject and limited by max bytes
+     * Get up to batch number of messages where the message sequence is &gt;= than the specified sequence, for the specified subject and limited by max bytes
      * @param subject the subject
      * @param batch the size of the batch
      * @param maxBytes the limit of messages in bytes, determined by consumeByteCount
@@ -97,7 +97,7 @@ public class MessageBatchGetRequest implements JsonSerializable {
     }
 
     /**
-     * Get up to batch number of messages where the message timestamp is >= than start time, for the specified subject and limited by max bytes
+     * Get up to batch number of messages where the message timestamp is &gt;= than start time, for the specified subject and limited by max bytes
      * @param subject the subject
      * @param batch the size of the batch
      * @param maxBytes the limit of messages in bytes, determined by consumeByteCount
