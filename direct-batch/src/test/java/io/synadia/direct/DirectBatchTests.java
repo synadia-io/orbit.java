@@ -40,9 +40,9 @@ public class DirectBatchTests {
                 assertThrows(IllegalArgumentException.class, () -> MessageBatchGetRequest.batch(">", 0));
                 assertThrows(IllegalArgumentException.class, () -> MessageBatchGetRequest.multiLastForSubjects(null));
 
-                assertThrows(IllegalArgumentException.class, () -> new DirectBatch(null, "na"));
-                assertThrows(IllegalArgumentException.class, () -> new DirectBatch(nc, null));
-                assertThrows(IllegalArgumentException.class, () -> new DirectBatch(nc, ""));
+                assertThrows(IllegalArgumentException.class, () -> new DirectBatchContext(null, "na"));
+                assertThrows(IllegalArgumentException.class, () -> new DirectBatchContext(nc, null));
+                assertThrows(IllegalArgumentException.class, () -> new DirectBatchContext(nc, ""));
 
                 JetStreamManagement jsm = nc.jetStreamManagement();
                 JetStream js = nc.jetStream();
@@ -59,7 +59,7 @@ public class DirectBatchTests {
                 assertFalse(si.getConfiguration().getAllowDirect());
 
                 // Stream doesn't have AllowDirect enabled, will error.
-                assertThrows(IllegalArgumentException.class, () -> new DirectBatch(nc, streamNoDirect));
+                assertThrows(IllegalArgumentException.class, () -> new DirectBatchContext(nc, streamNoDirect));
 
                 String stream = unique();
                 subject = unique();
@@ -71,7 +71,7 @@ public class DirectBatchTests {
                     .build();
                 jsm.addStream(sc);
 
-                DirectBatch db = new DirectBatch(nc, stream);
+                DirectBatchContext db = new DirectBatchContext(nc, stream);
                 MessageBatchGetRequest request = MessageBatchGetRequest.batch(subject, 3);
 
                 // no messages yet - handler
@@ -201,7 +201,7 @@ public class DirectBatchTests {
                 MessageBatchGetRequest requestMulti6 = MessageBatchGetRequest.multiLastForSubjectsBatch(subjectsList, time, 2);
                 MessageBatchGetRequest requestMulti6A = MessageBatchGetRequest.multiLastForSubjectsBatch(subjectAllList, time, 2);
 
-                DirectBatch db = new DirectBatch(nc, stream);
+                DirectBatchContext db = new DirectBatchContext(nc, stream);
 
                 // Get using handler.
                 doHandler(db, requestBatch1, "1");
@@ -310,18 +310,18 @@ public class DirectBatchTests {
 //        System.out.println();
 //    }
 
-    private static void doHandler(DirectBatch db, MessageBatchGetRequest mbgr, String label) throws Exception {
+    private static void doHandler(DirectBatchContext db, MessageBatchGetRequest mbgr, String label) throws Exception {
         List<MessageInfo> list = new ArrayList<>();
         db.requestMessageBatch(mbgr, list::add);
         _verify(list, label, true);
     }
 
-    private static void doFetch(DirectBatch db, MessageBatchGetRequest mbgr, String label) throws Exception {
+    private static void doFetch(DirectBatchContext db, MessageBatchGetRequest mbgr, String label) throws Exception {
         List<MessageInfo> list = db.fetchMessageBatch(mbgr);
         _verify(list, label, false);
     }
 
-    private static void doQueue(DirectBatch db, MessageBatchGetRequest mbgr, String label) throws Exception {
+    private static void doQueue(DirectBatchContext db, MessageBatchGetRequest mbgr, String label) throws Exception {
         LinkedBlockingQueue<MessageInfo> queue = db.queueMessageBatch(mbgr);
         _verify(queueToList(queue), label, true);
     }
@@ -397,4 +397,5 @@ public class DirectBatchTests {
             }
         }
         return list;
-    }}
+    }
+}

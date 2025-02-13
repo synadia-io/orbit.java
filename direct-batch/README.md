@@ -29,13 +29,13 @@ public boolean isErrorStatus() // a status message that represents an error
 
 ## Operation
 
-1\. Create a DirectBatch instance. There are 2 constructors.
+1\. Create a DirectBatchContext instance. There are 2 constructors.
 `JetStreamOptions` are not required except when working against a JetStream domain for instance.
 The stream name is required to verify that it allows direct and then also during the underlying api calls.
 
 ```java
-public DirectBatch(Connection conn, String streamName) throws IOException, JetStreamApiException
-public DirectBatch(Connection conn, JetStreamOptions jso, String streamName) throws IOException, JetStreamApiException
+public DirectBatchContext(Connection conn, String streamName) throws IOException, JetStreamApiException
+public DirectBatchContext(Connection conn, JetStreamOptions jso, String streamName) throws IOException, JetStreamApiException
 ```
 
 2\. Create a MessageBatchGetRequest instance and call one of the 3 variants that do the actual request and return results.
@@ -49,7 +49,7 @@ public DirectBatch(Connection conn, JetStreamOptions jso, String streamName) thr
  * @param messageBatchGetRequest the request details
  * @return a list containing {@link MessageInfo}
  */
-public List<MessageInfo> fetchMessageBatch(MessageBatchGetRequest messageBatchGetRequest) {
+public List<MessageInfo> fetchMessageBatch(MessageBatchGetRequest messageBatchGetRequest)
 ```
 
 ### Queue
@@ -92,18 +92,58 @@ The MessageInfoHandler is a simple callback interface used to receive messages f
 void onMessageInfo(MessageInfo messageInfo);
 ```
 
+### MessageBatchGetRequest
+
+The `MessageBatchGetRequest` is designed to simplify use of the server's direct batch support. 
+It supports the following:
+
+• Get up to batch number of messages where the message sequence is >= 1 and for the specified subject
+```java
+public static MessageBatchGetRequest batch(
+    String subject, int batch)
+```
+
+• Get up to batch number of messages where the message sequence is >= the specified sequence and for the specified subject
+```java
+public static MessageBatchGetRequest batch(
+    String subject, int batch, long minSequence)
+```
+
+• Get up to batch number of messages where the message timestamp is >= than start time and for the specified subject
+```java
+public static MessageBatchGetRequest batch(
+    String subject, int batch, ZonedDateTime startTime)
+```
+
+• Get up to batch number of messages where the message sequence is >= 1, for the specified subject, and limited by max bytes
+```java
+public static MessageBatchGetRequest batchBytes(
+    String subject, int batch, int maxBytes)
+```
+
+• Get up to batch number of messages where the message sequence is >= than the specified sequence, for the specified subject and limited by max bytes
+```java
+public static MessageBatchGetRequest batchBytes(
+    String subject, int batch, int maxBytes, long minSequence)
+```
+
+• Get up to batch number of messages where the message timestamp is >= than start time, for the specified subject and limited by max bytes
+```java
+public static MessageBatchGetRequest batchBytes(
+    String subject, int batch, int maxBytes, ZonedDateTime startTime)
+```
+
 ## Examples
+
+The [RequestMessageBatchExamples.java](src/examples/java/io/synadia/examples/RequestMessageBatchExamples.java)
+demonstrate behavior using the `requestMessageBatch` DirectBatchContext api call. 
 
 ### Error Examples
 
-The [ErrorExamples.java](src/examples/java/io/synadia/examples/ErrorExamples.java) source
-demonstrates cases around
-1. Stream must have allow direct set.
-2. Creating a `DirectBatch` object...
+The [ErrorExamples.java](src/examples/java/io/synadia/examples/ErrorExamples.java) demonstrates cases around
+1. Stream must have "allow direct" set.
+2. Creating a `DirectBatchContext` object...
 3. Creating a `MessageBatchGetRequest` object...
-
-### Unit Tests
-The [Unit Tests](src/test/java/io/synadia/jnats/extension/DirectBatchTests.java) may also be of interest.
 
 ### Gradle and Maven
 

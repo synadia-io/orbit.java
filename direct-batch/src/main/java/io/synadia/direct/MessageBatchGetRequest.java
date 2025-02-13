@@ -41,26 +41,69 @@ public class MessageBatchGetRequest implements JsonSerializable {
         this.minSequence = startTime == null && minSequence < 1 ? 1 : minSequence;
     }
 
+    /**
+     * Get up to batch number of messages where the message sequence is >= 1 and for the specified subject
+     * @param subject the subject
+     * @param batch the size of the batch
+     * @return a MessageBatchGetRequest instance
+     */
     public static MessageBatchGetRequest batch(String subject, int batch) {
         return new MessageBatchGetRequest(subject, batch, -1, -1, null);
     }
 
+    /**
+     * Get up to batch number of messages where the message sequence is >= the specified sequence and for the specified subject
+     * @param subject the subject
+     * @param batch the size of the batch
+     * @param minSequence the smallest sequence to consider
+     * @return a MessageBatchGetRequest instance
+     */
     public static MessageBatchGetRequest batch(String subject, int batch, long minSequence) {
         return new MessageBatchGetRequest(subject, batch, -1, minSequence, null);
     }
 
+    /**
+     * Get up to batch number of messages where the message timestamp is >= than start time and for the specified subject
+     * @param subject the subject
+     * @param batch the size of the batch
+     * @param startTime the earliest message timestamp to consider
+     * @return a MessageBatchGetRequest instance
+     */
     public static MessageBatchGetRequest batch(String subject, int batch, ZonedDateTime startTime) {
         return new MessageBatchGetRequest(subject, batch, -1, -1, startTime);
     }
 
+    /**
+     * Get up to batch number of messages where the message sequence is >= 1, for the specified subject, and limited by max bytes
+     * @param subject the subject
+     * @param batch the size of the batch
+     * @param maxBytes the limit of messages in bytes, determined by consumeByteCount
+     * @return a MessageBatchGetRequest instance
+     */
     public static MessageBatchGetRequest batchBytes(String subject, int batch, int maxBytes) {
         return new MessageBatchGetRequest(subject, batch, maxBytes, -1, null);
     }
 
+    /**
+     * Get up to batch number of messages where the message sequence is >= than the specified sequence, for the specified subject and limited by max bytes
+     * @param subject the subject
+     * @param batch the size of the batch
+     * @param maxBytes the limit of messages in bytes, determined by consumeByteCount
+     * @param minSequence the smallest sequence to consider
+     * @return a MessageBatchGetRequest instance
+     */
     public static MessageBatchGetRequest batchBytes(String subject, int batch, int maxBytes, long minSequence) {
         return new MessageBatchGetRequest(subject, batch, maxBytes, minSequence, null);
     }
 
+    /**
+     * Get up to batch number of messages where the message timestamp is >= than start time, for the specified subject and limited by max bytes
+     * @param subject the subject
+     * @param batch the size of the batch
+     * @param maxBytes the limit of messages in bytes, determined by consumeByteCount
+     * @param startTime the earliest message timestamp to consider
+     * @return a MessageBatchGetRequest instance
+     */
     public static MessageBatchGetRequest batchBytes(String subject, int batch, int maxBytes, ZonedDateTime startTime) {
         return new MessageBatchGetRequest(subject, batch, maxBytes, -1, startTime);
     }

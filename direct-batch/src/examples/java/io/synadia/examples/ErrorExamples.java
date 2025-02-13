@@ -6,7 +6,7 @@ import io.nats.client.JetStreamManagement;
 import io.nats.client.Nats;
 import io.nats.client.api.StorageType;
 import io.nats.client.api.StreamConfiguration;
-import io.synadia.direct.DirectBatch;
+import io.synadia.direct.DirectBatchContext;
 import io.synadia.direct.MessageBatchGetRequest;
 
 import java.io.IOException;
@@ -30,7 +30,7 @@ public class ErrorExamples {
             System.out.println("1. Stream must have allow direct set.");
             // 1A. Stream must have allow direct set
             try {
-                new DirectBatch(nc, stream);
+                new DirectBatchContext(nc, stream);
             }
             catch (IllegalArgumentException iae) {
                 System.out.println("  A. Expected! IllegalArgumentException '" + iae.getMessage() + "'");
@@ -46,13 +46,13 @@ public class ErrorExamples {
                 .build();
             jsm.addStream(sc);
 
-            DirectBatch db = new DirectBatch(nc, stream);
-            System.out.println("  B. DirectBatch created: " + db);
+            DirectBatchContext db = new DirectBatchContext(nc, stream);
+            System.out.println("  B. DirectBatchContext created: " + db);
 
-            System.out.println("\n2. When creating a DirectBatch object...");
+            System.out.println("\n2. When creating a DirectBatchContext object...");
             // 2.A Connection required, cannot be null
             try {
-                new DirectBatch(null, stream);
+                new DirectBatchContext(null, stream);
             }
             catch (IllegalArgumentException iae) {
                 System.out.println("  A. Expected! IllegalArgumentException '" + iae.getMessage() + "'");
@@ -60,13 +60,13 @@ public class ErrorExamples {
 
             // 2B/2C. Stream name required, cannot be null or empty
             try {
-                new DirectBatch(nc, null);
+                new DirectBatchContext(nc, null);
             }
             catch (IllegalArgumentException iae) {
                 System.out.println("  B. Expected! IllegalArgumentException '" + iae.getMessage() + "'");
             }
             try {
-                new DirectBatch(nc, "");
+                new DirectBatchContext(nc, "");
             }
             catch (IllegalArgumentException iae) {
                 System.out.println("  C. Expected! IllegalArgumentException '" + iae.getMessage() + "'");

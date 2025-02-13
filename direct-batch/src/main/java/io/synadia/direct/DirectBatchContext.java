@@ -19,24 +19,34 @@ import static io.nats.client.support.NatsJetStreamConstants.JSAPI_DIRECT_GET;
 import static io.nats.client.support.Validator.required;
 import static io.nats.client.support.Validator.validateNotNull;
 
-public class DirectBatch {
+public class DirectBatchContext {
     private final Connection conn;
     private final JetStreamOptions jso;
     private final String streamName;
     final Duration timeout;
 
     /**
-     * Construct a DirectBatch instance.
+     * Construct a DirectBatchContext instance.
      * @param conn the connection to operate under
      * @param streamName the stream name
-     * @throws IOException
-     * @throws JetStreamApiException
+     * @throws IOException covers various communication issues with the NATS
+     *         server such as timeout or interruption
+     * @throws JetStreamApiException the request had an error related to the data
      */
-    public DirectBatch(Connection conn, String streamName) throws IOException, JetStreamApiException {
+    public DirectBatchContext(Connection conn, String streamName) throws IOException, JetStreamApiException {
         this(conn, null, streamName);
     }
 
-    public DirectBatch(Connection conn, JetStreamOptions jso, String streamName) throws IOException, JetStreamApiException {
+    /**
+     * Construct a DirectBatchContext instance.
+     * @param conn the connection to operate under
+     * @param jso a JetStreamOptions instance
+     * @param streamName the stream name
+     * @throws IOException covers various communication issues with the NATS
+     *         server such as timeout or interruption
+     * @throws JetStreamApiException the request had an error related to the data
+     */
+    public DirectBatchContext(Connection conn, JetStreamOptions jso, String streamName) throws IOException, JetStreamApiException {
         validateNotNull(conn, "Connection required,");
         if (!conn.getServerInfo().isNewerVersionThan("2.10.99")) {
             throw new IllegalArgumentException("Batch direct get not available until server version 2.11.0.");
