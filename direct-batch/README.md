@@ -98,79 +98,79 @@ void onMessageInfo(MessageInfo messageInfo);
 
 ## MessageBatchGetRequest
 
-The `MessageBatchGetRequest` is designed to simplify use of the server's direct batch support. 
-It supports the following:
+The `MessageBatchGetRequest` is designed to simplify use of the server's direct batch support,
+and has static methods that return an instance.
 
-☛ Get up to batch number of messages where the message sequence is >= 1 and for the specified subject
+---
+1\. Get up to batch number of messages where the message sequence is >= 1 and for the specified subject
 ```java
-public static MessageBatchGetRequest batch(
-    String subject, int batch)
+batch(String subject, int batch)
 ```
 
-☛ Get up to batch number of messages where the message sequence is >= the specified sequence and for the specified subject
+---
+2\. Get up to batch number of messages where the message sequence is >= the specified sequence and for the specified subject
 ```java
-public static MessageBatchGetRequest batch(
-    String subject, int batch, long minSequence)
+batch(String subject, int batch, long minSequence)
 ```
 
-☛ Get up to batch number of messages where the message timestamp is >= than start time and for the specified subject
+---
+3\. Get up to batch number of messages where the message timestamp is >= than start time and for the specified subject
 ```java
-public static MessageBatchGetRequest batch(
-    String subject, int batch, ZonedDateTime startTime)
+batch(String subject, int batch, ZonedDateTime startTime)
 ```
 
-☛ Get up to batch number of messages where the message sequence is >= 1, for the specified subject, and limited by max bytes
+---
+4\. Get up to batch number of messages where the message sequence is >= 1, for the specified subject, and limited by max bytes
 ```java
-public static MessageBatchGetRequest batchBytes(
-    String subject, int batch, int maxBytes)
+batchBytes(String subject, int batch, int maxBytes)
 ```
 
-☛ Get up to batch number of messages where the message sequence is >= than the specified sequence, for the specified subject and limited by max bytes
+---
+5\. Get up to batch number of messages where the message sequence is >= than the specified sequence, for the specified subject and limited by max bytes
 ```java
-public static MessageBatchGetRequest batchBytes(
-    String subject, int batch, int maxBytes, long minSequence)
+batchBytes(String subject, int batch, int maxBytes, long minSequence)
 ```
 
-☛ Get up to batch number of messages where the message timestamp is >= than start time, for the specified subject and limited by max bytes
+---
+6\. Get up to batch number of messages where the message timestamp is >= than start time, for the specified subject and limited by max bytes
 ```java
-public static MessageBatchGetRequest batchBytes(
-    String subject, int batch, int maxBytes, ZonedDateTime startTime)
+batchBytes(String subject, int batch, int maxBytes, ZonedDateTime startTime)
 ```
 
-☛ Get the last messages for the subjects specified subject
+---
+7\. Get the last messages for the subjects specified subject
 ```java
-public static MessageBatchGetRequest multiLastForSubjects(
-    List<String> subjects)
+multiLastForSubjects(List<String> subjects)
 ```
 
-☛ Get the last messages for the subjects, where the last message is less than or equal to the up to sequence.
+---
+8\. Get the last messages for the subjects, where the last message is less than or equal to the up to sequence.
 ```java
-public static MessageBatchGetRequest multiLastForSubjects(
-    List<String> subjects, long upToSequence)
+multiLastForSubjects(List<String> subjects, long upToSequence)
 ```
 
-☛ Get the last messages for the subjects, where the last message is less than or equal to the up to time.
+---
+9\. Get the last messages for the subjects, where the last message is less than or equal to the up to time.
 ```java
-public static MessageBatchGetRequest multiLastForSubjects(
-    List<String> subjects, ZonedDateTime upToTime)
+multiLastForSubjects(List<String> subjects, ZonedDateTime upToTime)
 ```
 
-☛ Get the last messages for the subjects specified subject, limited by batch size
+---
+10\. Get the last messages for the subjects specified subject, limited by batch size
 ```java
-public static MessageBatchGetRequest multiLastForSubjectsBatch(
-    List<String> subjects, int batch)
+multiLastForSubjectsBatch(List<String> subjects, int batch)
 ```
 
-☛ Get the last messages for the subjects, where the last message is less than or equal to the up to sequence, limited by batch size.
+---
+11\. Get the last messages for the subjects, where the last message is less than or equal to the up to sequence, limited by batch size.
 ```java
-public static MessageBatchGetRequest multiLastForSubjectsBatch(
-    List<String> subjects, long upToSequence, int batch)
+multiLastForSubjectsBatch(List<String> subjects, long upToSequence, int batch)
 ```
 
-☛ Get the last messages for the subjects, where the last message is less than or equal to the up to time, limited by batch size.
+---
+12\. Get the last messages for the subjects, where the last message is less than or equal to the up to time, limited by batch size.
 ```java
-public static MessageBatchGetRequest multiLastForSubjectsBatch(
-    List<String> subjects, ZonedDateTime upToTime, int batch)
+multiLastForSubjectsBatch(List<String> subjects, ZonedDateTime upToTime, int batch)
 ```
 
 ## Examples
