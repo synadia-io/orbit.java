@@ -4,7 +4,10 @@
 
 Extensions specific to JetStream publishing.
 
-**Current Release**: 0.1.0 &nbsp; **Current Snapshot**: 0.1.1-SNAPSHOT
+**Current Release**: 0.1.0
+&nbsp; **Current Snapshot**: 0.1.1-SNAPSHOT
+&nbsp; **Gradle and Maven** `io.synadia:jnats-js-publish-extensions`
+[Dependencies Help](https://github.com/synadia-io/orbit.java?tab=readme-ov-file#dependencies)
 
 ![Artifact](https://img.shields.io/badge/Artifact-io.synadia:jnats--js--publish--extensions-00BC8E?labelColor=grey&style=flat)
 [![License Apache 2](https://img.shields.io/badge/License-Apache2-blue.svg)](https://www.apache.org/licenses/LICENSE-2.0)
@@ -26,13 +29,6 @@ This class is a full async message publish manager
 For how to use, please see the examples:
 * [Async Js Publisher Example](src/examples/java/io/synadia/examples/AsyncJsPublisherExample.java)
 
-### Gradle and Maven
-
-See the [Main README.md](../README.md). The group is `io.synadia` The artifact is `jnats-js-publish-extensions`
-
-### License
-
-[![License Apache 2](https://img.shields.io/badge/License-Apache2-blue.svg)](https://www.apache.org/licenses/LICENSE-2.0)
-
-Copyright (c) 2024 Synadia Communications Inc. All Rights Reserved.
+---
+Copyright (c) 2024-2025 Synadia Communications Inc. All Rights Reserved.
 See [LICENSE](LICENSE) and [NOTICE](NOTICE) file for details.

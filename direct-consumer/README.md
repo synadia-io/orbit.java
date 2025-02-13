@@ -7,7 +7,10 @@ and the JNATS 2.20.5.main-2-11-SNAPSHOT
 
 The direct consumer behaves similar to a JetStream consumer but uses the direct api under the covers. 
 
-**Current Release**: N/A &nbsp; **Current Snapshot**: 0.1.0-SNAPSHOT
+**Current Release**: N/A
+&nbsp; **Current Snapshot**: 0.1.0-SNAPSHOT
+&nbsp; **Gradle and Maven** `io.synadia:direct-consume`
+[Dependencies Help](https://github.com/synadia-io/orbit.java?tab=readme-ov-file#dependencies)
 
 ![Artifact](https://img.shields.io/badge/Artifact-io.synadia:direct--consumer-00BC8E?labelColor=grey&style=flat)
 [![License Apache 2](https://img.shields.io/badge/License-Apache2-blue.svg)](https://www.apache.org/licenses/LICENSE-2.0)
@@ -38,9 +41,6 @@ For how to use, please see the examples:
 
 The [Unit Tests](src/test/java/io/synadia/jnats/extension/DirectConsumerTests.java) may also be of interest.
 
-### Gradle and Maven
-
-See the [Main README.md](../README.md). The group is `io.synadia` The artifact is `direct-consume`
-
-Copyright (c) 2024 Synadia Communications Inc. All Rights Reserved.
+---
+Copyright (c) 2024-2025 Synadia Communications Inc. All Rights Reserved.
 See [LICENSE](LICENSE) and [NOTICE](NOTICE) file for details.

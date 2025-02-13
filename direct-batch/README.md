@@ -8,12 +8,16 @@ It only works with the 2.11.x NATS Server and the JNats 2.20.5.main-2-11-SNAPSHO
 The direct batch functionality leverages the direct message capabilities introduced in NATS Server 2.11
 The functionality is described in [ADR-31](https://github.com/nats-io/nats-architecture-and-design/blob/main/adr/ADR-31.md) 
 
-**Current Release**: 0.1.0 &nbsp; **Current Snapshot**: 0.1.1-SNAPSHOT
+**Current Release**: 0.1.0
+&nbsp;**Current Snapshot**: 0.1.1-SNAPSHOT
+&nbsp; **Gradle and Maven** `io.synadia:direct-batch`
+[Dependencies Help](https://github.com/synadia-io/orbit.java?tab=readme-ov-file#dependencies) 
 
-![Artifact](https://img.shields.io/badge/Artifact-io.synadia:direct--consumer-00BC8E?labelColor=grey&style=flat)
+![Artifact](https://img.shields.io/badge/Artifact-io.synadia:direct--batch-00BC8E?labelColor=grey&style=flat)
 [![License Apache 2](https://img.shields.io/badge/License-Apache2-blue.svg)](https://www.apache.org/licenses/LICENSE-2.0)
-[![Maven Central](https://maven-badges.herokuapp.com/maven-central/io.synadia/direct-consumer/badge.svg)](https://maven-badges.herokuapp.com/maven-central/io.synadia/direct-consumer)
-[![javadoc](https://javadoc.io/badge2/io.synadia/direct-consumer/javadoc.svg)](https://javadoc.io/doc/io.synadia/direct-consumer)
+[![Maven Central](https://maven-badges.herokuapp.com/maven-central/io.synadia/direct-batch/badge.svg)](https://maven-badges.herokuapp.com/maven-central/io.synadia/direct-batch)
+[![javadoc](https://javadoc.io/badge2/io.synadia/direct-batch/javadoc.svg)](https://javadoc.io/doc/io.synadia/direct-batch)
+
 
 ## Message Info
 When using direct api, the server returns `MessageInfo` instead of messages. 
@@ -27,7 +31,7 @@ public boolean isEobStatus()   // a status message that represent the end of dat
 public boolean isErrorStatus() // a status message that represents an error
 ```
 
-## Operation
+## Basic Operation
 
 1\. Create a DirectBatchContext instance. There are 2 constructors.
 `JetStreamOptions` are not required except when working against a JetStream domain for instance.
@@ -92,7 +96,7 @@ The MessageInfoHandler is a simple callback interface used to receive messages f
 void onMessageInfo(MessageInfo messageInfo);
 ```
 
-### MessageBatchGetRequest
+## MessageBatchGetRequest
 
 The `MessageBatchGetRequest` is designed to simplify use of the server's direct batch support. 
 It supports the following:
@@ -136,18 +140,19 @@ public static MessageBatchGetRequest batchBytes(
 ## Examples
 
 The [RequestMessageBatchExamples.java](src/examples/java/io/synadia/examples/RequestMessageBatchExamples.java)
-demonstrate behavior using the `requestMessageBatch` DirectBatchContext api call. 
+demonstrate usage and behavior when using the `requestMessageBatch` DirectBatchContext api call.
 
-### Error Examples
+The [QueueMessageBatchExamples.java](src/examples/java/io/synadia/examples/QueueMessageBatchExamples.java)
+demonstrate usage and behavior when using the `queueMessageBatch` DirectBatchContext api call.
 
-The [ErrorExamples.java](src/examples/java/io/synadia/examples/ErrorExamples.java) demonstrates cases around
+The [FetchMessageBatchExamples.java](src/examples/java/io/synadia/examples/FetchMessageBatchExamples.java)
+demonstrate usage and behavior when using the `fetchMessageBatch` DirectBatchContext api call.
+
+The [ErrorExamples.java](src/examples/java/io/synadia/examples/ErrorExamples.java) demonstrates errors...
 1. Stream must have "allow direct" set.
 2. Creating a `DirectBatchContext` object...
 3. Creating a `MessageBatchGetRequest` object...
 
-### Gradle and Maven
-
-See the [Main README.md](../README.md). The group is `io.synadia` The artifact is `direct-consume`
-
-Copyright (c) 2024 Synadia Communications Inc. All Rights Reserved.
+---
+Copyright (c) 2024-2025 Synadia Communications Inc. All Rights Reserved.
 See [LICENSE](LICENSE) and [NOTICE](NOTICE) file for details.
