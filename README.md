@@ -128,3 +128,10 @@ If you need a snapshot version, you must enable snapshots and change your depend
     <version>{major.minor.patch}-SNAPSHOT</version>
 </dependency>
 ```
+
+# Notes
+
+If you are importing the source code from this repo, please be aware that each project is its own library. Some projects have classes with the same name,
+but each project is completely independent on another,
+except if one specifically depends on another. 
+For example, the publish extensions depends on retrier, but it includes the library via gradle, not the source code.
