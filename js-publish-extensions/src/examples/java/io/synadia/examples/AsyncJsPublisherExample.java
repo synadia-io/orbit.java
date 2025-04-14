@@ -8,7 +8,7 @@ import io.nats.client.Nats;
 import io.nats.client.Options;
 import io.nats.client.impl.ErrorListenerConsoleImpl;
 import io.synadia.jnats.extension.AsyncJsPublisher;
-import io.synadia.retrier.RetryConfig;
+import io.synadia.jnats.extension.PublishRetryConfig;
 
 public class AsyncJsPublisherExample {
 
@@ -42,7 +42,7 @@ public class AsyncJsPublisherExample {
             // If you want to use retrying for publishing, you must give a Retry Config
             // --------------------------------------------------------------------------------
             if (USE_RETRIER) {
-                builder.retryConfig(RetryConfig.DEFAULT_CONFIG);
+                builder.retryConfig(PublishRetryConfig.DEFAULT_CONFIG);
             }
 
             // The publisher is AutoCloseable
@@ -52,7 +52,7 @@ public class AsyncJsPublisherExample {
                     publisher.publishAsync(SUBJECT, ("data-" + x).getBytes());
                 }
 
-                while (publisher.preFlightSize() > 0 || publisher.inFlightSize() > 0) {
+                while (publisher.preFlightSize() > 0 || publisher.currentInFlight() > 0) {
                     ExampleUtils.printStateThenWait(publisher, publishListener);
                 }
 

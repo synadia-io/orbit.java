@@ -43,7 +43,7 @@ public class AsyncJsPublisherCustomizedExample {
             AsyncJsPublisher.Builder builder =
                 AsyncJsPublisher.builder(nc.jetStream())
                     .maxInFlight(250)
-                    .refillAllowedAt(100)
+                    .resumeAmount(100)
                     .pollTime(50)
                     .holdPauseTime(150)
                     .waitTimeout(3000)
@@ -55,7 +55,7 @@ public class AsyncJsPublisherCustomizedExample {
                     publisher.publishAsync(SUBJECT, ("data-" + x).getBytes());
                 }
 
-                while (publisher.preFlightSize() > 0 || publisher.inFlightSize() > 0) {
+                while (publisher.preFlightSize() > 0 || publisher.currentInFlight() > 0) {
                     ExampleUtils.printStateThenWait(publisher, publishListener);
                 }
 

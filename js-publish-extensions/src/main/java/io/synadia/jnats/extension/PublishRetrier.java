@@ -4,22 +4,25 @@
 package io.synadia.jnats.extension;
 
 import io.nats.client.JetStream;
+import io.nats.client.JetStreamApiException;
 import io.nats.client.Message;
 import io.nats.client.PublishOptions;
 import io.nats.client.api.PublishAck;
 import io.nats.client.impl.Headers;
-import io.nats.client.support.Status;
-import io.synadia.retrier.RetryConfig;
 
+import java.io.IOException;
 import java.util.concurrent.CompletableFuture;
 
+import static io.synadia.jnats.extension.PublishRetryConfig.DEFAULT_CONFIG;
 import static io.synadia.retrier.Retrier.execute;
-import static io.synadia.retrier.RetryConfig.DEFAULT_CONFIG;
 
 /**
  * The Publish Retrier provides methods which are built specifically for JetStream publishing.
  */
 public class PublishRetrier {
+
+    private static final String NO_RESPONDERS_TEXT = "No Responders";
+
     private PublishRetrier() {}  /* ensures cannot be constructed */
 
     /**
@@ -34,10 +37,29 @@ public class PublishRetrier {
      * @return The acknowledgement of the publish
      * @throws Exception various communication issues with the NATS server; only thrown if all retries failed.
      */
-    public static PublishAck publish(RetryConfig config, JetStream js, String subject, Headers headers, byte[] body, PublishOptions options) throws Exception {
-        return execute(config,
-            () -> js.publish(subject, headers, body, options),
-            e -> e.getMessage().contains(Status.NO_RESPONDERS_TEXT));
+    public static PublishAck publish(PublishRetryConfig config, JetStream js, String subject, Headers headers, byte[] body, PublishOptions options) throws Exception {
+        return execute(config.retryConfig,
+            () -> js.publish(subject, headers, body, options), e -> {
+                if (config.retryAll) {
+                    return true;
+                }
+                if (e instanceof IOException) {
+                    // No responders are actually surfaced as an IOException
+                    // but we are treating it as its own entity,
+                    // meaning no-responders does not follow the retryOnIoEx flag
+                    // and we check it first.
+                    if (e.getMessage().contains(NO_RESPONDERS_TEXT)) {
+                        return config.retryOnNoResponders;
+                    }
+                    if (config.retryOnIoEx) {
+                        return true;
+                    }
+                }
+                if (config.retryOnJetStreamApiEx && e instanceof JetStreamApiException) {
+                    return true;
+                }
+                return config.retryOnRuntimeEx && e instanceof RuntimeException;
+            });
     }
 
     /**
@@ -50,7 +72,7 @@ public class PublishRetrier {
      * @return The acknowledgement of the publish
      * @throws Exception various communication issues with the NATS server; only thrown if all retries failed.
      */
-    public static PublishAck publish(RetryConfig config, JetStream js, String subject, byte[] body) throws Exception {
+    public static PublishAck publish(PublishRetryConfig config, JetStream js, String subject, byte[] body) throws Exception {
         return publish(config, js, subject, null, body, null);
     }
 
@@ -65,7 +87,7 @@ public class PublishRetrier {
      * @return The acknowledgement of the publish
      * @throws Exception various communication issues with the NATS server; only thrown if all retries failed.
      */
-    public static PublishAck publish(RetryConfig config, JetStream js, String subject, Headers headers, byte[] body) throws Exception {
+    public static PublishAck publish(PublishRetryConfig config, JetStream js, String subject, Headers headers, byte[] body) throws Exception {
         return publish(config, js, subject, headers, body, null);
     }
 
@@ -80,7 +102,7 @@ public class PublishRetrier {
      * @return The acknowledgement of the publish
      * @throws Exception various communication issues with the NATS server; only thrown if all retries failed.
      */
-    public static PublishAck publish(RetryConfig config, JetStream js, String subject, byte[] body, PublishOptions options) throws Exception {
+    public static PublishAck publish(PublishRetryConfig config, JetStream js, String subject, byte[] body, PublishOptions options) throws Exception {
         return publish(config, js, subject, null, body, options);
     }
 
@@ -93,7 +115,7 @@ public class PublishRetrier {
      * @return The acknowledgement of the publish
      * @throws Exception various communication issues with the NATS server; only thrown if all retries failed.
      */
-    public static PublishAck publish(RetryConfig config, JetStream js, Message message) throws Exception {
+    public static PublishAck publish(PublishRetryConfig config, JetStream js, Message message) throws Exception {
         return publish(config, js, message.getSubject(), message.getHeaders(), message.getData(), null);
     }
 
@@ -107,7 +129,7 @@ public class PublishRetrier {
      * @return The acknowledgement of the publish
      * @throws Exception various communication issues with the NATS server; only thrown if all retries failed.
      */
-    public static PublishAck publish(RetryConfig config, JetStream js, Message message, PublishOptions options) throws Exception {
+    public static PublishAck publish(PublishRetryConfig config, JetStream js, Message message, PublishOptions options) throws Exception {
         return publish(config, js, message.getSubject(), message.getHeaders(), message.getData(), options);
     }
 
@@ -203,7 +225,7 @@ public class PublishRetrier {
      * @param options publish options
      * @return The future
      */
-    public static CompletableFuture<PublishAck> publishAsync(RetryConfig config, JetStream js, String subject, Headers headers, byte[] body, PublishOptions options) {
+    public static CompletableFuture<PublishAck> publishAsync(PublishRetryConfig config, JetStream js, String subject, Headers headers, byte[] body, PublishOptions options) {
         return CompletableFuture.supplyAsync(() -> {
             try {
                 return publish(config, js, subject, headers, body, options);
@@ -223,7 +245,7 @@ public class PublishRetrier {
      * @param body the message body
      * @return The future
      */
-    public static CompletableFuture<PublishAck> publishAsync(RetryConfig config, JetStream js, String subject, byte[] body) {
+    public static CompletableFuture<PublishAck> publishAsync(PublishRetryConfig config, JetStream js, String subject, byte[] body) {
         return publishAsync(config, js, subject, null, body, null);
     }
 
@@ -237,7 +259,7 @@ public class PublishRetrier {
      * @param body the message body
      * @return The future
      */
-    public static CompletableFuture<PublishAck> publishAsync(RetryConfig config, JetStream js, String subject, Headers headers, byte[] body) {
+    public static CompletableFuture<PublishAck> publishAsync(PublishRetryConfig config, JetStream js, String subject, Headers headers, byte[] body) {
         return publishAsync(config, js, subject, headers, body, null);
     }
 
@@ -251,7 +273,7 @@ public class PublishRetrier {
      * @param options publish options
      * @return The future
      */
-    public static CompletableFuture<PublishAck> publishAsync(RetryConfig config, JetStream js, String subject, byte[] body, PublishOptions options) {
+    public static CompletableFuture<PublishAck> publishAsync(PublishRetryConfig config, JetStream js, String subject, byte[] body, PublishOptions options) {
         return publishAsync(config, js, subject, null, body, options);
     }
 
@@ -263,7 +285,7 @@ public class PublishRetrier {
      * @param message the message to publish
      * @return The future
      */
-    public static CompletableFuture<PublishAck> publishAsync(RetryConfig config, JetStream js, Message message) {
+    public static CompletableFuture<PublishAck> publishAsync(PublishRetryConfig config, JetStream js, Message message) {
         return publishAsync(config, js, message.getSubject(), message.getHeaders(), message.getData(), null);
     }
 
@@ -276,7 +298,7 @@ public class PublishRetrier {
      * @param options publish options
      * @return The future
      */
-    public static CompletableFuture<PublishAck> publishAsync(RetryConfig config, JetStream js, Message message, PublishOptions options) {
+    public static CompletableFuture<PublishAck> publishAsync(PublishRetryConfig config, JetStream js, Message message, PublishOptions options) {
         return publishAsync(config, js, message.getSubject(), message.getHeaders(), message.getData(), options);
     }
 
