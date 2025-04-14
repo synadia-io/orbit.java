@@ -32,4 +32,22 @@ public interface AsyncJsPublishListener {
      * @param flight the flight representing the message
      */
     void timeout(PostFlight flight);
+
+    /**
+     * The engine has just paused publishing waiting for inflight to
+     * drop below the resumeInFlightAmount
+     * @param currentInFlight the number of messages in flight
+     * @param maxInFlight the number of in flight messages when publishing will be paused
+     * @param resumeAmount the number of in flight messages when publishing will resume after being paused
+     */
+    void paused(int currentInFlight, int maxInFlight, int resumeAmount);
+
+    /**
+     * The engine has just resumed publishing and will continue unless
+     * the number of messages in flight reaches the max
+     * @param currentInFlight the number of messages in flight
+     * @param maxInFlight the number of in flight messages when publishing will be paused
+     * @param resumeAmount the number of in flight messages when publishing will resume after being paused
+     */
+    void resumed(int currentInFlight, int maxInFlight, int resumeAmount);
 }

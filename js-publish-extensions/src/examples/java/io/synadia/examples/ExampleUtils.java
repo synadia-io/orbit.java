@@ -49,7 +49,7 @@ public class ExampleUtils {
         print(
             "elapsed=" + publishListener.elapsed(),
             "pre-flight=" + publisher.preFlightSize(),
-            "in-flight=" + publisher.inFlightSize(),
+            "in-flight=" + publisher.currentInFlight(),
             "published=" + publishListener.published,
             "acked=" + publishListener.acked,
             "exceptioned=" + publishListener.exceptioned,

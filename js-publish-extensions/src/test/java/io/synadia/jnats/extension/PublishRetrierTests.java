@@ -6,6 +6,7 @@ import io.nats.client.api.StorageType;
 import io.nats.client.api.StreamConfiguration;
 import io.nats.client.impl.Headers;
 import io.nats.client.impl.NatsMessage;
+import io.synadia.retrier.RetryConfig;
 import nats.io.ConsoleOutput;
 import nats.io.NatsServerRunner;
 import org.junit.jupiter.api.Test;
@@ -15,8 +16,9 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 
-import static io.synadia.retrier.RetryConfig.DEFAULT_CONFIG;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static io.synadia.jnats.extension.PublishRetryConfig.DEFAULT_CONFIG;
+import static io.synadia.jnats.extension.RetryCondition.*;
+import static org.junit.jupiter.api.Assertions.*;
 
 public class PublishRetrierTests {
     static {
@@ -30,6 +32,40 @@ public class PublishRetrierTests {
 
     interface AsyncRetryFunction {
         CompletableFuture<PublishAck> execute(String subject) throws Exception;
+    }
+
+    @Test
+    public void testConfig() {
+        PublishRetryConfig retryConfig = DEFAULT_CONFIG;
+        assertEquals(RetryConfig.DEFAULT_CONFIG.getAttempts(), retryConfig.retryConfig.getAttempts());
+        assertEquals(RetryConfig.DEFAULT_CONFIG.getDeadline(), retryConfig.retryConfig.getDeadline());
+        assertArrayEquals(RetryConfig.DEFAULT_CONFIG.getBackoffPolicy(), retryConfig.retryConfig.getBackoffPolicy());
+        assertFalse(retryConfig.retryAll);
+        assertTrue(retryConfig.retryOnNoResponders);
+        assertTrue(retryConfig.retryOnIoEx);
+        assertFalse(retryConfig.retryOnJetStreamApiEx);
+        assertFalse(retryConfig.retryOnRuntimeEx);
+
+        retryConfig = PublishRetryConfig.builder()
+            .retryConditions(NoResponders, IoEx, JetStreamApiEx, RuntimeEx)
+            .build();
+        assertEquals(RetryConfig.DEFAULT_CONFIG.getAttempts(), retryConfig.retryConfig.getAttempts());
+        assertEquals(RetryConfig.DEFAULT_CONFIG.getDeadline(), retryConfig.retryConfig.getDeadline());
+        assertArrayEquals(RetryConfig.DEFAULT_CONFIG.getBackoffPolicy(), retryConfig.retryConfig.getBackoffPolicy());
+        assertTrue(retryConfig.retryAll);
+        assertTrue(retryConfig.retryOnNoResponders);
+        assertTrue(retryConfig.retryOnIoEx);
+        assertTrue(retryConfig.retryOnJetStreamApiEx);
+        assertTrue(retryConfig.retryOnRuntimeEx);
+
+        for (RetryCondition condition : RetryCondition.values()) {
+            retryConfig = PublishRetryConfig.builder().retryConditions(condition).build();
+            assertFalse(retryConfig.retryAll);
+            assertEquals(condition == NoResponders, retryConfig.retryOnNoResponders);
+            assertEquals(condition == IoEx, retryConfig.retryOnIoEx);
+            assertEquals(condition == JetStreamApiEx, retryConfig.retryOnJetStreamApiEx);
+            assertEquals(condition == RuntimeEx, retryConfig.retryOnRuntimeEx);
+        }
     }
 
     @Test

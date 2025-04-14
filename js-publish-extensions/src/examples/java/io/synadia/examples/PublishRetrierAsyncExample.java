@@ -4,15 +4,13 @@
 package io.synadia.examples;
 
 import io.nats.client.Connection;
-import io.nats.client.JetStreamApiException;
 import io.nats.client.Nats;
 import io.nats.client.api.PublishAck;
 import io.nats.client.api.StorageType;
 import io.nats.client.api.StreamConfiguration;
 import io.synadia.jnats.extension.PublishRetrier;
-import io.synadia.retrier.RetryConfig;
+import io.synadia.jnats.extension.PublishRetryConfig;
 
-import java.io.IOException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
@@ -23,44 +21,33 @@ public class PublishRetrierAsyncExample {
 
     public static void main(String[] args) {
         try (Connection nc = Nats.connect()) {
-            try {
-                nc.jetStreamManagement().deleteStream(STREAM);
+            // create the stream, delete any existing one first for example purposes.
+            try { nc.jetStreamManagement().deleteStream(STREAM); }  catch (Exception ignore) {}
+            System.out.println("Creating Stream @ " + System.currentTimeMillis());
+            nc.jetStreamManagement().addStream(StreamConfiguration.builder()
+                .name(STREAM)
+                .subjects(SUBJECT)
+                .storageType(StorageType.File) // so it's persistent for a server restart test
+                .build());
+
+            // default attempts is 2, we change this so you have time to kill the server to test.
+            // the default backoff is {250, 250, 500, 500, 3000, 5000}
+            // the default deadline is 1 hour
+            // the default Retry Conditions are timeouts and no responders (both IOExceptions)
+            PublishRetryConfig config = PublishRetryConfig.builder().attempts(10).build();
+
+            int num = 0;
+            while (true) {
+                long now = System.currentTimeMillis();
+                System.out.println("Publishing @ " + (++num));
+                CompletableFuture<PublishAck> cfpa = PublishRetrier.publishAsync(config, nc.jetStream(), SUBJECT, ("data" + num).getBytes());
+                PublishAck pa = cfpa.get(30, TimeUnit.SECONDS);
+                long elapsed = System.currentTimeMillis() - now;
+                System.out.println("Publish Ack after " + elapsed + " --> " + pa.getJv().toJson());
             }
-            catch (Exception ignore) {}
-
-            // since the default backoff is {250, 250, 500, 500, 3000, 5000}
-            new Thread(() -> {
-                try {
-                    Thread.sleep(1100);
-                }
-                catch (InterruptedException e) {
-                    Thread.currentThread().interrupt();
-                }
-                try {
-                    System.out.println("Creating Stream @ " + System.currentTimeMillis());
-                    nc.jetStreamManagement().addStream(StreamConfiguration.builder()
-                        .name(STREAM)
-                        .subjects(SUBJECT)
-                        .storageType(StorageType.Memory)
-                        .build());
-                }
-                catch (IOException | JetStreamApiException e) {
-                    throw new RuntimeException(e);
-                }
-            }).start();
-
-            RetryConfig config = RetryConfig.builder().attempts(10).build();
-            long now = System.currentTimeMillis();
-
-            System.out.println("Publishing @ " + now);
-            CompletableFuture<PublishAck> cfpa = PublishRetrier.publishAsync(config, nc.jetStream(), SUBJECT, null);
-            PublishAck pa = cfpa.get(30, TimeUnit.SECONDS);
-            long done = System.currentTimeMillis();
-
-            System.out.println("Publish Ack: " + pa.getJv().toJson());
-            System.out.println("Done @ " + done + ", Elapsed: " + (done - now));
         }
         catch (Exception e) {
+            System.out.println("EXAMPLE EXCEPTION: " + e);
             e.printStackTrace();
         }
     }

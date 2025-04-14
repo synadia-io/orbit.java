@@ -6,7 +6,6 @@ package io.synadia.jnats.extension;
 import io.nats.client.*;
 import io.nats.client.api.PublishAck;
 import io.nats.client.impl.Headers;
-import io.synadia.retrier.RetryConfig;
 
 import java.io.IOException;
 import java.util.concurrent.*;
@@ -21,7 +20,7 @@ import java.util.function.Supplier;
  */
 public class AsyncJsPublisher implements AutoCloseable {
     public static final int DEFAULT_MAX_IN_FLIGHT = 50;
-    public static final int DEFAULT_REFILL_AMOUNT = 0;
+    public static final int DEFAULT_RESUME_AMOUNT = 0;
     public static final long DEFAULT_POLL_TIME = 100;
     public static final long DEFAULT_HOLD_PAUSE_TIME = 100;
     public static final long DEFAULT_WAIT_TIMEOUT = DEFAULT_MAX_IN_FLIGHT * DEFAULT_POLL_TIME;
@@ -33,16 +32,15 @@ public class AsyncJsPublisher implements AutoCloseable {
     private final Supplier<String> messageIdSupplier;
     private final String idPrefix;
     private final int maxInFlight;
-    private final int refillAllowedAt;
-    private final RetryConfig retryConfig;
+    private final int resumeAmount;
+    private final PublishRetryConfig retryConfig;
     private final AsyncJsPublishListener publishListener;
     private final long pollTime;
     private final long holdPauseTime;
     private final long waitTimeout;
-    private final boolean processAcksInOrder;
     private final LinkedBlockingQueue<PreFlight> preFlight;
     private final LinkedBlockingQueue<InFlight> inFlights;
-    private final AtomicBoolean notInHoldingPattern;
+    private final AtomicBoolean notPaused;
     private final AtomicBoolean draining;
     private final AtomicBoolean keepGoingPublishRunner;
     private final AtomicBoolean keepGoingFlightsRunner;
@@ -66,13 +64,12 @@ public class AsyncJsPublisher implements AutoCloseable {
             messageIdSupplier = b.messageIdSupplier;
         }
         maxInFlight = b.maxInFlight;
-        refillAllowedAt = b.refillAllowedAt;
+        resumeAmount = b.resumeAmount;
         retryConfig = b.retryConfig;
         publishListener = b.publishListener;
         pollTime = b.pollTime;
         holdPauseTime = b.holdPauseTime;
         waitTimeout = b.waitTimeout;
-        processAcksInOrder = b.processAcksInOrder;
 
         if (b.notificationExecutorService == null) {
             notificationExecutorService = Executors.newFixedThreadPool(1);
@@ -85,7 +82,7 @@ public class AsyncJsPublisher implements AutoCloseable {
 
         preFlight = new LinkedBlockingQueue<>();
         inFlights = new LinkedBlockingQueue<>();
-        notInHoldingPattern = new AtomicBoolean(true);
+        notPaused = new AtomicBoolean(true);
         draining = new AtomicBoolean(false);
         keepGoingPublishRunner = new AtomicBoolean(true);
         keepGoingFlightsRunner = new AtomicBoolean(true);
@@ -158,7 +155,7 @@ public class AsyncJsPublisher implements AutoCloseable {
      * The number of messages currently in flight (published, awaiting ack)
      * @return the number
      */
-    public int inFlightSize() {
+    public int currentInFlight() {
         return inFlights.size();
     }
 
@@ -195,11 +192,11 @@ public class AsyncJsPublisher implements AutoCloseable {
     }
 
     /**
-     * The configured refill allowed at
+     * The configured resume at amount
      * @return the value
      */
-    public int getRefillAllowedAt() {
-        return refillAllowedAt;
+    public int getResumeAmount() {
+        return resumeAmount;
     }
 
     /**
@@ -226,8 +223,9 @@ public class AsyncJsPublisher implements AutoCloseable {
         return waitTimeout;
     }
 
+    @Deprecated
     public boolean getProcessAcksInOrder() {
-        return processAcksInOrder;
+        return true;
     }
 
     /**
@@ -236,7 +234,7 @@ public class AsyncJsPublisher implements AutoCloseable {
     public void publishRunner() {
         try {
             while (keepGoingPublishRunner.get()) {
-                if (notInHoldingPattern.get()) {
+                if (notPaused.get()) {
                     PreFlight pre = preFlight.poll(pollTime, TimeUnit.MILLISECONDS);
                     if (pre != null) {
                         if (pre == STOP_MARKER) {
@@ -261,8 +259,10 @@ public class AsyncJsPublisher implements AutoCloseable {
 
                         // if we've reached the max in flight, put publishing on hold
                         // this is reset by the flights runner when the condition is met
-                        if (inFlights.size() >= maxInFlight) {
-                            notInHoldingPattern.set(false);
+                        int currentInFlight = inFlights.size();
+                        if (currentInFlight >= maxInFlight) {
+                            notPaused.set(false);
+                            notifyPaused(currentInFlight);
                         }
                     }
                 }
@@ -311,12 +311,15 @@ public class AsyncJsPublisher implements AutoCloseable {
                     }
                     catch (InterruptedException e) {
                         Thread.currentThread().interrupt();
+                        keepGoingFlightsRunner.set(false);
                     }
 
                     // once the inFlight empty out/cross the refill threshold,
                     // we are allowed to publish again
-                    if (inFlights.size() <= refillAllowedAt) {
-                        notInHoldingPattern.set(true);
+                    int currentInFlight = inFlights.size();
+                    if (currentInFlight <= resumeAmount) {
+                        notPaused.set(true);
+                        notifyResumed(currentInFlight);
                     }
                 }
             }
@@ -331,7 +334,10 @@ public class AsyncJsPublisher implements AutoCloseable {
     }
 
     private void handleExecutionException(ExecutionException e, InFlight inFlight) {
-        Throwable cause = e.getCause() == null ? e : e.getCause();
+        Throwable cause = e;
+        while (cause.getCause() != null) {
+            cause = cause.getCause();
+        }
         if (cause instanceof JetStreamApiException) {
             if (cause.getMessage().contains("10060") // expected stream does not match [10060]
                 || (cause.getMessage().contains("10070")) // wrong last msg ID: [10070]
@@ -378,6 +384,18 @@ public class AsyncJsPublisher implements AutoCloseable {
         }
     }
 
+    private void notifyPaused(int currentInFlight) {
+        if (publishListener != null) {
+            notificationExecutorService.submit(() -> publishListener.paused(currentInFlight, maxInFlight, resumeAmount));
+        }
+    }
+
+    private void notifyResumed(int currentInFlight) {
+        if (publishListener != null) {
+            notificationExecutorService.submit(() -> publishListener.resumed(currentInFlight, maxInFlight, resumeAmount));
+        }
+    }
+
     /**
      * Creates a builder for the AsyncJsPublisher
      * @param js the JetStream context
@@ -394,8 +412,8 @@ public class AsyncJsPublisher implements AutoCloseable {
         JetStream js;
         Supplier<String> messageIdSupplier;
         int maxInFlight = DEFAULT_MAX_IN_FLIGHT;
-        int refillAllowedAt = DEFAULT_REFILL_AMOUNT;
-        RetryConfig retryConfig;
+        int resumeAmount = DEFAULT_RESUME_AMOUNT;
+        PublishRetryConfig retryConfig;
         AsyncJsPublishListener publishListener;
         long pollTime = DEFAULT_POLL_TIME;
         long holdPauseTime = DEFAULT_HOLD_PAUSE_TIME;
@@ -427,9 +445,9 @@ public class AsyncJsPublisher implements AutoCloseable {
          * Defaults to  {@value #DEFAULT_MAX_IN_FLIGHT}
          * In flight is defined as a message that has been published but not yet
          * completed either with a publish ack confirmation or an exception.
-         * Once the in flight maximum has been reached, no messages will be
-         * published until the number of messages in flight becomes less than
-         * or equal to the refill allowed at
+         * Once the in flight maximum has been reached, publishing will be paused
+         * and no moew messages will be published until the number of messages in flight
+         * becomes less than or equal to the resume amount
          * @param maxInFlight the maximum number of messages in flight
          * @return the builder
          */
@@ -439,25 +457,25 @@ public class AsyncJsPublisher implements AutoCloseable {
         }
 
         /**
-         * The number of messages to allow starting to refill the in flight queue
-         * if the in flight queue had reached the max in flight
+         * The number of messages to allow publishing to resume after a pause
+         * when in flight queue had reached the max in flight size
          * Defaults to 0 meaning it must be completely empty once it gets full
          * @param refillAllowedAt the amount
          * @return the builder
          */
-        public Builder refillAllowedAt(int refillAllowedAt) {
-            this.refillAllowedAt = refillAllowedAt;
+        public Builder resumeAmount(int refillAllowedAt) {
+            this.resumeAmount = refillAllowedAt;
             return this;
         }
 
         /**
-         * If a retry config is supplied, the publish will be done with the Retrier
-         * using the supplied config. If no retry config is supplied, the publish
+         * If a retry config is supplied, the publish will be done using the supplied config.
+         * If no retry config is supplied, the publish
          * is just a standard one time publish
          * @param retryConfig the config
          * @return the buidler
          */
-        public Builder retryConfig(RetryConfig retryConfig) {
+        public Builder retryConfig(PublishRetryConfig retryConfig) {
             this.retryConfig = retryConfig;
             return this;
         }
@@ -509,13 +527,9 @@ public class AsyncJsPublisher implements AutoCloseable {
         }
 
         /**
-         * Defaults to true. Important if there are publish expectations on a message
-         * otherwise can be set to false. Will cause publish ack futures to be processed
-         * in the smae order they were published/queued
-         * @param processAcksInOrder the setting
-         * @return the builder
          * @deprecated Turns out processing in order is faster,
-         *             my guess is that by waiting for the get, acks at the end of the queue complete.
+         *             my guess is that by waiting for the get,
+         *             acks at the end of the queue complete.
          */
         @Deprecated
         public Builder processAcksInOrder(boolean processAcksInOrder) {
@@ -559,17 +573,17 @@ public class AsyncJsPublisher implements AutoCloseable {
      * @param subject the subject to send the message to
      * @param headers optional headers to publish with the message.
      * @param body the message body
-     * @param options publish options
+     * @param po publish options
      * @return The future
      */
-    public PreFlight publishAsync(String subject, Headers headers, byte[] body, PublishOptions options) {
+    public PreFlight publishAsync(String subject, Headers headers, byte[] body, PublishOptions po) {
         if (draining.get() || (!keepGoingPublishRunner.get() && !keepGoingFlightsRunner.get())) {
             throw new IllegalStateException("Cannot publish once drained or stopped.");
         }
 
-        String messageId = options != null && options.getMessageId() != null
-            ? options.getMessageId() : messageIdSupplier.get();
-        PreFlight p = new PreFlight(messageId, subject, headers, body, options);
+        String messageId = po != null && po.getMessageId() != null
+            ? po.getMessageId() : messageIdSupplier.get();
+        PreFlight p = new PreFlight(messageId, subject, headers, body, po);
         preFlight.offer(p);
         return p;
     }

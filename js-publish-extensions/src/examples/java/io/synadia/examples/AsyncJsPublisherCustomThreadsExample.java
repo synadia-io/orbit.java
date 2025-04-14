@@ -68,7 +68,7 @@ public class AsyncJsPublisherCustomThreadsExample {
                 publisher.publishAsync(SUBJECT, ("data-" + x).getBytes());
             }
 
-            while (publisher.preFlightSize() > 0 || publisher.inFlightSize() > 0) {
+            while (publisher.preFlightSize() > 0 || publisher.currentInFlight() > 0) {
                 ExampleUtils.printStateThenWait(publisher, publishListener);
             }
 

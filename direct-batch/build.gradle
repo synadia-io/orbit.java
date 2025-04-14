@@ -38,7 +38,8 @@ repositories {
 }
 
 dependencies {
-    implementation 'io.nats:jnats:2.21.0-SNAPSHOT'
+    implementation 'io.nats:jnats:2.21.1'
+    implementation 'io.synadia:direct-batch:0.1.0'
 
     testImplementation 'io.nats:jnats-server-runner:1.2.8'
     testImplementation 'org.junit.jupiter:junit-jupiter:5.9.0'
