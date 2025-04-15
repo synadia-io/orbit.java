@@ -37,6 +37,7 @@ public class PublishRetrierAsyncExample {
             PublishRetryConfig config = PublishRetryConfig.builder().attempts(10).build();
 
             int num = 0;
+            //noinspection InfiniteLoopStatement
             while (true) {
                 long now = System.currentTimeMillis();
                 System.out.println("Publishing @ " + (++num));

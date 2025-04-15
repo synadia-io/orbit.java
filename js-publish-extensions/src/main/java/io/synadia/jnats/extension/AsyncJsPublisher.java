@@ -22,10 +22,10 @@ public class AsyncJsPublisher implements AutoCloseable {
     public static final int DEFAULT_MAX_IN_FLIGHT = 50;
     public static final int DEFAULT_RESUME_AMOUNT = 0;
     public static final long DEFAULT_POLL_TIME = 100;
-    public static final long DEFAULT_HOLD_PAUSE_TIME = 100;
+    public static final long DEFAULT_PUBLISH_PAUSE_TIME = 100;
     public static final long DEFAULT_WAIT_TIMEOUT = DEFAULT_MAX_IN_FLIGHT * DEFAULT_POLL_TIME;
 
-    private static final PreFlight STOP_MARKER = new PreFlight("STOP", null, null, null, null);
+    private static final PreFlight DRAIN_MARKER = new PreFlight("DRAIN", null, null, null, null);
 
     private final AtomicLong messageIdGenerator;
     private final JetStream js;
@@ -36,11 +36,11 @@ public class AsyncJsPublisher implements AutoCloseable {
     private final PublishRetryConfig retryConfig;
     private final AsyncJsPublishListener publishListener;
     private final long pollTime;
-    private final long holdPauseTime;
+    private final long publishPauseTime;
     private final long waitTimeout;
     private final LinkedBlockingQueue<PreFlight> preFlight;
     private final LinkedBlockingQueue<InFlight> inFlights;
-    private final AtomicBoolean notPaused;
+    private final AtomicBoolean publishingNotPaused;
     private final AtomicBoolean draining;
     private final AtomicBoolean keepGoingPublishRunner;
     private final AtomicBoolean keepGoingFlightsRunner;
@@ -48,8 +48,8 @@ public class AsyncJsPublisher implements AutoCloseable {
     private final boolean executorWasntUserSupplied;
     private final AtomicReference<Thread> publishRunnerThread;
     private final AtomicReference<Thread> flightsRunnerThread;
-    private final CountDownLatch publishRunnerDoneLatch;
-    private final CountDownLatch flightsRunnerDoneLatch;
+    private final CompletableFuture<Void> publishRunnerDoneFuture;
+    private final CompletableFuture<Void> flightsRunnerDoneFuture;
 
     private AsyncJsPublisher(Builder b) {
         js = b.js;
@@ -68,7 +68,7 @@ public class AsyncJsPublisher implements AutoCloseable {
         retryConfig = b.retryConfig;
         publishListener = b.publishListener;
         pollTime = b.pollTime;
-        holdPauseTime = b.holdPauseTime;
+        publishPauseTime = b.publishPauseTime;
         waitTimeout = b.waitTimeout;
 
         if (b.notificationExecutorService == null) {
@@ -82,15 +82,15 @@ public class AsyncJsPublisher implements AutoCloseable {
 
         preFlight = new LinkedBlockingQueue<>();
         inFlights = new LinkedBlockingQueue<>();
-        notPaused = new AtomicBoolean(true);
+        publishingNotPaused = new AtomicBoolean(true);
         draining = new AtomicBoolean(false);
         keepGoingPublishRunner = new AtomicBoolean(true);
         keepGoingFlightsRunner = new AtomicBoolean(true);
         publishRunnerThread = new AtomicReference<>();
         flightsRunnerThread = new AtomicReference<>();
 
-        publishRunnerDoneLatch = new CountDownLatch(1);
-        flightsRunnerDoneLatch = new CountDownLatch(1);
+        publishRunnerDoneFuture = new CompletableFuture<>();
+        flightsRunnerDoneFuture = new CompletableFuture<>();
     }
 
     /**
@@ -107,22 +107,23 @@ public class AsyncJsPublisher implements AutoCloseable {
     }
 
     /**
-     * stop the publisher
+     * stop the publisher with drain
      */
     public void stop() {
-        keepGoingPublishRunner.set(false);
-        keepGoingFlightsRunner.set(false);
+        stop(true);
     }
 
     /**
-     * Drain the publish.
-     * <p>The manager stops accepting new publishes</p>
-     * <p>The manager tries to publish all already asked to be published</p>
-     * You can still call stop, which will just finish it's current work.
+     * stop the publisher, optionally drain
+     * @param drain whether to drain or not
      */
-    public void drain() {
-        preFlight.offer(STOP_MARKER);
-        draining.set(true);
+    public void stop(boolean drain) {
+        if (drain) {
+            preFlight.offer(DRAIN_MARKER);
+            draining.set(true);
+        }
+        keepGoingPublishRunner.set(false);
+        keepGoingFlightsRunner.set(false);
     }
 
     /**
@@ -130,23 +131,38 @@ public class AsyncJsPublisher implements AutoCloseable {
      */
     @Override
     public void close() throws Exception {
-        stop();
+        keepGoingPublishRunner.set(false);
+        keepGoingFlightsRunner.set(false);
 
         if (executorWasntUserSupplied) {
             notificationExecutorService.shutdown();
         }
 
-        if (!publishRunnerDoneLatch.await(pollTime, TimeUnit.MILLISECONDS)) {
-            Thread t = publishRunnerThread.get();
-            if (t != null && t.isAlive()) {
-                t.interrupt();
+        Thread t = publishRunnerThread.get();
+        if (t != null) { // thread is null if the user provided their own
+            try {
+                // give the publish runner a little time to finish
+                publishRunnerDoneFuture.get(pollTime + 10, TimeUnit.MILLISECONDS);
+            }
+            catch (TimeoutException e) {
+                // it didn't finish, it may still be alive, interrupt it
+                if (t.isAlive()) {
+                    t.interrupt();
+                }
             }
         }
 
-        if (!flightsRunnerDoneLatch.await(pollTime, TimeUnit.MILLISECONDS)) {
-            Thread t = flightsRunnerThread.get();
-            if (t != null && t.isAlive()) {
-                t.interrupt();
+        t = flightsRunnerThread.get();
+        if (t != null) { // thread is null if the user provided their own
+            try {
+                // give the flights runner a little time to finish
+                flightsRunnerDoneFuture.get(pollTime + 10, TimeUnit.MILLISECONDS);
+            }
+            catch (TimeoutException e) {
+                // it didn't finish, it may still be alive, interrupt it
+                if (t.isAlive()) {
+                    t.interrupt();
+                }
             }
         }
     }
@@ -168,19 +184,19 @@ public class AsyncJsPublisher implements AutoCloseable {
     }
 
     /**
-     * A latch that finishes when then publish runner event loop is complete
+     * A future that completes when then publish runner event loop is complete
      * @return the latch
      */
-    public CountDownLatch getPublishRunnerDoneLatch() {
-        return publishRunnerDoneLatch;
+    public CompletableFuture<Void> getPublishRunnerDoneFuture() {
+        return publishRunnerDoneFuture;
     }
 
     /**
-     * A latch that finishes when then flights runner event loop is complete
+     * A future that completes when then flights runner event loop is complete
      * @return the latch
      */
-    public CountDownLatch getFlightsRunnerDoneLatch() {
-        return flightsRunnerDoneLatch;
+    public CompletableFuture<Void> getFlightsRunnerDoneFuture() {
+        return flightsRunnerDoneFuture;
     }
 
     /**
@@ -208,11 +224,12 @@ public class AsyncJsPublisher implements AutoCloseable {
     }
 
     /**
-     * The configured hold pause time
+     * The configured amount of time to pause between checks
+     * to continue if publishing is in the paused state
      * @return the time in millis
      */
-    public long getHoldPauseTime() {
-        return holdPauseTime;
+    public long getPublishPauseTime() {
+        return publishPauseTime;
     }
 
     /**
@@ -233,11 +250,11 @@ public class AsyncJsPublisher implements AutoCloseable {
      */
     public void publishRunner() {
         try {
-            while (keepGoingPublishRunner.get()) {
-                if (notPaused.get()) {
+            while (keepGoingPublishRunner.get() || draining.get()) {
+                if (publishingNotPaused.get()) {
                     PreFlight pre = preFlight.poll(pollTime, TimeUnit.MILLISECONDS);
                     if (pre != null) {
-                        if (pre == STOP_MARKER) {
+                        if (pre == DRAIN_MARKER) {
                             return;
                         }
 
@@ -261,14 +278,14 @@ public class AsyncJsPublisher implements AutoCloseable {
                         // this is reset by the flights runner when the condition is met
                         int currentInFlight = inFlights.size();
                         if (currentInFlight >= maxInFlight) {
-                            notPaused.set(false);
+                            publishingNotPaused.set(false);
                             notifyPaused(currentInFlight);
                         }
                     }
                 }
                 else {
                     //noinspection BusyWait
-                    Thread.sleep(holdPauseTime);
+                    Thread.sleep(publishPauseTime);
                 }
             }
         }
@@ -277,7 +294,7 @@ public class AsyncJsPublisher implements AutoCloseable {
         }
         finally {
             keepGoingPublishRunner.set(false);
-            publishRunnerDoneLatch.countDown();
+            publishRunnerDoneFuture.complete(null);
         }
     }
 
@@ -286,7 +303,7 @@ public class AsyncJsPublisher implements AutoCloseable {
      */
     public void flightsRunner() {
         try {
-            while (keepGoingFlightsRunner.get()) {
+            while (keepGoingFlightsRunner.get() || draining.get()) {
                 InFlight head = inFlights.poll(pollTime, TimeUnit.MILLISECONDS);
                 if (head == null) {
                     // no inFlight? draining? no more queued? no more in inFlight? we are done!
@@ -314,12 +331,15 @@ public class AsyncJsPublisher implements AutoCloseable {
                         keepGoingFlightsRunner.set(false);
                     }
 
-                    // once the inFlight empty out/cross the refill threshold,
-                    // we are allowed to publish again
-                    int currentInFlight = inFlights.size();
-                    if (currentInFlight <= resumeAmount) {
-                        notPaused.set(true);
-                        notifyResumed(currentInFlight);
+                    // if paused (not publishing), check if we can resume
+                    if (!publishingNotPaused.get()) {
+                        // once the inFlight size is LE the resume amount,
+                        // we are allowed to resume (publish again)
+                        int currentInFlight = inFlights.size();
+                        if (currentInFlight <= resumeAmount) {
+                            publishingNotPaused.set(true);
+                            notifyResumed(currentInFlight);
+                        }
                     }
                 }
             }
@@ -329,7 +349,7 @@ public class AsyncJsPublisher implements AutoCloseable {
         }
         finally {
             keepGoingFlightsRunner.set(false);
-            flightsRunnerDoneLatch.countDown();
+            flightsRunnerDoneFuture.complete(null);
         }
     }
 
@@ -416,7 +436,7 @@ public class AsyncJsPublisher implements AutoCloseable {
         PublishRetryConfig retryConfig;
         AsyncJsPublishListener publishListener;
         long pollTime = DEFAULT_POLL_TIME;
-        long holdPauseTime = DEFAULT_HOLD_PAUSE_TIME;
+        long publishPauseTime = DEFAULT_PUBLISH_PAUSE_TIME;
         long waitTimeout = DEFAULT_WAIT_TIMEOUT;
         boolean processAcksInOrder = true;
         ExecutorService notificationExecutorService;
@@ -506,12 +526,12 @@ public class AsyncJsPublisher implements AutoCloseable {
          * The amount of time to pause if the publish loop is in the holding pattern
          * The holding pattern happens once the in flight queue is filled to the max in flight
          * and the completed acks have not cleared the refill at amount.
-         * Defaults to {@value #DEFAULT_HOLD_PAUSE_TIME}
-         * @param holdPauseTime the time in milliseconds
+         * Defaults to {@value #DEFAULT_PUBLISH_PAUSE_TIME}
+         * @param publishPauseTime the time in milliseconds
          * @return the builder
          */
-        public Builder holdPauseTime(long holdPauseTime) {
-            this.holdPauseTime = holdPauseTime;
+        public Builder publishPauseTime(long publishPauseTime) {
+            this.publishPauseTime = publishPauseTime;
             return this;
         }
 
@@ -577,12 +597,14 @@ public class AsyncJsPublisher implements AutoCloseable {
      * @return The future
      */
     public PreFlight publishAsync(String subject, Headers headers, byte[] body, PublishOptions po) {
-        if (draining.get() || (!keepGoingPublishRunner.get() && !keepGoingFlightsRunner.get())) {
-            throw new IllegalStateException("Cannot publish once drained or stopped.");
+        if (!keepGoingPublishRunner.get()) {
+            throw new IllegalStateException("Cannot publish once stopped.");
         }
 
-        String messageId = po != null && po.getMessageId() != null
-            ? po.getMessageId() : messageIdSupplier.get();
+        String messageId = po == null || po.getMessageId() == null
+            ? messageIdSupplier.get()
+            : po.getMessageId() ;
+
         PreFlight p = new PreFlight(messageId, subject, headers, body, po);
         preFlight.offer(p);
         return p;

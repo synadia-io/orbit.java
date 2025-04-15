@@ -4,8 +4,8 @@
 
 Extensions specific to JetStream publishing.
 
-**Current Release**: 0.3.0
-&nbsp; **Current Snapshot**: 0.4.0-SNAPSHOT
+**Current Release**: 0.4.0
+&nbsp; **Current Snapshot**: 0.4.1-SNAPSHOT
 &nbsp; **Gradle and Maven** `io.synadia:jnats-js-publish-extensions`
 [Dependencies Help](https://github.com/synadia-io/orbit.java?tab=readme-ov-file#dependencies)
 
@@ -17,23 +17,25 @@ Extensions specific to JetStream publishing.
 ### PublishRetrier
 
 This class parallels the standard JetStream publish api with methods that will retry the publish.
-
 The examples:
-* [Publish Retrier Sync Example](src/examples/java/io/synadia/examples/PublishRetrierSyncExample.java)
-* [Publish Retrier Async Example](src/examples/java/io/synadia/examples/PublishRetrierAsyncExample.java)
+* The [Publish Retrier Sync Example](src/examples/java/io/synadia/examples/PublishRetrierSyncExample.java)
+demonstrates publishing synchronously with the retrier.
+
+* The [Publish Retrier Async Example](src/examples/java/io/synadia/examples/PublishRetrierAsyncExample.java)
+demonstrates publishing asynchronously with the retrier.
 
 ### AsyncJsPublisher
 
-This class is a full async message publish manager. 
-This utility provides a workflow of
+This class is a full async message publish manager that provides: 
 1. Publishing a message async
    * The number of inflight messages (published but not received acks) can be set.
-2. Queueing and tracking of the in-flight PublishAck future
+2. Queueing and tracking of the inflight PublishAck future
 3. The ability to observe the queue and respond to events
    * The message was published
    * The message received a valid ack
    * The publish completed with an exception
    * The publish timed out.
+   * Publishing was paused or resumed due to threshold settings
 
 It can be combined with the retrier. 
 You must consider that when publishing async in this manner 
@@ -41,8 +43,12 @@ it's possible for messages to be published out of order.
 In that case you can use publish expectations.
 If order of messages is a requirement, you 
 
-* [Async Js Publisher Example](src/examples/java/io/synadia/examples/AsyncJsPublisherExample.java)
-* [Async Js Publisher More Customized Example](src/examples/java/io/synadia/examples/AsyncJsPublisherCustomizedExample.java)
+* The [Async Js Publisher Example](src/examples/java/io/synadia/examples/AsyncJsPublisherExample.java)
+demonstrates basic use of the class.
+
+* The [Async Js Publisher Custom Threads Example](src/examples/java/io/synadia/examples/AsyncJsPublisherCustomThreadsExample.java) 
+has the identical workflow, but demonstrates the ability to provide the executors and threads manually instead of relying
+on the built-in ones.
 
 ---
 Copyright (c) 2024-2025 Synadia Communications Inc. All Rights Reserved.

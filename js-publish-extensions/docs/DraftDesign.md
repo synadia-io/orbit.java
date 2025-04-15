@@ -7,28 +7,39 @@ This document is the draft design describing a managed async publish utility.
 * JetStream context on which to publish
 
 #### Optional Properties
-| Property                                    | Description                                                                                                                                                                                                                                                                  |
-|---------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| String idPrefix                             | used to make unique identifiers around each message. Defaults to a NUID                                                                                                                                                                                                      |
-| int maxInFlight                             | no more than this number of messages can be waiting for publish ack. Defaults to 50.                                                                                                                                                                                         |
-| int refillAllowedAt                         | if the queue size reaches maxInFlight, a hold is placed so no more messages can be published until the in flight queue contains this amount or less messages, at which time the hold is removed. Defaults to 0 which would be full sawtooth. Non zero provides for a window. |
-| RetryConfig retryConfig                     | if the user wants to publish with retries, they must supply a config, otherwise the publish will be attempted only once.                                                                                                                                                     |
-| long pollTime                               | the amount of time in ms to poll any given queue. Ensures polling doesn't block indefinitely. Defaults to 100ms                                                                                                                                                              |
-| long holdPauseTime                          | the amount of time in ms to pause between checks when hold is on. Defaults to 100ms                                                                                                                                                                                          |
-| long waitTimeout                            | the timeout when waiting for a publish to be acknowledged. Defaults to 5000ms                                                                                                                                                                                                |
-| PublisherListener publisherListener         | a callback for the user to see what's going on in the workflow, see description of Flight later                                                                                                                                                                              |
+| Property                             | Description                                                                                                                                                                                                                                                                  |
+|--------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| String idPrefix                      | used to make unique identifiers around each message. Defaults to a NUID                                                                                                                                                                                                      |
+| int maxInFlight                      | no more than this number of messages can be waiting for publish ack. Defaults to 50.                                                                                                                                                                                         |
+| int refillAllowedAt                  | if the queue size reaches maxInFlight, a hold is placed so no more messages can be published until the in flight queue contains this amount or less messages, at which time the hold is removed. Defaults to 0 which would be full sawtooth. Non zero provides for a window. |
+| RetryConfig retryConfig              | if the user wants to publish with retries, they must supply a config, otherwise the publish will be attempted only once.                                                                                                                                                     |
+| long pollTime                        | the amount of time in ms to poll any given queue. Ensures polling doesn't block indefinitely. Defaults to 100ms                                                                                                                                                              |
+| long publishPauseTime                | the amount of time in ms to pause between checks when hold is on. Defaults to 100ms                                                                                                                                                                                          |
+| long waitTimeout                     | the timeout when waiting for a publish to be acknowledged. Defaults to 5000ms                                                                                                                                                                                                |
+| PublisherListener publisherListener  | a callback for the user to see what's going on in the workflow, see description of Flight later                                                                                                                                                                              |
 
 
 ## PublisherListener Interface
 
 The callback interface for the user to get information about the publish workflow
 
-| Method                                      | Description                                                           |
-|---------------------------------------------|-----------------------------------------------------------------------|
-| void published(Flight flight)               | the flight is ready when the message is published                     |
-| void acked(Flight flight);                  | the publish ack was received                                          |
-| void completedExceptionally(Flight flight); | the publish exceptioned, such as a 503 or lower level request timeout |
-| void timeout(Flight flight)                 | the ack was not returned in time based on waitTimeout                 |
+| Method                                                                | Description                                                           |
+|-----------------------------------------------------------------------|-----------------------------------------------------------------------|
+| void published(Flight flight)                                         | the flight is ready when the message is published                     |
+| void acked(Flight flight)                                             | the publish ack was received                                          |
+| void completedExceptionally(Flight flight)                            | the publish exceptioned, such as a 503 or lower level request timeout |
+| void timeout(Flight flight)                                           | the ack was not returned in time based on waitTimeout                 |
+| void paused(int currentInFlight, int maxInFlight, int resumeAmount)   | Publishing was paused due to in-flight conditions                     |
+| void resumed(int currentInFlight, int maxInFlight, int resumeAmount)  | Publishing was resumed due to in-flight conditions                    |
+
+    /**
+     * The engine has just resumed publishing and will continue unless
+     * the number of messages in flight reaches the max
+     * @param currentInFlight the number of messages in flight
+     * @param maxInFlight the number of in flight messages when publishing will be paused
+     * @param resumeAmount the number of in flight messages when publishing will resume after being paused
+     */
+    void resumed(int currentInFlight, int maxInFlight, int resumeAmount);
 
 ## Flight structure
 
@@ -68,7 +79,7 @@ while keepGoing flag
         if in flight queue has reached maxInFlight put hold on
         notify listener to indicate published
   else in holding pattern
-    sleep holdPauseTime
+    sleep publishPauseTime
 ```
 
 ## Flights Runner Pseudo Code:

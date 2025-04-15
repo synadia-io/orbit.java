@@ -16,7 +16,7 @@ public class TransactionalPublishExample {
     public static void main(String[] args) {
         Options options = Options.builder()
             .server(Options.DEFAULT_URL)
-            .connectionListener((connection, events) -> ExampleUtils.print("Connection Event:" + events.getEvent()))
+            .connectionListener((connection, events) -> ExampleUtils.print("Connection Event", events.getEvent()))
             .errorListener(new ErrorListenerConsoleImpl())
             .build();
 
