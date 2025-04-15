@@ -27,8 +27,8 @@ public interface AsyncJsPublishListener {
     void completedExceptionally(PostFlight flight);
 
     /**
-     * The message has internally timed out waiting for the ack. Usually a sign of
-     * lost connection.
+     * The message has internally timed out waiting for the ack.
+     * Likely a sign of lost connection.
      * @param flight the flight representing the message
      */
     void timeout(PostFlight flight);

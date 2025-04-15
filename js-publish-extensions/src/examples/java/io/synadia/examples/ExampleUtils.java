@@ -32,27 +32,28 @@ public class ExampleUtils {
         }
     }
 
-    public static void print(Object... objects) {
+    public static void print(String label, Object... objects) {
         StringJoiner joiner = new StringJoiner(" | ");
         for (Object o: objects) {
             joiner.add(o.toString());
         }
-        System.out.println(joiner);
+        System.out.println(label + ": " + joiner);
     }
 
-    public static void printStateThenWait(AsyncJsPublisher publisher, ExamplePublishListener publishListener) throws InterruptedException {
-        printState(publisher, publishListener);
-        Thread.sleep(100);
+    public static void printStatus(AsyncJsPublisher publisher, ExamplePublishListener listener, boolean stopped) {
+        print("Status",
+            pad(stopped ? "Stopped" : (listener.paused.get() ? "Paused" : "Active"), 7),
+            "pre-flight: " + pad(publisher.preFlightSize(), 8),
+            "in-flight: " + pad(publisher.currentInFlight(), 8),
+            "published/acked: " + pad(listener.publishedCount + "/" + listener.ackedCount, 17),
+            "paused/resumed: " + pad(listener.pausedCount + "/" + listener.resumedCount, 7),
+            "exceptioned/timed-out: " + pad(listener.exceptionedCount + "/" + listener.timedOutCount, 7),
+            "elapsed: " + listener.elapsed() + "ms"
+            );
     }
 
-    public static void printState(AsyncJsPublisher publisher, ExamplePublishListener publishListener) {
-        print(
-            "elapsed=" + publishListener.elapsed(),
-            "pre-flight=" + publisher.preFlightSize(),
-            "in-flight=" + publisher.currentInFlight(),
-            "published=" + publishListener.published,
-            "acked=" + publishListener.acked,
-            "exceptioned=" + publishListener.exceptioned,
-            "timed out=" + publishListener.timedOut);
+    private static final String PADDING = "                    ";
+    private static String pad(Object s, int len) {
+        return (s + PADDING).substring(0, len);
     }
 }
