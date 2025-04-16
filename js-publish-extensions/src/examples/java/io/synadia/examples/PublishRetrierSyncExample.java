@@ -4,12 +4,12 @@
 package io.synadia.examples;
 
 import io.nats.client.Connection;
-import io.nats.client.ErrorListener;
 import io.nats.client.Nats;
 import io.nats.client.Options;
 import io.nats.client.api.PublishAck;
 import io.nats.client.api.StorageType;
 import io.nats.client.api.StreamConfiguration;
+import io.nats.client.impl.ErrorListenerConsoleImpl;
 import io.synadia.jnats.extension.PublishRetrier;
 import io.synadia.jnats.extension.PublishRetryConfig;
 import io.synadia.jnats.extension.RetryCondition;
@@ -26,17 +26,17 @@ public class PublishRetrierSyncExample {
 
     public static void main(String[] args) {
         Options options = Options.builder()
-            .connectionListener((x,y) -> {})
-            .errorListener(new ErrorListener() {})
+            .server(Options.DEFAULT_URL)
+            .connectionListener((connection, events) -> ExampleUtils.print("Connection Event", events.getEvent()))
+            .errorListener(new ErrorListenerConsoleImpl())
             .build();
         try (Connection nc = Nats.connect(options)) {
             // create the stream, delete any existing one first for example purposes.
             try { nc.jetStreamManagement().deleteStream(STREAM); }  catch (Exception ignore) {}
-            System.out.println("Creating Stream @ " + System.currentTimeMillis());
             nc.jetStreamManagement().addStream(StreamConfiguration.builder()
                 .name(STREAM)
                 .subjects(SUBJECT)
-                .storageType(StorageType.Memory)
+                .storageType(StorageType.File) // so it's persistent for a server restart test
                 .build());
 
             // --------------------------------------------------------------------------------
@@ -44,39 +44,49 @@ public class PublishRetrierSyncExample {
             // default attempts is 2
             // default backoff is {250, 250, 500, 500, 3000, 5000}
             // default deadline is unlimited
-            // default Retry Conditions are timeouts and no responders (both IOExceptions)
-            //   and shown here for example
+            // default Retry Conditions, shown here for example, are
+            //   too many requests, timeouts and no responders
             // --------------------------------------------------------------------------------
-            // This config will retry 3 times with a wait of 500 millis between retries
+            // This config will retry 5 times with a wait of 1000 millis between retries
             // but since the deadline is short, the deadline will short circuit that.
-            // This should be tuned to match your needs.
+            // This should be tuned to match your needs. For testing purposes, try these:
+            // 1. Stop and then restart the server quickly. Wait for the publishing to resume.
+            // 2. Stop the server, wait for the program to end and see the retry exhausted.
             // --------------------------------------------------------------------------------
             PublishRetryConfig config = PublishRetryConfig.builder()
-                .attempts(3)
-                .backoffPolicy(new long[]{500})
-                .deadline(Duration.ofSeconds(2))
+                .attempts(5)
+                .backoffPolicy(new long[]{1000})
+                .deadline(Duration.ofSeconds(10)) // more than the attempt x backoff. Here for reference.
                 .retryConditions(RetryCondition.NoResponders, RetryCondition.IoEx)
                 .build();
 
             int num = 0;
-            boolean keepGoing;
-            do {
-                long now = System.currentTimeMillis();
-                System.out.print("Publishing @ " + (++num) + "...");
-                PublishAck pa = PublishRetrier.publish(config, nc.jetStream(), SUBJECT, null);
-                long elapsed = System.currentTimeMillis() - now;
-                keepGoing = false;
-                if (pa == null) {
-                    System.out.println("No Publish Ack after " + elapsed);
+            boolean keepGoing = true;
+            while (keepGoing) {
+                try {
+                    System.out.print("Publishing @ " + (++num) + "...");
+                    PublishAck pa = PublishRetrier.publish(config, nc.jetStream(), SUBJECT, null);
+                    if (pa == null) {
+                        // this would be unusual.
+                        System.out.println("No Publish Ack");
+                    }
+                    else if (pa.hasError()) {
+                        // This represents the server saying it got the message but could not complete
+                        // the publishing of it. Maybe the leader node is down...
+                        System.out.println("Publish Ack,  but got error: " + pa.getError());
+                    }
+                    else {
+                        // the happy path
+                        System.out.println("Publish Ack --> " + pa.getJv().toJson());
+                    }
                 }
-                else if (pa.hasError()) {
-                    System.out.println("Publish Ack after " + elapsed + " but got error: " + pa.getError());
+                catch (Exception e) {
+                    // This is where you should end up when the retry cannot get publish message
+                    // after it's gone through its paces. It will be the last exception it got.
+                    System.out.println("Cause of the retry failure: " + e);
+                    keepGoing = false;
                 }
-                else {
-                    keepGoing = true;
-                    System.out.println("Publish Ack after " + elapsed + " --> " + pa.getJv().toJson());
-                }
-            } while (keepGoing);
+            }
         }
         catch (Exception e) {
             System.out.println("Probably can't connect... " + e);
