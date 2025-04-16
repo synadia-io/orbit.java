@@ -3,7 +3,6 @@
 
 package io.synadia.jnats.extension;
 
-import io.nats.client.PublishOptions;
 import io.nats.client.api.PublishAck;
 import io.nats.client.impl.Headers;
 
@@ -40,10 +39,6 @@ public class InFlight {
 
     public byte[] getBody() {
         return preFlight.body;
-    }
-
-    public PublishOptions getOptions() {
-        return preFlight.options;
     }
 
     public CompletableFuture<InFlight> getFlightFuture() {

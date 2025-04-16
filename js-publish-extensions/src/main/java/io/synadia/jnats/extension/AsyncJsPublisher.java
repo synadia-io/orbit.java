@@ -3,7 +3,10 @@
 
 package io.synadia.jnats.extension;
 
-import io.nats.client.*;
+import io.nats.client.JetStream;
+import io.nats.client.JetStreamApiException;
+import io.nats.client.Message;
+import io.nats.client.NUID;
 import io.nats.client.api.PublishAck;
 import io.nats.client.impl.Headers;
 
@@ -25,7 +28,7 @@ public class AsyncJsPublisher implements AutoCloseable {
     public static final long DEFAULT_PUBLISH_PAUSE_TIME = 100;
     public static final long DEFAULT_WAIT_TIMEOUT = DEFAULT_MAX_IN_FLIGHT * DEFAULT_POLL_TIME;
 
-    private static final PreFlight DRAIN_MARKER = new PreFlight("DRAIN", null, null, null, null);
+    private static final PreFlight DRAIN_MARKER = new PreFlight("DRAIN", null, null, null);
 
     private final AtomicLong messageIdGenerator;
     private final JetStream js;
@@ -261,10 +264,10 @@ public class AsyncJsPublisher implements AutoCloseable {
                         // if there is a retry config, publish with retry else regular publish
                         CompletableFuture<PublishAck> fpa;
                         if (retryConfig == null) {
-                            fpa = js.publishAsync(pre.subject, pre.headers, pre.body, pre.options);
+                            fpa = js.publishAsync(pre.subject, pre.headers, pre.body);
                         }
                         else {
-                            fpa = PublishRetrier.publishAsync(retryConfig, js, pre.subject, pre.headers, pre.body, pre.options);
+                            fpa = PublishRetrier.publishAsync(retryConfig, js, pre.subject, pre.headers, pre.body);
                         }
 
                         // The publish is now in flight, put it in the in flights queue
@@ -593,19 +596,14 @@ public class AsyncJsPublisher implements AutoCloseable {
      * @param subject the subject to send the message to
      * @param headers optional headers to publish with the message.
      * @param body the message body
-     * @param po publish options
      * @return The future
      */
-    public PreFlight publishAsync(String subject, Headers headers, byte[] body, PublishOptions po) {
+    public PreFlight publishAsync(String subject, Headers headers, byte[] body) {
         if (!keepGoingPublishRunner.get()) {
             throw new IllegalStateException("Cannot publish once stopped.");
         }
 
-        String messageId = po == null || po.getMessageId() == null
-            ? messageIdSupplier.get()
-            : po.getMessageId() ;
-
-        PreFlight p = new PreFlight(messageId, subject, headers, body, po);
+        PreFlight p = new PreFlight(messageIdSupplier.get(), subject, headers, body);
         preFlight.offer(p);
         return p;
     }
@@ -618,31 +616,7 @@ public class AsyncJsPublisher implements AutoCloseable {
      * @return The future
      */
     public PreFlight publishAsync(String subject, byte[] body) {
-        return publishAsync(subject, null, body, null);
-    }
-
-    /**
-     * Send a message to the specified subject, executing in a future. Waits for a response from Jetstream,
-     * retrying until the ack is received or the retry config is exhausted.
-     * @param subject the subject to send the message to
-     * @param headers optional headers to publish with the message.
-     * @param body the message body
-     * @return The future
-     */
-    public PreFlight publishAsync(String subject, Headers headers, byte[] body) {
-        return publishAsync(subject, headers, body, null);
-    }
-
-    /**
-     * Send a message to the specified subject, executing in a future. Waits for a response from Jetstream,
-     * retrying until the ack is received or the retry config is exhausted.
-     * @param subject the subject to send the message to
-     * @param body the message body
-     * @param options publish options
-     * @return The future
-     */
-    public PreFlight publishAsync(String subject, byte[] body, PublishOptions options) {
-        return publishAsync(subject, null, body, options);
+        return publishAsync(subject, null, body);
     }
 
     /**
@@ -652,17 +626,6 @@ public class AsyncJsPublisher implements AutoCloseable {
      * @return The future
      */
     public PreFlight publishAsync(Message message) {
-        return publishAsync(message.getSubject(), message.getHeaders(), message.getData(), null);
-    }
-
-    /**
-     * Send a message to the specified subject, executing in a future. Waits for a response from Jetstream,
-     * retrying until the ack is received or the retry config is exhausted.
-     * @param message the message to publish
-     * @param options publish options
-     * @return The future
-     */
-    public PreFlight publishAsync(Message message, PublishOptions options) {
-        return publishAsync(message.getSubject(), message.getHeaders(), message.getData(), options);
+        return publishAsync(message.getSubject(), message.getHeaders(), message.getData());
     }
 }

@@ -41,18 +41,20 @@ public class PublishRetrierTests {
         assertEquals(RetryConfig.DEFAULT_CONFIG.getDeadline(), retryConfig.retryConfig.getDeadline());
         assertArrayEquals(RetryConfig.DEFAULT_CONFIG.getBackoffPolicy(), retryConfig.retryConfig.getBackoffPolicy());
         assertFalse(retryConfig.retryAll);
+        assertTrue(retryConfig.retryOnTooManyRequests);
         assertTrue(retryConfig.retryOnNoResponders);
         assertTrue(retryConfig.retryOnIoEx);
         assertFalse(retryConfig.retryOnJetStreamApiEx);
         assertFalse(retryConfig.retryOnRuntimeEx);
 
         retryConfig = PublishRetryConfig.builder()
-            .retryConditions(NoResponders, IoEx, JetStreamApiEx, RuntimeEx)
+            .retryConditions(TooManyRequests, NoResponders, IoEx, JetStreamApiEx, RuntimeEx)
             .build();
         assertEquals(RetryConfig.DEFAULT_CONFIG.getAttempts(), retryConfig.retryConfig.getAttempts());
         assertEquals(RetryConfig.DEFAULT_CONFIG.getDeadline(), retryConfig.retryConfig.getDeadline());
         assertArrayEquals(RetryConfig.DEFAULT_CONFIG.getBackoffPolicy(), retryConfig.retryConfig.getBackoffPolicy());
         assertTrue(retryConfig.retryAll);
+        assertTrue(retryConfig.retryOnTooManyRequests);
         assertTrue(retryConfig.retryOnNoResponders);
         assertTrue(retryConfig.retryOnIoEx);
         assertTrue(retryConfig.retryOnJetStreamApiEx);
@@ -61,6 +63,7 @@ public class PublishRetrierTests {
         for (RetryCondition condition : RetryCondition.values()) {
             retryConfig = PublishRetryConfig.builder().retryConditions(condition).build();
             assertFalse(retryConfig.retryAll);
+            assertEquals(condition == TooManyRequests, retryConfig.retryOnTooManyRequests);
             assertEquals(condition == NoResponders, retryConfig.retryOnNoResponders);
             assertEquals(condition == IoEx, retryConfig.retryOnIoEx);
             assertEquals(condition == JetStreamApiEx, retryConfig.retryOnJetStreamApiEx);

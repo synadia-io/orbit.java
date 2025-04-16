@@ -4,6 +4,10 @@
 package io.synadia.jnats.extension;
 
 public enum RetryCondition {
+    /**
+     * Any 429 Too Many Requests
+     */
+    TooManyRequests,
 
     /**
      * Any 503 No Responder

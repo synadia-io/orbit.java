@@ -3,7 +3,6 @@
 
 package io.synadia.jnats.extension;
 
-import io.nats.client.PublishOptions;
 import io.nats.client.impl.Headers;
 
 import java.util.concurrent.CompletableFuture;
@@ -18,15 +17,13 @@ public class PreFlight {
     public final String subject;
     public final Headers headers;
     public final byte[] body;
-    public final PublishOptions options;
     public final CompletableFuture<InFlight> inFlightFuture;
 
-    public PreFlight(String messageId, String subject, Headers headers, byte[] body, PublishOptions options) {
+    public PreFlight(String messageId, String subject, Headers headers, byte[] body) {
         this.messageId = messageId;
         this.subject = subject;
         this.headers = headers;
         this.body = body;
-        this.options = options;
         inFlightFuture = new CompletableFuture<>();
     }
 
@@ -35,7 +32,6 @@ public class PreFlight {
         this.subject = preFlight.subject;
         this.headers = preFlight.headers;
         this.body = preFlight.body;
-        this.options = preFlight.options;
         inFlightFuture = preFlight.inFlightFuture;
     }
 
@@ -53,10 +49,6 @@ public class PreFlight {
 
     public byte[] getBody() {
         return body;
-    }
-
-    public PublishOptions getOptions() {
-        return options;
     }
 
     public CompletableFuture<InFlight> getInFlightFuture() {
