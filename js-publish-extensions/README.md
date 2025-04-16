@@ -4,8 +4,8 @@
 
 Extensions specific to JetStream publishing.
 
-**Current Release**: 0.4.0
-&nbsp; **Current Snapshot**: 0.4.1-SNAPSHOT
+**Current Release**: 0.4.1
+&nbsp; **Current Snapshot**: 0.4.2-SNAPSHOT
 &nbsp; **Gradle and Maven** `io.synadia:jnats-js-publish-extensions`
 [Dependencies Help](https://github.com/synadia-io/orbit.java?tab=readme-ov-file#dependencies)
 
@@ -49,6 +49,13 @@ demonstrates basic use of the class.
 * The [Async Js Publisher Custom Threads Example](src/examples/java/io/synadia/examples/AsyncJsPublisherCustomThreadsExample.java) 
 has the identical workflow, but demonstrates the ability to provide the executors and threads manually instead of relying
 on the built-in ones.
+
+### Notes
+
+1. A reminder, that if publish order is a requirement, it's best to use synchronous publishing.
+1. With the AsyncJsPublisher, it is easy to flood the server and receive a 429 Too Many Messages
+   so you must tune the queue size for this. On my 5 yr old Windows machine against a non-cluster single server,
+   that number seems to be about 50,000 See the examples.
 
 ---
 Copyright (c) 2024-2025 Synadia Communications Inc. All Rights Reserved.
