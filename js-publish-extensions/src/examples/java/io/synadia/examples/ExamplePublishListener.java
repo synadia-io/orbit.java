@@ -44,14 +44,6 @@ public class ExamplePublishListener implements AsyncJsPublishListener {
         else {
             ExampleUtils.print("Completed Exceptionally", new String(postFlight.getBody()), postFlight.cause);
         }
-
-        // TODO THIS IS DEBUG TRYING TO FIGURE OUT HOW TO HANDLE 429
-        //noinspection DataFlowIssue
-        if (postFlight.cause.getMessage().contains("429")) {
-            ExampleUtils.print("429", postFlight.getSubject(), postFlight.getMessageId(), new String(postFlight.getBody()));
-            ExampleUtils.print("429", publishedCount.get(), ackedCount.get(), exceptionedCount.get(), timedOutCount.get());
-            System.exit(-1);
-        }
     }
 
     @Override

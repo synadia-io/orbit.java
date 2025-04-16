@@ -21,6 +21,7 @@ import static io.synadia.retrier.Retrier.execute;
  */
 public class PublishRetrier {
 
+    private static final String TOO_MANY_REQUESTS_TEXT = "Too Many Requests";
     private static final String NO_RESPONDERS_TEXT = "No Responders";
 
     private PublishRetrier() {}  /* ensures cannot be constructed */
@@ -44,10 +45,13 @@ public class PublishRetrier {
                     return true;
                 }
                 if (e instanceof IOException) {
-                    // No responders are actually surfaced as an IOException
-                    // but we are treating it as its own entity,
-                    // meaning no-responders does not follow the retryOnIoEx flag
-                    // and we check it first.
+                    // Too Many Requests and No responders are both actually surfaced
+                    // as an IOException but we are treating them each as their own entity.
+                    // This means if we get that specific exception, we return whether to
+                    // retry matching their specific config flag
+                    if (e.getMessage().contains(TOO_MANY_REQUESTS_TEXT)) {
+                        return config.retryOnTooManyRequests;
+                    }
                     if (e.getMessage().contains(NO_RESPONDERS_TEXT)) {
                         return config.retryOnNoResponders;
                     }

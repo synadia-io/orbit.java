@@ -3,7 +3,6 @@
 
 package io.synadia.jnats.extension;
 
-import io.nats.client.PublishOptions;
 import io.nats.client.api.PublishAck;
 import io.nats.client.impl.Headers;
 
@@ -60,10 +59,6 @@ public class PostFlight {
 
     public byte[] getBody() {
         return inFlight.preFlight.body;
-    }
-
-    public PublishOptions getOptions() {
-        return inFlight.preFlight.options;
     }
 
     public PublishAck getPublishAck() {

@@ -113,12 +113,12 @@ public class AsyncJsPublisherExample {
             // When you try to publish to a stopped publisher, you get an exception
             // --------------------------------------------------------------------------------
             try {
-                System.out.print("Attempting to publish after stop...");
+                System.out.println("Attempting to publish after stop should throw an exception...");
                 publisher.publishAsync(SUBJECT, "should fail".getBytes());
                 System.out.println("SHOULD HAVE EXCEPTIONED!");
             }
             catch (IllegalStateException e) {
-                System.out.println(" \"" + e + "\"");
+                System.out.println("Got exception as expected: " + e);
             }
 
             // --------------------------------------------------------------------------------

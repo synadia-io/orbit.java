@@ -25,8 +25,9 @@ public class PublishRetryConfig {
         DEFAULT_ATTEMPTS = RetryConfig.DEFAULT_ATTEMPTS;
         DEFAULT_BACKOFF_POLICY = RetryConfig.DEFAULT_BACKOFF_POLICY;
         List<RetryCondition> list = new ArrayList<>();
-        list.add(RetryCondition.IoEx);
+        list.add(RetryCondition.TooManyRequests);
         list.add(RetryCondition.NoResponders);
+        list.add(RetryCondition.IoEx);
         DEFAULT_RETRY_CONDITIONS = Collections.unmodifiableList(list);
 
         // CONFIG BUILDER LAST
@@ -35,6 +36,7 @@ public class PublishRetryConfig {
 
     public final RetryConfig retryConfig;
     public final boolean retryAll;
+    public final boolean retryOnTooManyRequests;
     public final boolean retryOnNoResponders;
     public final boolean retryOnIoEx;
     public final boolean retryOnJetStreamApiEx;
@@ -42,11 +44,12 @@ public class PublishRetryConfig {
 
     public PublishRetryConfig(RetryConfig retryConfig, List<RetryCondition> retryConditions) {
         this.retryConfig = retryConfig;
-        this.retryOnNoResponders = retryConditions.contains(RetryCondition.NoResponders);
-        this.retryOnIoEx = retryConditions.contains(RetryCondition.IoEx);
-        this.retryOnJetStreamApiEx = retryConditions.contains(RetryCondition.JetStreamApiEx);
-        this.retryOnRuntimeEx = retryConditions.contains(RetryCondition.RuntimeEx);
-        retryAll = retryOnNoResponders && retryOnIoEx && retryOnJetStreamApiEx && retryOnRuntimeEx;
+        retryOnTooManyRequests = retryConditions.contains(RetryCondition.TooManyRequests);
+        retryOnNoResponders = retryConditions.contains(RetryCondition.NoResponders);
+        retryOnIoEx = retryConditions.contains(RetryCondition.IoEx);
+        retryOnJetStreamApiEx = retryConditions.contains(RetryCondition.JetStreamApiEx);
+        retryOnRuntimeEx = retryConditions.contains(RetryCondition.RuntimeEx);
+        retryAll = retryOnTooManyRequests && retryOnNoResponders && retryOnIoEx && retryOnJetStreamApiEx && retryOnRuntimeEx;
     }
 
     /**
@@ -65,8 +68,7 @@ public class PublishRetryConfig {
         List<RetryCondition> retryConditions = new ArrayList<>();
 
         public Builder() {
-            retryConditions.add(RetryCondition.NoResponders);
-            retryConditions.add(RetryCondition.IoEx);
+            retryConditions.addAll(DEFAULT_RETRY_CONDITIONS);
         }
 
         /**
