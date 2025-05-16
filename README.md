@@ -57,14 +57,11 @@ dependencies {
 }
 ```
 
-If you need the before it propagates to Maven central, you can use the Sonatype repository:
+Releases are available at Maven Central:
 
 ```groovy
 repositories {
     mavenCentral()
-    maven {
-        url "https://oss.sonatype.org/content/repositories/releases"
-    }
 }
 ```
 
@@ -74,7 +71,7 @@ If you need a snapshot version, you must add the url for the snapshots.
 repositories {
     mavenCentral()
     maven {
-        url "https://s01.oss.sonatype.org/content/repositories/snapshots/"
+        url "https://central.sonatype.com/repository/maven-snapshots/"
     }
 }
 
@@ -95,27 +92,14 @@ The libraries are available on the Maven central repository, and can be imported
 </dependency>
 ```
 
-If you need the before it propagates to Maven central, you can use the Sonatype repository:
-
-```xml
-<repositories>
-    <repository>
-        <id>sonatype releases</id>
-        <url>https://oss.sonatype.org/content/repositories/releases</url>
-        <releases>
-           <enabled>true</enabled>
-        </releases>
-    </repository>
-</repositories>
-```
-
+Releases are available at Maven Central.
 If you need a snapshot version, you must enable snapshots and change your dependency.
 
 ```xml
 <repositories>
     <repository>
-        <id>sonatype snapshots</id>
-        <url>https://s01.oss.sonatype.org/content/repositories/snapshots/</url>
+        <id>central sonatype snapshots</id>
+        <url>https://central.sonatype.com/repository/maven-snapshots/</url>
         <snapshots>
             <enabled>true</enabled>
         </snapshots>
