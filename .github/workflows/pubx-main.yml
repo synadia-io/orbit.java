@@ -1,4 +1,4 @@
-name: Publish Extensions Main Snapshot Release
+name: Publish Extensions Main Snapshot
 
 on:
   push:

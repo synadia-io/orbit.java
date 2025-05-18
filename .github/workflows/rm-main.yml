@@ -1,4 +1,4 @@
-name: Request Many Main Snapshot Release
+name: Request Many Main Snapshot
 
 on:
   push:
