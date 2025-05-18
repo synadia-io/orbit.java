@@ -1,4 +1,4 @@
-name: Retrier Main Snapshot Release
+name: Retrier Main Snapshot
 
 on:
   push:
