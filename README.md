@@ -3,7 +3,7 @@
 </p>
 
 Orbit.java is a set of independent utilities or extensions around the [JNATS](https://github.com/nats-io/nats.java) ecosystem that aims to
-boost productivity and provide higher abstraction layer for the [JNATS](https://github.com/nats-io/nats.java)
+boost productivity and provide a higher abstraction layer for the [JNATS](https://github.com/nats-io/nats.java)
 client. Note that these libraries will evolve rapidly and API guarantees are
 not made until the specific project has a v1.0.0 version.
 
@@ -29,7 +29,7 @@ Extensions around Jetstream Publishing
 
 ## Request Many
 
-Extension to get many response for a single core request.
+Extension to get many responses for a single core request.
 
 [![README](https://img.shields.io/badge/README-blue?style=flat&link=request-many/README.md)](request-many/README.md)
 ![Artifact](https://img.shields.io/badge/Artifact-io.synadia:request--many-00BC8E?labelColor=grey&style=flat)
@@ -38,7 +38,7 @@ Extension to get many response for a single core request.
 
 ## Direct Batch
 
-The direct batch functionality leverages the direct message capabilities introduced in NATS Server 2.11
+The direct batch functionality leverages the direct message capabilities introduced in NATS Server v2.11.
 The functionality is described in [ADR-31](https://github.com/nats-io/nats-architecture-and-design/blob/main/adr/ADR-31.md)
 
 [![README](https://img.shields.io/badge/README-blue?style=flat&link=direct-batch/README.md)](direct-batch/README.md)
@@ -79,7 +79,6 @@ dependencies {
    implementation 'io.synadia:{artifact}:{major.minor.patch}-SNAPSHOT'
 }
 ```
-
 ### Maven
 
 The libraries are available on the Maven central repository, and can be imported as a normal dependency in your `pom.xml` file:
@@ -98,7 +97,8 @@ If you need a snapshot version, you must enable snapshots and change your depend
 ```xml
 <repositories>
     <repository>
-        <id>central sonatype snapshots</id>
+        <name>Central Portal Snapshots</name>
+        <id>central-portal-snapshots</id>
         <url>https://central.sonatype.com/repository/maven-snapshots/</url>
         <snapshots>
             <enabled>true</enabled>
