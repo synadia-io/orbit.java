@@ -1,13 +1,13 @@
 ![Synadia](src/main/javadoc/images/synadia-logo.png) &nbsp;&nbsp;&nbsp;&nbsp; ![NATS](src/main/javadoc/images/large-logo.png)
 
-# Request Many Utility
+# Request-Many Utility
 
 The Request Many utility is a full implementation for an often asked for feature, 
 which is the ability to get many responses from a single core request, 
 instead of the usual first response for a request. This allows you to implement patterns like:
 
 * Scatter-gather pattern, getting responses from many workers.
-* Many responses, for instance a multipart payload, from a single worker.  
+* Many responses, for instance, a multipart payload, from a single worker.  
 
 **Current Release**: 0.0.1
 &nbsp; **Current Snapshot**: 0.1.0-SNAPSHOT
