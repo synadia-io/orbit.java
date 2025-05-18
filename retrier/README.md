@@ -4,8 +4,8 @@
 
 The retrier is a general purpose Java utility that can execute any action (function) in a retriable manner.
 
-**Current Release**: 0.1.0
-&nbsp; **Current Snapshot**: 0.2.0-SNAPSHOT
+**Current Release**: 0.2.1
+&nbsp; **Current Snapshot**: 0.2.2-SNAPSHOT
 &nbsp; **Gradle and Maven** `io.synadia:retrier`
 [Dependencies Help](https://github.com/synadia-io/orbit.java?tab=readme-ov-file#dependencies)
 

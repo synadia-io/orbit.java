@@ -28,6 +28,13 @@ java {
 }
 
 repositories {
+    maven {
+        name = "Central Portal Snapshots"
+        url = "https://central.sonatype.com/repository/maven-snapshots/"
+        content {
+            includeModule("io.synadia", "retrier")
+        }
+    }
     mavenCentral()
     maven {
         url "https://oss.sonatype.org/content/repositories/releases/"
@@ -35,14 +42,11 @@ repositories {
     maven {
         url "https://oss.sonatype.org/content/repositories/snapshots"
     }
-    maven {
-        url "https://s01.oss.sonatype.org/content/repositories/snapshots/"
-    }
 }
 
 dependencies {
     implementation 'io.nats:jnats:2.21.1'
-    implementation 'io.synadia:retrier:0.2.0'
+    implementation 'io.synadia:retrier:0.2.1'
 
     testImplementation 'io.nats:jnats-server-runner:1.2.8'
     testImplementation 'org.junit.jupiter:junit-jupiter:5.9.0'
