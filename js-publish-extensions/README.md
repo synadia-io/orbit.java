@@ -4,8 +4,8 @@
 
 Extensions specific to JetStream publishing.
 
-**Current Release**: 0.4.1
-&nbsp; **Current Snapshot**: 0.4.2-SNAPSHOT
+**Current Release**: 0.4.2
+&nbsp; **Current Snapshot**: 0.4.3-SNAPSHOT
 &nbsp; **Gradle and Maven** `io.synadia:jnats-js-publish-extensions`
 [Dependencies Help](https://github.com/synadia-io/orbit.java?tab=readme-ov-file#dependencies)
 
