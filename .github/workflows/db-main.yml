@@ -1,4 +1,4 @@
-name: Direct Batch Main
+name: Direct Batch Main Snapshot Release
 
 on:
   push:
