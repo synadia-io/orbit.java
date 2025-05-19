@@ -1,4 +1,4 @@
-name: Request Many Pull Request Release
+name: Request Many Pull Request
 
 on:
   pull_request:
