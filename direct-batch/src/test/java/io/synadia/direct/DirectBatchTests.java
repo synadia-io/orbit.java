@@ -8,6 +8,7 @@ import io.nats.client.api.MessageInfo;
 import io.nats.client.api.StorageType;
 import io.nats.client.api.StreamConfiguration;
 import io.nats.client.api.StreamInfo;
+import io.nats.client.support.DateTimeUtils;
 import io.nats.client.support.JsonUtils;
 import nats.io.NatsServerRunner;
 import org.junit.jupiter.api.BeforeAll;
@@ -101,17 +102,103 @@ public class DirectBatchTests {
 
                 List<String> subjects = Collections.singletonList(subject);
 
-                // batch, time after
+                // batch, time after the message
                 // awaiting https://github.com/nats-io/nats-server/issues/6032
-//            ZonedDateTime time = ZonedDateTime.now().plusSeconds(10);
-//            request = MessageBatchGetRequest.batch(subject, 3, time);
-//            verifyError(jsm.fetchMessageBatch(stream, request), NOT_FOUND_CODE);
+                request = MessageBatchGetRequest.batch(subject, 1, ZonedDateTime.now().plusSeconds(1));
+                verifyError(db.fetchMessageBatch(request), NOT_FOUND_CODE);
 
-                // last for, time before
+                // last for, time before the message
                 // awaiting https://github.com/nats-io/nats-server/issues/6077
-//            time = ZonedDateTime.now().minusSeconds(10);
-//            request = MessageBatchGetRequest.multiLastForSubjects(subjects, time);
-//            verifyError(jsm.fetchMessageBatch(stream, request), NOT_FOUND_CODE);
+                request = MessageBatchGetRequest.multiLastForSubjects(subjects, ZonedDateTime.now().minusSeconds(30));
+                verifyError(db.fetchMessageBatch(request), NOT_FOUND_CODE);
+            }
+        }
+    }
+
+    @Test
+    public void testIssue6032() throws Exception {
+        // Server issue 6032 https://github.com/nats-io/nats-server/issues/6032
+        // Direct Get batch request returns messages before start time
+        try (NatsServerRunner runner = new NatsServerRunner(false, true)) {
+            String stream = "stream6032";
+            String subject = "subject6032";
+            try (Connection nc = Nats.connect(runner.getURI())) {
+                JetStreamManagement jsm = nc.jetStreamManagement();
+                JetStream js = jsm.jetStream();
+
+                // 1. create a new stream.
+                jsm.addStream(StreamConfiguration.builder()
+                    .name(stream)
+                    .subjects(subject)
+                    .allowDirect(true)
+                    .storageType(StorageType.Memory)
+                    .build());
+
+                // 2. publish 1 message.
+                js.publish(subject, ("Message 1").getBytes());
+
+                // 3. get the messages directly to know its time
+                MessageInfo mi = jsm.getMessage(stream, 1);
+
+                // 4. Use the direct batch context to make a batch request
+                //    for a subject, and time after the last message
+                DirectBatchContext db = new DirectBatchContext(nc, stream);
+
+                ZonedDateTime futureTime = DateTimeUtils.gmtNow().plusSeconds(30);
+
+                MessageBatchGetRequest request = MessageBatchGetRequest.batch(subject, 1, futureTime);
+                verifyError(db.fetchMessageBatch(request), NOT_FOUND_CODE);
+
+                // 5. publish another message
+                js.publish(subject, ("Message 2").getBytes());
+
+                // 6. Use the direct batch context to make a batch request
+                //    for a subject, and time after the last message
+                request = MessageBatchGetRequest.batch(subject, 1, futureTime);
+                verifyError(db.fetchMessageBatch(request), NOT_FOUND_CODE);
+            }
+        }
+    }
+
+    @Test
+    public void testIssue6077() throws Exception {
+        // Server issue 6077 https://github.com/nats-io/nats-server/issues/6077
+        // Direct Get multi last for request returns messages after up_to_time
+        try (NatsServerRunner runner = new NatsServerRunner(false, true)) {
+            String stream = "stream6077";
+            String subject = "subject6077";
+            try (Connection nc = Nats.connect(runner.getURI())) {
+                JetStreamManagement jsm = nc.jetStreamManagement();
+                JetStream js = jsm.jetStream();
+
+                // 1. create a new stream
+                jsm.addStream(StreamConfiguration.builder()
+                    .name(stream)
+                    .subjects(subject)
+                    .allowDirect(true)
+                    .storageType(StorageType.Memory)
+                    .build());
+
+                // 2. publish some messages.
+                for (int x = 1; x <= 10; x++) {
+                    js.publish(subject, ("Message " + x).getBytes());
+                    Thread.sleep(100);
+                }
+
+                // 3. get some messages directly to know their times
+                MessageInfo mi1 = jsm.getMessage(stream, 1);
+                MessageInfo mi5 = jsm.getMessage(stream, 5);
+
+                // 4. use the direct batch context to make some multi-last requests for subjects and time
+                DirectBatchContext db = new DirectBatchContext(nc, stream);
+
+                MessageBatchGetRequest request = MessageBatchGetRequest.multiLastForSubjects(Collections.singletonList(subject), mi5.getTime());
+                List<MessageInfo> list = db.fetchMessageBatch(request);
+                assertEquals(1, list.size());
+                assertEquals(4, list.get(0).getSeq());
+
+                request = MessageBatchGetRequest.multiLastForSubjects(Collections.singletonList(subject), mi1.getTime());
+                verifyError(db.fetchMessageBatch(request), NOT_FOUND_CODE);
             }
         }
     }
