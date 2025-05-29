@@ -4,7 +4,6 @@
 package io.synadia.kv;
 
 import io.nats.client.JetStreamApiException;
-import io.nats.client.api.KeyResult;
 import io.nats.client.api.KeyValueWatchOption;
 import io.nats.client.api.KeyValueWatcher;
 import io.nats.client.impl.NatsKeyValueWatchSubscription;
@@ -12,7 +11,6 @@ import io.nats.client.impl.NatsKeyValueWatchSubscription;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
-import java.util.concurrent.LinkedBlockingQueue;
 
 class ToDo<KeyType, DataType> {
 
@@ -50,17 +48,5 @@ class ToDo<KeyType, DataType> {
 
     public List<String> keys(List<String> filters) throws IOException, JetStreamApiException, InterruptedException {
         return Collections.emptyList();
-    }
-
-    public LinkedBlockingQueue<KeyResult> consumeKeys() {
-        return null;
-    }
-
-    public LinkedBlockingQueue<KeyResult> consumeKeys(String filter) {
-        return null;
-    }
-
-    public LinkedBlockingQueue<KeyResult> consumeKeys(List<String> filters) {
-        return null;
     }
 }
