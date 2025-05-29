@@ -9,11 +9,11 @@ import io.synadia.kv.codec.Codec;
 
 import java.time.ZonedDateTime;
 
-public class CodedKeyValueEntry<KeyType, DataType> {
+public class EncodedKeyValueEntry<KeyType, DataType> {
     final KeyValueEntry kve;
     final Codec<KeyType, DataType> codec;
 
-    public CodedKeyValueEntry(KeyValueEntry kve, Codec<KeyType, DataType> codec) {
+    public EncodedKeyValueEntry(KeyValueEntry kve, Codec<KeyType, DataType> codec) {
         this.kve = kve;
         this.codec = codec;
     }

@@ -13,7 +13,7 @@ plugins {
     id 'signing'
 }
 
-def jarVersion = "0.1.0"
+def jarVersion = "0.0.1"
 group = 'io.synadia'
 
 def isMerge = System.getenv("BUILD_EVENT") == "push"
@@ -67,7 +67,7 @@ tasks.register('bundle', Bundle) {
 
 jar {
     manifest {
-        attributes('Automatic-Module-Name': 'io.synadia.kv-encoding')
+        attributes('Automatic-Module-Name': 'io.synadia.encoded-kv')
     }
     bnd (['Implementation-Title': 'KV Encoding',
           'Implementation-Version': jarVersion,
@@ -106,7 +106,7 @@ javadoc {
 tasks.register('examplesJar', Jar) {
     archiveClassifier.set('examples')
     manifest {
-        attributes('Implementation-Title': 'KV Encoding',
+        attributes('Implementation-Title': 'Encoded KV',
                 'Implementation-Version': jarVersion,
                 'Implementation-Vendor': 'synadia.io')
     }
@@ -165,11 +165,11 @@ publishing {
             artifact examplesJar
             artifact javadocJar
             pom {
-                name = 'kv-encoding'
+                name = 'encoded-kv'
                 packaging = 'jar'
                 groupId = group
                 artifactId = archivesBaseName
-                description = 'Synadia Communications Inc. KV Encoding'
+                description = 'Synadia Communications Inc. Encoded KV'
                 url = 'https://github.com/synadia-io/orbit.java'
                 licenses {
                     license {

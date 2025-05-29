@@ -24,7 +24,7 @@ import java.util.logging.Level;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-public class CodedKeyValueTests {
+public class EncodedKeyValueTests {
     @BeforeAll
     public static void beforeAll() {
         NatsServerRunner.setDefaultOutputLevel(Level.WARNING);
@@ -40,8 +40,8 @@ public class CodedKeyValueTests {
                 KeyValueManagement kvm = nc.keyValueManagement();
                 kvm.create(KeyValueConfiguration.builder().name(bucketName).build());
 
-                CodedKeyValue<String, KeyOrValue> ekv
-                    = new CodedKeyValue<>(nc, bucketName, codec);
+                EncodedKeyValue<String, KeyOrValue> ekv
+                    = new EncodedKeyValue<>(nc, bucketName, codec);
 
                 String key1 = "key.1";
                 KeyOrValue v1 = new KeyOrValue("v1", "foo", false);
@@ -53,7 +53,7 @@ public class CodedKeyValueTests {
                 long rev2 = ekv.put(key2, v2);
                 assertEquals(2, rev2);
 
-                CodedKeyValueEntry<String, KeyOrValue> entry = ekv.get(key1);
+                EncodedKeyValueEntry<String, KeyOrValue> entry = ekv.get(key1);
                 assertNotNull(entry);
                 assertEquals(key1, entry.getKey());
                 assertEquals(v1, entry.getValue());
@@ -66,7 +66,7 @@ public class CodedKeyValueTests {
                 entry = ekv.get("not-found");
                 assertNull(entry);
 
-                LinkedBlockingQueue<CodedKeyResult<String, KeyOrValue>> q = ekv.consumeKeys();
+                LinkedBlockingQueue<EncodedKeyResult<String, KeyOrValue>> q = ekv.consumeKeys();
                 List<String> keys = getFromStringQueue(q);
                 assertEquals(2, keys.size());
                 assertTrue(keys.contains(key1));
@@ -97,8 +97,8 @@ public class CodedKeyValueTests {
                 KeyValueManagement kvm = nc.keyValueManagement();
                 kvm.create(KeyValueConfiguration.builder().name(bucketName).build());
 
-                CodedKeyValue<KeyOrValue, KeyOrValue> ekv
-                    = new CodedKeyValue<>(nc, bucketName, codec);
+                EncodedKeyValue<KeyOrValue, KeyOrValue> ekv
+                    = new EncodedKeyValue<>(nc, bucketName, codec);
 
                 KeyOrValue key1 = new KeyOrValue("foo1", null, true);
                 KeyOrValue v1 = new KeyOrValue("bar1", "baz1", false);
@@ -110,7 +110,7 @@ public class CodedKeyValueTests {
                 long rev2 = ekv.put(key2, v2);
                 assertEquals(2, rev2);
 
-                CodedKeyValueEntry<KeyOrValue, KeyOrValue> entry = ekv.get(key1);
+                EncodedKeyValueEntry<KeyOrValue, KeyOrValue> entry = ekv.get(key1);
                 assertNotNull(entry);
                 assertEquals(key1, entry.getKey());
                 assertEquals(v1, entry.getValue());
@@ -124,7 +124,7 @@ public class CodedKeyValueTests {
                 entry = ekv.get(key404);
                 assertNull(entry);
 
-                LinkedBlockingQueue<CodedKeyResult<KeyOrValue, KeyOrValue>> q = ekv.consumeKeys();
+                LinkedBlockingQueue<EncodedKeyResult<KeyOrValue, KeyOrValue>> q = ekv.consumeKeys();
                 List<KeyOrValue> keys = KeyOrValue(q);
                 assertEquals(2, keys.size());
                 assertTrue(keys.contains(key1));
@@ -140,12 +140,12 @@ public class CodedKeyValueTests {
     }
 
     private static List<String> getFromStringQueue(
-        LinkedBlockingQueue<CodedKeyResult<String, KeyOrValue>> q) throws Exception {
+        LinkedBlockingQueue<EncodedKeyResult<String, KeyOrValue>> q) throws Exception {
         List<String> keys = new ArrayList<>();
         try {
             boolean notDone = true;
             do {
-                CodedKeyResult<String, KeyOrValue> r = q.poll(100, TimeUnit.SECONDS);
+                EncodedKeyResult<String, KeyOrValue> r = q.poll(100, TimeUnit.SECONDS);
                 if (r != null) {
                     if (r.isDone()) {
                         notDone = false;
@@ -164,12 +164,12 @@ public class CodedKeyValueTests {
     }
 
     private static List<KeyOrValue> KeyOrValue(
-        LinkedBlockingQueue<CodedKeyResult<KeyOrValue, KeyOrValue>> q) throws Exception {
+        LinkedBlockingQueue<EncodedKeyResult<KeyOrValue, KeyOrValue>> q) throws Exception {
         List<KeyOrValue> keys = new ArrayList<>();
         try {
             boolean notDone = true;
             do {
-                CodedKeyResult<KeyOrValue, KeyOrValue> r = q.poll(100, TimeUnit.SECONDS);
+                EncodedKeyResult<KeyOrValue, KeyOrValue> r = q.poll(100, TimeUnit.SECONDS);
                 if (r != null) {
                     if (r.isDone()) {
                         notDone = false;
