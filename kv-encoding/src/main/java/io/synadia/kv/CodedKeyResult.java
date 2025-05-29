@@ -4,13 +4,14 @@
 package io.synadia.kv;
 
 import io.nats.client.api.KeyResult;
+import io.synadia.kv.codec.Codec;
 
-public class EncodedKeyResult<KeyType, DataType> {
+public class CodedKeyResult<KeyType, DataType> {
 
     private final KeyResult keyResult;
     private final Codec<KeyType, DataType> codec;
 
-    public EncodedKeyResult(KeyResult keyResult, Codec<KeyType, DataType> codec) {
+    public CodedKeyResult(KeyResult keyResult, Codec<KeyType, DataType> codec) {
         this.keyResult = keyResult;
         this.codec = codec;
     }

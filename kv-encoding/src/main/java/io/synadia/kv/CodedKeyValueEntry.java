@@ -5,14 +5,15 @@ package io.synadia.kv;
 
 import io.nats.client.api.KeyValueEntry;
 import io.nats.client.api.KeyValueOperation;
+import io.synadia.kv.codec.Codec;
 
 import java.time.ZonedDateTime;
 
-public class EncodedKeyValueEntry<KeyType, DataType> {
+public class CodedKeyValueEntry<KeyType, DataType> {
     final KeyValueEntry kve;
     final Codec<KeyType, DataType> codec;
 
-    public EncodedKeyValueEntry(KeyValueEntry kve, Codec<KeyType, DataType> codec) {
+    public CodedKeyValueEntry(KeyValueEntry kve, Codec<KeyType, DataType> codec) {
         this.kve = kve;
         this.codec = codec;
     }
