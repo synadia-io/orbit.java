@@ -1,10 +1,9 @@
 // Copyright (c) 2025 Synadia Communications Inc. All Rights Reserved.
 // See LICENSE and NOTICE file for details.
 
-package io.synadia.kv;
+package io.synadia.ekv;
 
 import io.nats.client.api.KeyResult;
-import io.synadia.kv.codec.Codec;
 
 public class EncodedKeyResult<KeyType, DataType> {
 

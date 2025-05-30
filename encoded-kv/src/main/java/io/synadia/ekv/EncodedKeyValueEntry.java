@@ -1,11 +1,10 @@
 // Copyright (c) 2025 Synadia Communications Inc. All Rights Reserved.
 // See LICENSE and NOTICE file for details.
 
-package io.synadia.kv;
+package io.synadia.ekv;
 
 import io.nats.client.api.KeyValueEntry;
 import io.nats.client.api.KeyValueOperation;
-import io.synadia.kv.codec.Codec;
 
 import java.time.ZonedDateTime;
 
@@ -26,11 +25,11 @@ public class EncodedKeyValueEntry<KeyType, DataType> {
         return codec.decodeKey(kve.getKey());
     }
 
-    public DataType getValue() throws Exception {
+    public DataType getValue() {
         return codec.decodeData(kve.getValue());
     }
 
-    public long getEncodedDataLen() {
+    public long getDataLen() {
         return kve.getDataLen();
     }
 

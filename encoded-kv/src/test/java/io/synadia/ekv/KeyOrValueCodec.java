@@ -1,13 +1,16 @@
-package io.synadia.kv.codec;
+package io.synadia.ekv;
 
 import org.apache.commons.codec.binary.Base64;
 
 public class KeyOrValueCodec implements Codec<KeyOrValue, KeyOrValue> {
-    Base64 base64 = new Base64();
+    // It's fine to have an object as a key. 
+    // It needs to be encoded to a string that is a valid key
+    // Base64 does the trick, but any two-way encoding is fine.
+    Base64 encoder = new Base64();
 
     @Override
     public String encodeKey(KeyOrValue key) {
-        return base64.encodeAsString(key.serialize());
+        return encoder.encodeAsString(key.serialize());
     }
 
     @Override
@@ -16,12 +19,12 @@ public class KeyOrValueCodec implements Codec<KeyOrValue, KeyOrValue> {
     }
 
     @Override
-    public KeyOrValue decodeKey(String key) throws Exception {
-        return new KeyOrValue(base64.decode(key));
+    public KeyOrValue decodeKey(String key) {
+        return new KeyOrValue(encoder.decode(key));
     }
 
     @Override
-    public KeyOrValue decodeData(byte[] data) throws Exception {
+    public KeyOrValue decodeData(byte[] data) {
         return data == null || data.length == 0 ? null : new KeyOrValue(data);
     }
 }

@@ -1,7 +1,7 @@
 // Copyright (c) 2025 Synadia Communications Inc. All Rights Reserved.
 // See LICENSE and NOTICE file for details.
 
-package io.synadia.kv.codec;
+package io.synadia.ekv;
 
 import io.nats.client.support.*;
 
@@ -34,11 +34,16 @@ public class KeyOrValue implements JsonSerializable {
         return result;
     }
 
-    public KeyOrValue(byte[] jsonBytes) throws JsonParseException {
-        JsonValue jv = JsonParser.parse(jsonBytes);
-        this.isKey = JsonValueUtils.readBoolean(jv, "isKey", false);
-        part1 = JsonValueUtils.readString(jv, "part1");
-        part2 = JsonValueUtils.readString(jv, "part2");
+    public KeyOrValue(byte[] jsonBytes) {
+        try {
+            JsonValue jv = JsonParser.parse(jsonBytes);
+            this.isKey = JsonValueUtils.readBoolean(jv, "isKey", false);
+            part1 = JsonValueUtils.readString(jv, "part1");
+            part2 = JsonValueUtils.readString(jv, "part2");
+        }
+        catch (JsonParseException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     @Override

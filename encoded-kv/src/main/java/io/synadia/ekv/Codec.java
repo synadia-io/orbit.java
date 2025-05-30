@@ -1,7 +1,7 @@
 // Copyright (c) 2025 Synadia Communications Inc. All Rights Reserved.
 // See LICENSE and NOTICE file for details.
 
-package io.synadia.kv.codec;
+package io.synadia.ekv;
 
 public interface Codec<KeyType, DataType> {
     String encodeKey(KeyType key);
@@ -15,7 +15,7 @@ public interface Codec<KeyType, DataType> {
 
     byte[] encodeData(DataType value);
 
-    KeyType decodeKey(String key) throws Exception;
+    KeyType decodeKey(String key);
 
-    DataType decodeData(byte[] data) throws Exception;
+    DataType decodeData(byte[] data);
 }
