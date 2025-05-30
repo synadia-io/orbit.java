@@ -1,15 +1,22 @@
 ![Synadia](src/main/javadoc/images/synadia-logo.png) &nbsp;&nbsp;&nbsp;&nbsp; ![NATS](src/main/javadoc/images/large-logo.png)
 
-# Direct Consumer
+# Encoded Key Value
 
-DIRECT CONSUMER IS PURELY EXPERIMENTAL. IT ONLY WORKS WITH THE 2.11.x NATS SERVER 
-and the JNATS 2.20.5.main-2-11-SNAPSHOT 
+Encoded Key Value provides a way to use Key Value with encoded keys and values.
 
-The direct consumer behaves similar to a JetStream consumer but uses the direct api under the covers. 
+It is a Java Generic version of the Key Value interface and provides the ability
+* to have something other than a string for a key.
+* to have an object instead of a byte array as a value
+
+It requires a _codec_, which 
+* encodes the key object as a string
+* encodes the value object as a byte array
+* decodes the encoded key back to the key object
+* decodes the encoded data bytes back into the value object.
 
 **Current Release**: N/A
 &nbsp; **Current Snapshot**: 0.1.0-SNAPSHOT
-&nbsp; **Gradle and Maven** `io.synadia:direct-consume`
+&nbsp; **Gradle and Maven** `io.synadia:encoded-kv`
 [Dependencies Help](https://github.com/synadia-io/orbit.java?tab=readme-ov-file#dependencies)
 
 ![Artifact](https://img.shields.io/badge/Artifact-io.synadia:direct--consumer-00BC8E?labelColor=grey&style=flat)
@@ -17,30 +24,8 @@ The direct consumer behaves similar to a JetStream consumer but uses the direct 
 [![Maven Central](https://maven-badges.herokuapp.com/maven-central/io.synadia/direct-consumer/badge.svg)](https://maven-badges.herokuapp.com/maven-central/io.synadia/direct-consumer)
 [![javadoc](https://javadoc.io/badge2/io.synadia/direct-consumer/javadoc.svg)](https://javadoc.io/doc/io.synadia/direct-consumer)
 
-
-# !! IMPORTANT !!
-
-This project is in progress. Please do not use yet.
-
-
-### Direct Usage
-
-For how to use, please see the examples:
-
-[ConsumeExample.java](src/examples/java/io/synadia/examples/ConsumeExample.java)
-
-[StartSequenceExample.java](src/examples/java/io/synadia/examples/StartSequenceExample.java)
-
-[StartTimeExample.java](src/examples/java/io/synadia/examples/StartTimeExample.java)
-
-[FetchExample.java](src/examples/java/io/synadia/examples/FetchExample.java)
-
-[QueueConsumeExample.java](src/examples/java/io/synadia/examples/QueueConsumeExample.java)
-
-[ErrorsExample.java](src/examples/java/io/synadia/examples/ErrorsExample.java)
-
 The [Unit Tests](src/test/java/io/synadia/jnats/extension/DirectConsumerTests.java) may also be of interest.
 
 ---
-Copyright (c) 2024-2025 Synadia Communications Inc. All Rights Reserved.
+Copyright (c) 2025 Synadia Communications Inc. All Rights Reserved.
 See [LICENSE](LICENSE) and [NOTICE](NOTICE) file for details.
