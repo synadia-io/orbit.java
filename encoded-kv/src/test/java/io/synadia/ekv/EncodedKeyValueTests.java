@@ -9,6 +9,7 @@ import io.nats.client.api.KeyValueOperation;
 import io.nats.client.api.KeyValueWatchOption;
 import io.nats.client.api.StorageType;
 import io.nats.client.impl.NatsKeyValueWatchSubscription;
+import io.synadia.ekv.support.*;
 import nats.io.NatsServerRunner;
 import org.apache.commons.codec.binary.Base64;
 import org.junit.jupiter.api.BeforeAll;
@@ -37,23 +38,24 @@ public class EncodedKeyValueTests {
 
     @Test
     public void testStringKeyCodec() throws Exception {
-        StringAndKeyOrValueCodec codec = new StringAndKeyOrValueCodec(false);
+        TestStringKeyCodec codec = new TestStringKeyCodec(false);
         assertTrue(codec.allowsFiltering());
-        assertEquals("foo", codec.encodeKey("foo"));
-        assertEquals("foo.bar", codec.encodeKey("foo.bar"));
+        assertEquals("foo", codec.encode("foo"));
+        assertEquals("foo.bar", codec.encode("foo.bar"));
         assertEquals("foo.bar", codec.encodeFilter("foo.bar"));
         assertEquals("foo.*", codec.encodeFilter("foo.*"));
         assertEquals("foo.>", codec.encodeFilter("foo.>"));
 
-        assertEquals("foo", codec.decodeKey("foo"));
-        assertEquals("foo.bar", codec.decodeKey("foo.bar"));
+        assertEquals("foo", codec.decode("foo"));
+        assertEquals("foo.bar", codec.decode("foo.bar"));
 
-        KeyOrValue value = new KeyOrValue("data", "foo", false);
+        DataValueCodec dvc = new DataValueCodec(false);
+        Data value = new Data("data", "foo", false);
         byte[] jsonBytes = value.serialize();
-        byte[] encoded = codec.encodeData(value);
+        byte[] encoded = dvc.encode(value);
         assertArrayEquals(jsonBytes, encoded);
 
-        KeyOrValue decoded = codec.decodeData(encoded);
+        Data decoded = dvc.decode(encoded);
         assertEquals(value, decoded);
     }
 
@@ -65,24 +67,25 @@ public class EncodedKeyValueTests {
         String fooStar64 = foo64 + ".*";
         String fooGt64 = foo64 + ".>";
 
-        StringAndKeyOrValueCodec codec = new StringAndKeyOrValueCodec(true);
+        TestStringKeyCodec codec = new TestStringKeyCodec(true);
         assertTrue(codec.allowsFiltering());
-        assertEquals(foo64, codec.encodeKey("foo"));
-        assertEquals(fooBar64, codec.encodeKey("foo.bar"));
+        assertEquals(foo64, codec.encode("foo"));
+        assertEquals(fooBar64, codec.encode("foo.bar"));
         assertEquals(fooBar64, codec.encodeFilter("foo.bar"));
         assertEquals(fooStar64, codec.encodeFilter("foo.*"));
         assertEquals(fooGt64, codec.encodeFilter("foo.>"));
 
-        assertEquals("foo", codec.decodeKey(foo64));
-        assertEquals("foo.bar", codec.decodeKey(fooBar64));
+        assertEquals("foo", codec.decode(foo64));
+        assertEquals("foo.bar", codec.decode(fooBar64));
 
-        KeyOrValue value = new KeyOrValue("data", "foo", false);
+        DataValueCodec dvc = new DataValueCodec(true);
+        Data value = new Data("data", "foo", false);
         byte[] jsonBytes = value.serialize();
         byte[] encoded64 = base64.encode(jsonBytes);
-        byte[] encoded = codec.encodeData(value);
+        byte[] encoded = dvc.encode(value);
         assertArrayEquals(encoded64, encoded);
 
-        KeyOrValue decoded = codec.decodeData(encoded);
+        Data decoded = dvc.decode(encoded);
         assertEquals(value, decoded);
     }
 
@@ -91,20 +94,21 @@ public class EncodedKeyValueTests {
     public void testStringKeyWorkflow(boolean useBase64) throws Exception {
         try (NatsServerRunner runner = new NatsServerRunner(false, true)) {
             try (Connection nc = Nats.connect(runner.getURI())) {
-                StringAndKeyOrValueCodec codec = new StringAndKeyOrValueCodec(useBase64);
+                TestStringKeyCodec keyCodec = new TestStringKeyCodec(useBase64);
+                DataValueCodec dvc = new DataValueCodec(useBase64);
 
                 String bucketName = NUID.nextGlobalSequence();
                 KeyValueManagement kvm = nc.keyValueManagement();
                 kvm.create(KeyValueConfiguration.builder().name(bucketName).build());
 
                 // this is just for coverage of constructors.
-                EncodedKeyValue<String, KeyOrValue> ekv;
+                EncodedKeyValue<String, Data> ekv;
                 if (useBase64) {
-                    ekv = new EncodedKeyValue<>(nc, bucketName, codec);
+                    ekv = new EncodedKeyValue<>(nc, bucketName, keyCodec, dvc);
                 }
                 else {
                     KeyValue kv = nc.keyValue(bucketName);
-                    ekv = new EncodedKeyValue<>(kv, codec);
+                    ekv = new EncodedKeyValue<>(kv, keyCodec, dvc);
                 }
 
                 String key1 = "key.1";
@@ -113,8 +117,8 @@ public class EncodedKeyValueTests {
                 keyList.add(key1);
                 keyList.add(key2);
 
-                KeyOrValue v1 = new KeyOrValue("v1", "foo", false);
-                KeyOrValue v2 = new KeyOrValue("v2", "bar", false);
+                Data v1 = new Data("v1", "foo", false);
+                Data v2 = new Data("v2", "bar", false);
 
                 validatePutRevision(1, ekv.put(key1, v1));
                 validatePutRevision(2, ekv.put(key2, v2));
@@ -142,8 +146,8 @@ public class EncodedKeyValueTests {
                 Message m2 = sub.nextMessage(Duration.ofSeconds(1));
 
                 if (useBase64) {
-                    String encKey1 = codec.encodeKey(key1);
-                    String encKey2 = codec.encodeKey(key2);
+                    String encKey1 = keyCodec.encode(key1);
+                    String encKey2 = keyCodec.encode(key2);
                     assertEquals("$KV." + bucketName + "." + encKey1, m1.getSubject());
                     assertEquals("$KV." + bucketName + "." + encKey2, m2.getSubject());
                     Base64 base64 = new Base64();
@@ -164,18 +168,19 @@ public class EncodedKeyValueTests {
     public void testKeyWorkflow() throws Exception {
         try (NatsServerRunner runner = new NatsServerRunner(false, true)) {
             try (Connection nc = Nats.connect(runner.getURI())) {
-                Codec<KeyOrValue, KeyOrValue> codec = new KeyOrValueCodec();
+                DataKeyCodec dkc = new DataKeyCodec();
+                DataValueCodec dvc = new DataValueCodec(true);
 
                 String bucketName = NUID.nextGlobalSequence();
                 KeyValueManagement kvm = nc.keyValueManagement();
                 kvm.create(KeyValueConfiguration.builder().name(bucketName).build());
 
-                EncodedKeyValue<KeyOrValue, KeyOrValue> ekv = new EncodedKeyValue<>(nc, bucketName, codec);
+                EncodedKeyValue<Data, Data> ekv = new EncodedKeyValue<>(nc, bucketName, dkc, dvc);
 
-                KeyOrValue key1 = new KeyOrValue("foo1", null, true);
-                KeyOrValue key2 = new KeyOrValue("foo2", null, true);
-                KeyOrValue v1 = new KeyOrValue("bar1", "baz1", false);
-                KeyOrValue v2 = new KeyOrValue("bar2", "baz2", false);
+                Data key1 = new Data("foo1", null, true);
+                Data key2 = new Data("foo2", null, true);
+                Data v1 = new Data("bar1", "baz1", false);
+                Data v2 = new Data("bar2", "baz2", false);
 
                 validatePutRevision(1, ekv.put(key1, v1));
                 validatePutRevision(2, ekv.put(key2, v2));
@@ -183,7 +188,7 @@ public class EncodedKeyValueTests {
                 validateGet(key1, v1, ekv.get(key1));
                 validateGet(key2, v2, ekv.get(key2));
 
-                assertNull(ekv.get(new KeyOrValue("not-found", null, true)));
+                assertNull(ekv.get(new Data("not-found", null, true)));
 
                 validateKeys(key1, key2, ekv.keys());
                 validateKeys(key1, key2, getFromQueue(ekv.consumeKeys()));
@@ -191,7 +196,7 @@ public class EncodedKeyValueTests {
                 assertThrows(UnsupportedOperationException.class, () -> ekv.keys(key1));
                 assertThrows(UnsupportedOperationException.class, () -> ekv.consumeKeys(key1));
 
-                List<KeyOrValue> keyList = new ArrayList<>();
+                List<Data> keyList = new ArrayList<>();
                 keyList.add(key1);
                 keyList.add(key2);
                 assertThrows(UnsupportedOperationException.class, () -> ekv.keys(keyList));
@@ -204,7 +209,7 @@ public class EncodedKeyValueTests {
         assertEquals(expectedRev, actualRev);
     }
 
-    private static <T> void validateGet(T key, KeyOrValue value, EncodedKeyValueEntry<T, KeyOrValue> entry) throws Exception {
+    private static <T> void validateGet(T key, Data value, EncodedKeyValueEntry<T, Data> entry) throws Exception {
         assertNotNull(entry);
         assertEquals(key, entry.getKey());
         assertEquals(value, entry.getValue());
@@ -232,12 +237,12 @@ public class EncodedKeyValueTests {
         assertEquals(count, keys.size());
     }
 
-    private static <T> List<T> getFromQueue(EncodedKeyConsumer<T, KeyOrValue> q) throws Exception {
+    private static <T> List<T> getFromQueue(EncodedKeyConsumer<T> q) throws Exception {
         List<T> keys = new ArrayList<>();
         try {
             boolean notDone = true;
             do {
-                EncodedKeyResult<T, KeyOrValue> r = q.poll(100, TimeUnit.SECONDS);
+                EncodedKeyResult<T> r = q.poll(100, TimeUnit.SECONDS);
                 if (r != null) {
                     if (r.isDone()) {
                         notDone = false;
@@ -263,7 +268,8 @@ public class EncodedKeyValueTests {
         public boolean metaOnly;
         public int endOfDataReceived;
         public boolean endBeforeEntries;
-        public StringAndStringCodec codec;
+        public TestStringKeyCodec keyCodec;
+        public TestStringValueCodec valueCodec;
 
         public TestKeyValueWatcher(String name, boolean beforeWatcher, boolean useBase64, KeyValueWatchOption... watchOptions) {
             this.name = name;
@@ -275,7 +281,8 @@ public class EncodedKeyValueTests {
                     break;
                 }
             }
-            codec = new StringAndStringCodec(useBase64);
+            keyCodec = new TestStringKeyCodec(useBase64);
+            valueCodec = new TestStringValueCodec(useBase64);
         }
 
         @Override
@@ -420,7 +427,7 @@ public class EncodedKeyValueTests {
             .storageType(StorageType.Memory)
             .build());
 
-        EncodedKeyValue<String, String> kv = new EncodedKeyValue<>(nc.keyValue(bucket), watcher.codec);
+        EncodedKeyValue<String, String> kv = new EncodedKeyValue<>(nc.keyValue(bucket), watcher.keyCodec, watcher.valueCodec);
 
         NatsKeyValueWatchSubscription sub = null;
 

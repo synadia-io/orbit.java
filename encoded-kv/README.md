@@ -19,10 +19,10 @@ It requires a _codec_, which
 &nbsp; **Gradle and Maven** `io.synadia:encoded-kv`
 [Dependencies Help](https://github.com/synadia-io/orbit.java?tab=readme-ov-file#dependencies)
 
-![Artifact](https://img.shields.io/badge/Artifact-io.synadia:direct--consumer-00BC8E?labelColor=grey&style=flat)
+![Artifact](https://img.shields.io/badge/Artifact-io.synadia:encoded--kv-00BC8E?labelColor=grey&style=flat)
 [![License Apache 2](https://img.shields.io/badge/License-Apache2-blue.svg)](https://www.apache.org/licenses/LICENSE-2.0)
-[![Maven Central](https://maven-badges.herokuapp.com/maven-central/io.synadia/direct-consumer/badge.svg)](https://maven-badges.herokuapp.com/maven-central/io.synadia/direct-consumer)
-[![javadoc](https://javadoc.io/badge2/io.synadia/direct-consumer/javadoc.svg)](https://javadoc.io/doc/io.synadia/direct-consumer)
+[![Maven Central](https://maven-badges.herokuapp.com/maven-central/io.synadia/encoded-kv/badge.svg)](https://maven-badges.herokuapp.com/maven-central/io.synadia/encoded-kv)
+[![javadoc](https://javadoc.io/badge2/io.synadia/encoded-kv/javadoc.svg)](https://javadoc.io/doc/io.synadia/encoded-kv)
 
 The [Unit Tests](src/test/java/io/synadia/jnats/extension/DirectConsumerTests.java) may also be of interest.
 

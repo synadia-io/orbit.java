@@ -36,6 +36,15 @@ Extension to get many responses for a single core request.
 [![javadoc](https://javadoc.io/badge2/io.synadia/request-many/javadoc.svg)](https://javadoc.io/doc/io.synadia/request-many)
 [![Maven Central](https://maven-badges.herokuapp.com/maven-central/io.synadia/request-many/badge.svg)](https://maven-badges.herokuapp.com/maven-central/io.synadia/request-many)
 
+## Encoded KeyValue
+
+Extension over Key Value to allow custom encoding of keys and values.
+
+[![README](https://img.shields.io/badge/README-blue?style=flat&link=encoded-kv/README.md)](encoded-kv/README.md)
+![Artifact](https://img.shields.io/badge/Artifact-io.synadia:encoded--kv-00BC8E?labelColor=grey&style=flat)
+[![javadoc](https://javadoc.io/badge2/io.synadia/encoded-kv/javadoc.svg)](https://javadoc.io/doc/io.synadia/encoded-kv)
+[![Maven Central](https://maven-badges.herokuapp.com/maven-central/io.synadia/encoded-kv/badge.svg)](https://maven-badges.herokuapp.com/maven-central/io.synadia/encoded-kv)
+
 ## Direct Batch
 
 The direct batch functionality leverages the direct message capabilities introduced in NATS Server v2.11.

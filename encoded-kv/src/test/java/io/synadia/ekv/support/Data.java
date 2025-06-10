@@ -1,18 +1,18 @@
 // Copyright (c) 2025 Synadia Communications Inc. All Rights Reserved.
 // See LICENSE and NOTICE file for details.
 
-package io.synadia.ekv;
+package io.synadia.ekv.support;
 
 import io.nats.client.support.*;
 
 import java.util.Objects;
 
-public class KeyOrValue implements JsonSerializable {
+public class Data implements JsonSerializable {
     public final String part1;
     public final String part2;
     public final boolean isKey;
 
-    public KeyOrValue(String part1, String part2, boolean isKey) {
+    public Data(String part1, String part2, boolean isKey) {
         this.part1 = part1;
         this.part2 = part2;
         this.isKey = isKey;
@@ -20,9 +20,9 @@ public class KeyOrValue implements JsonSerializable {
 
     @Override
     public final boolean equals(Object o) {
-        if (!(o instanceof KeyOrValue)) return false;
+        if (!(o instanceof Data)) return false;
 
-        KeyOrValue that = (KeyOrValue) o;
+        Data that = (Data) o;
         return isKey == that.isKey && Objects.equals(part1, that.part1) && Objects.equals(part2, that.part2);
     }
 
@@ -34,7 +34,7 @@ public class KeyOrValue implements JsonSerializable {
         return result;
     }
 
-    public KeyOrValue(byte[] jsonBytes) {
+    public Data(byte[] jsonBytes) {
         try {
             JsonValue jv = JsonParser.parse(jsonBytes);
             this.isKey = JsonValueUtils.readBoolean(jv, "isKey", false);

@@ -15,4 +15,4 @@ package io.synadia.ekv;
 
 import io.nats.client.api.Watcher;
 
-public interface EncodedKeyValueWatcher<KeyType, DataType> extends Watcher<EncodedKeyValueEntry<KeyType, DataType>> {}
+public interface EncodedKeyValueWatcher<KeyType, ValueType> extends Watcher<EncodedKeyValueEntry<KeyType, ValueType>> {}

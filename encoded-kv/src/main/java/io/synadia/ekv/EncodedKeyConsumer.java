@@ -8,32 +8,32 @@ import io.nats.client.api.KeyResult;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 
-public class EncodedKeyConsumer<KeyType, DataType> {
+public class EncodedKeyConsumer<KeyType> {
     private final LinkedBlockingQueue<KeyResult> queue;
-    private final Codec<KeyType, DataType> codec;
+    final KeyCodec<KeyType> keyCodec;
 
-    public EncodedKeyConsumer(LinkedBlockingQueue<KeyResult> queue, Codec<KeyType, DataType> codec) {
+    public EncodedKeyConsumer(LinkedBlockingQueue<KeyResult> queue, KeyCodec<KeyType> keyCodec) {
         this.queue = queue;
-        this.codec = codec;
+        this.keyCodec = keyCodec;
     }
 
-    private EncodedKeyResult<KeyType, DataType> convert(KeyResult result) {
-        return result == null ? null : new EncodedKeyResult<>(result, codec);
+    private EncodedKeyResult<KeyType> convert(KeyResult result) {
+        return result == null ? null : new EncodedKeyResult<>(result, keyCodec);
     }
 
-    public EncodedKeyResult<KeyType, DataType> take() throws InterruptedException {
+    public EncodedKeyResult<KeyType> take() throws InterruptedException {
         return convert(queue.take());
     }
 
-    public EncodedKeyResult<KeyType, DataType> poll(long timeout, TimeUnit unit) throws InterruptedException {
+    public EncodedKeyResult<KeyType> poll(long timeout, TimeUnit unit) throws InterruptedException {
         return convert(queue.poll(timeout, unit));
     }
 
-    public EncodedKeyResult<KeyType, DataType> poll() throws InterruptedException {
+    public EncodedKeyResult<KeyType> poll() throws InterruptedException {
         return convert(queue.poll());
     }
 
-    public EncodedKeyResult<KeyType, DataType> peek() {
+    public EncodedKeyResult<KeyType> peek() {
         return convert(queue.peek());
     }
 }

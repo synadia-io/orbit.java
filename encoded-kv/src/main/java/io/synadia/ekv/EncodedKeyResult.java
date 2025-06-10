@@ -5,19 +5,19 @@ package io.synadia.ekv;
 
 import io.nats.client.api.KeyResult;
 
-public class EncodedKeyResult<KeyType, DataType> {
+public class EncodedKeyResult<KeyType> {
 
     private final KeyResult keyResult;
-    private final Codec<KeyType, DataType> codec;
+    private final KeyCodec<KeyType> keyCodec;
 
-    public EncodedKeyResult(KeyResult keyResult, Codec<KeyType, DataType> codec) {
+    public EncodedKeyResult(KeyResult keyResult, KeyCodec<KeyType> keyCodec) {
         this.keyResult = keyResult;
-        this.codec = codec;
+        this.keyCodec = keyCodec;
     }
 
     public KeyType getKey() throws Exception {
         String key = keyResult.getKey();
-        return key == null ? null : codec.decodeKey(key);
+        return key == null ? null : keyCodec.decode(key);
     }
 
     public Exception getException() {

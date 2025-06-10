@@ -8,13 +8,15 @@ import io.nats.client.api.KeyValueOperation;
 
 import java.time.ZonedDateTime;
 
-public class EncodedKeyValueEntry<KeyType, DataType> {
-    final KeyValueEntry kve;
-    final Codec<KeyType, DataType> codec;
+public class EncodedKeyValueEntry<KeyType, ValueType> {
+    private final KeyValueEntry kve;
+    private final KeyCodec<KeyType> keyCodec;
+    private final ValueCodec<ValueType> valueCodec;
 
-    public EncodedKeyValueEntry(KeyValueEntry kve, Codec<KeyType, DataType> codec) {
+    public EncodedKeyValueEntry(KeyValueEntry kve, KeyCodec<KeyType> keyCodec, ValueCodec<ValueType> valueCodec) {
         this.kve = kve;
-        this.codec = codec;
+        this.keyCodec = keyCodec;
+        this.valueCodec = valueCodec;
     }
 
     public String getBucket() {
@@ -22,11 +24,11 @@ public class EncodedKeyValueEntry<KeyType, DataType> {
     }
 
     public KeyType getKey() throws Exception {
-        return codec.decodeKey(kve.getKey());
+        return keyCodec.decode(kve.getKey());
     }
 
-    public DataType getValue() {
-        return codec.decodeData(kve.getValue());
+    public ValueType getValue() {
+        return valueCodec.decode(kve.getValue());
     }
 
     public long getDataLen() {
