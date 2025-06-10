@@ -11,27 +11,29 @@ import io.nats.client.api.KeyValueEntry;
 import io.nats.client.api.KeyValueWatchOption;
 import io.nats.client.api.KeyValueWatcher;
 import io.nats.client.impl.NatsKeyValueWatchSubscription;
+import io.synadia.ekv.codec.KeyCodec;
+import io.synadia.ekv.codec.ValueCodec;
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-public class EncodedKeyValue<KeyType, ValueType> {
+public class KvEncodedKeyEncodedValue<KeyType, ValueType> {
     private final KeyValue kv;
     private final KeyCodec<KeyType> keyCodec;
     private final ValueCodec<ValueType> valueCodec;
 
-    public EncodedKeyValue(Connection connection, String bucketName, KeyCodec<KeyType> keyCodec, ValueCodec<ValueType> valueCodec) throws IOException {
+    public KvEncodedKeyEncodedValue(Connection connection, String bucketName, KeyCodec<KeyType> keyCodec, ValueCodec<ValueType> valueCodec) throws IOException {
         this(connection, bucketName, keyCodec, valueCodec, null);
     }
 
-    public EncodedKeyValue(Connection connection, String bucketName, KeyCodec<KeyType> keyCodec, ValueCodec<ValueType> valueCodec, KeyValueOptions kvo) throws IOException {
+    public KvEncodedKeyEncodedValue(Connection connection, String bucketName, KeyCodec<KeyType> keyCodec, ValueCodec<ValueType> valueCodec, KeyValueOptions kvo) throws IOException {
         kv = connection.keyValue(bucketName, kvo);
         this.keyCodec = keyCodec;
         this.valueCodec = valueCodec;
     }
 
-    public EncodedKeyValue(KeyValue kv, KeyCodec<KeyType> keyCodec, ValueCodec<ValueType> valueCodec) {
+    public KvEncodedKeyEncodedValue(KeyValue kv, KeyCodec<KeyType> keyCodec, ValueCodec<ValueType> valueCodec) {
         this.kv = kv;
         this.keyCodec = keyCodec;
         this.valueCodec = valueCodec;

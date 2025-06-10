@@ -4,6 +4,7 @@
 package io.synadia.ekv;
 
 import io.nats.client.api.KeyResult;
+import io.synadia.ekv.codec.KeyCodec;
 
 public class EncodedKeyResult<KeyType> {
 

@@ -1,7 +1,7 @@
 // Copyright (c) 2025 Synadia Communications Inc. All Rights Reserved.
 // See LICENSE and NOTICE file for details.
 
-package io.synadia.ekv;
+package io.synadia.ekv.codec;
 
 public interface KeyCodec<T> {
     String encode(T key);

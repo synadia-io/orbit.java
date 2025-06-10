@@ -1,16 +1,17 @@
-package io.synadia.ekv.support;
+package io.synadia.ekv;
 
-import io.synadia.ekv.ValueCodec;
-import org.apache.commons.codec.binary.Base64;
+import io.synadia.ekv.codec.ValueCodec;
+
+import java.nio.charset.StandardCharsets;
 
 public class DataValueCodec implements ValueCodec<Data> {
     // It's fine to have an object as a key. 
     // It needs to be encoded to a string that is a valid key
     // Base64 does the trick, but any two-way encoding is fine.
-    final Base64 base64;
+    final GeneralValueCodec gvc;
 
-    public DataValueCodec(boolean useBase64) {
-        base64 = useBase64 ? new Base64() : null;
+    public DataValueCodec(GeneralType gt) {
+        gvc = new GeneralValueCodec(gt);
     }
 
     @Override
@@ -18,10 +19,7 @@ public class DataValueCodec implements ValueCodec<Data> {
         if (value == null) {
             return null;
         }
-        if (base64 == null) {
-            return value.serialize();
-        }
-        return base64.encode(value.serialize());
+        return gvc.encode(value.toJson());
     }
 
     @Override
@@ -29,9 +27,6 @@ public class DataValueCodec implements ValueCodec<Data> {
         if (encodedValue == null || encodedValue.length == 0) {
             return null;
         }
-        if (base64 == null) {
-            return new Data(encodedValue);
-        }
-        return new Data(base64.decode(encodedValue));
+        return new Data(gvc.decode(encodedValue).getBytes(StandardCharsets.UTF_8));
     }
 }

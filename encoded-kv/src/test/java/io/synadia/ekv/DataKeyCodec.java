@@ -1,6 +1,6 @@
-package io.synadia.ekv.support;
+package io.synadia.ekv;
 
-import io.synadia.ekv.KeyCodec;
+import io.synadia.ekv.codec.KeyCodec;
 import org.apache.commons.codec.binary.Base64;
 
 public class DataKeyCodec implements KeyCodec<Data> {

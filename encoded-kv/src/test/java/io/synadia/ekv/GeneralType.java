@@ -3,7 +3,6 @@
 
 package io.synadia.ekv;
 
-public interface ValueCodec<ValueType> {
-    byte[] encode(ValueType value);
-    ValueType decode(byte[] encodedValue);
+public enum GeneralType {
+    PLAIN, BASE64, HEX
 }

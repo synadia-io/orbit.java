@@ -1,18 +1,12 @@
-package io.synadia.ekv.impl;
-
-import io.synadia.ekv.KeyCodec;
+package io.synadia.ekv.codec;
 
 import static io.nats.client.support.Validator.validateNonWildcardKvKeyRequired;
 
-public abstract class StringKeyCodec implements KeyCodec<String> {
+public abstract class AbstractEncodableStringKeyCodec implements KeyCodec<String> {
 
-    protected String encodeSegment(String segment) {
-        return segment;
-    }
+    protected abstract String encodeSegment(String segment);
 
-    protected String decodeSegment(String segment) {
-        return segment;
-    }
+    protected abstract String decodeSegment(String encoded);
 
     @Override
     public String encode(String key) {

@@ -39,8 +39,8 @@ repositories {
 
 dependencies {
     implementation 'io.nats:jnats:2.21.1'
-    implementation 'commons-codec:commons-codec:1.18.0'
 
+    testImplementation 'commons-codec:commons-codec:1.18.0'
     testImplementation 'io.nats:jnats-server-runner:1.2.8'
     testImplementation 'org.junit.jupiter:junit-jupiter:5.9.0'
     testImplementation 'com.github.stefanbirkner:system-lambda:1.2.1'

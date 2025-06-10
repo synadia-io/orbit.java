@@ -9,14 +9,17 @@ import io.nats.client.api.KeyValueOperation;
 import io.nats.client.api.KeyValueWatchOption;
 import io.nats.client.api.StorageType;
 import io.nats.client.impl.NatsKeyValueWatchSubscription;
-import io.synadia.ekv.support.*;
+import io.synadia.ekv.codec.KeyCodec;
+import io.synadia.ekv.codec.StringKeyCodec;
 import nats.io.NatsServerRunner;
 import org.apache.commons.codec.binary.Base64;
+import org.apache.commons.codec.binary.Hex;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.ValueSource;
+import org.junit.jupiter.params.provider.EnumSource;
 
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
@@ -30,15 +33,15 @@ import static io.nats.client.api.KeyValueWatchOption.*;
 import static java.lang.Thread.sleep;
 import static org.junit.jupiter.api.Assertions.*;
 
-public class EncodedKeyValueTests {
+public class KvEncodedTests {
     @BeforeAll
     public static void beforeAll() {
         NatsServerRunner.setDefaultOutputLevel(Level.WARNING);
     }
 
     @Test
-    public void testStringKeyCodec() throws Exception {
-        TestStringKeyCodec codec = new TestStringKeyCodec(false);
+    public void testStringKeyCodec() {
+        StringKeyCodec codec = new StringKeyCodec();
         assertTrue(codec.allowsFiltering());
         assertEquals("foo", codec.encode("foo"));
         assertEquals("foo.bar", codec.encode("foo.bar"));
@@ -49,7 +52,7 @@ public class EncodedKeyValueTests {
         assertEquals("foo", codec.decode("foo"));
         assertEquals("foo.bar", codec.decode("foo.bar"));
 
-        DataValueCodec dvc = new DataValueCodec(false);
+        DataValueCodec dvc = new DataValueCodec(GeneralType.PLAIN);
         Data value = new Data("data", "foo", false);
         byte[] jsonBytes = value.serialize();
         byte[] encoded = dvc.encode(value);
@@ -60,14 +63,14 @@ public class EncodedKeyValueTests {
     }
 
     @Test
-    public void testStringKeyCodecBase64() throws Exception {
+    public void testEncodableStringKeyCodecBase64() {
         Base64 base64 = new Base64();
         String foo64 = base64.encodeToString("foo".getBytes());
         String fooBar64 = foo64 + "." + base64.encodeToString("bar".getBytes());
         String fooStar64 = foo64 + ".*";
         String fooGt64 = foo64 + ".>";
 
-        TestStringKeyCodec codec = new TestStringKeyCodec(true);
+        GeneralKeyCodec codec = new GeneralKeyCodec(GeneralType.BASE64);
         assertTrue(codec.allowsFiltering());
         assertEquals(foo64, codec.encode("foo"));
         assertEquals(fooBar64, codec.encode("foo.bar"));
@@ -78,7 +81,7 @@ public class EncodedKeyValueTests {
         assertEquals("foo", codec.decode(foo64));
         assertEquals("foo.bar", codec.decode(fooBar64));
 
-        DataValueCodec dvc = new DataValueCodec(true);
+        DataValueCodec dvc = new DataValueCodec(GeneralType.BASE64);
         Data value = new Data("data", "foo", false);
         byte[] jsonBytes = value.serialize();
         byte[] encoded64 = base64.encode(jsonBytes);
@@ -89,26 +92,60 @@ public class EncodedKeyValueTests {
         assertEquals(value, decoded);
     }
 
+    @Test
+    public void testEncodableStringKeyCodecHex() throws Exception {
+        Hex hex = new Hex();
+        String fooHex = toHexString(hex, "foo");
+        String fooBarHex = fooHex + "." + toHexString(hex, "bar");
+        String fooStarHex = fooHex + ".*";
+        String fooGtHex = fooHex + ".>";
+
+        GeneralKeyCodec codec = new GeneralKeyCodec(GeneralType.HEX);
+        assertTrue(codec.allowsFiltering());
+        assertEquals(fooHex, codec.encode("foo"));
+        assertEquals(fooBarHex, codec.encode("foo.bar"));
+        assertEquals(fooBarHex, codec.encodeFilter("foo.bar"));
+        assertEquals(fooStarHex, codec.encodeFilter("foo.*"));
+        assertEquals(fooGtHex, codec.encodeFilter("foo.>"));
+
+        assertEquals("foo", codec.decode(fooHex));
+        assertEquals("foo.bar", codec.decode(fooBarHex));
+
+        DataValueCodec dvc = new DataValueCodec(GeneralType.HEX);
+        Data value = new Data("data", "foo", false);
+        byte[] jsonBytes = value.serialize();
+        byte[] encoded64 = hex.encode(jsonBytes);
+        byte[] encoded = dvc.encode(value);
+        assertArrayEquals(encoded64, encoded);
+
+        Data decoded = dvc.decode(encoded);
+        assertEquals(value, decoded);
+    }
+
+    private static String toHexString(Hex hex, String s) {
+        return new String(hex.encode(s.getBytes()), StandardCharsets.US_ASCII);
+    }
+
     @ParameterizedTest
-    @ValueSource(booleans = {false, true})
-    public void testStringKeyWorkflow(boolean useBase64) throws Exception {
+    @EnumSource(GeneralType.class)
+    public void testStringKeyWorkflow(GeneralType gt) throws Exception {
         try (NatsServerRunner runner = new NatsServerRunner(false, true)) {
             try (Connection nc = Nats.connect(runner.getURI())) {
-                TestStringKeyCodec keyCodec = new TestStringKeyCodec(useBase64);
-                DataValueCodec dvc = new DataValueCodec(useBase64);
+                GeneralKeyCodec keyCodec = new GeneralKeyCodec(gt);
+                DataValueCodec dvc = new DataValueCodec(gt);
 
                 String bucketName = NUID.nextGlobalSequence();
                 KeyValueManagement kvm = nc.keyValueManagement();
                 kvm.create(KeyValueConfiguration.builder().name(bucketName).build());
 
                 // this is just for coverage of constructors.
-                EncodedKeyValue<String, Data> ekv;
-                if (useBase64) {
-                    ekv = new EncodedKeyValue<>(nc, bucketName, keyCodec, dvc);
+                KvEncodedKeyEncodedValue<String, Data> ekv;
+                if (gt == GeneralType.PLAIN) {
+                    KeyValue kv = nc.keyValue(bucketName);
+                    ekv = new KvEncodedKeyEncodedValue<>(kv, keyCodec, dvc);
                 }
                 else {
-                    KeyValue kv = nc.keyValue(bucketName);
-                    ekv = new EncodedKeyValue<>(kv, keyCodec, dvc);
+                    ekv = new KvEncodedKeyEncodedValue<>(nc, bucketName, keyCodec, dvc);
                 }
 
                 String key1 = "key.1";
@@ -145,20 +182,30 @@ public class EncodedKeyValueTests {
                 Message m1 = sub.nextMessage(Duration.ofSeconds(1));
                 Message m2 = sub.nextMessage(Duration.ofSeconds(1));
 
-                if (useBase64) {
-                    String encKey1 = keyCodec.encode(key1);
-                    String encKey2 = keyCodec.encode(key2);
-                    assertEquals("$KV." + bucketName + "." + encKey1, m1.getSubject());
-                    assertEquals("$KV." + bucketName + "." + encKey2, m2.getSubject());
-                    Base64 base64 = new Base64();
-                    assertArrayEquals(base64.encode(v1.serialize()), m1.getData());
-                    assertArrayEquals(base64.encode(v2.serialize()), m2.getData());
-                }
-                else {
-                    assertEquals("$KV." + bucketName + ".key.1", m1.getSubject());
-                    assertEquals("$KV." + bucketName + ".key.2", m2.getSubject());
-                    assertArrayEquals(v1.serialize(), m1.getData());
-                    assertArrayEquals(v2.serialize(), m2.getData());
+                switch (gt) {
+                    case PLAIN:
+                        assertEquals("$KV." + bucketName + ".key.1", m1.getSubject());
+                        assertEquals("$KV." + bucketName + ".key.2", m2.getSubject());
+                        assertArrayEquals(v1.serialize(), m1.getData());
+                        assertArrayEquals(v2.serialize(), m2.getData());
+                        break;
+                    case BASE64:
+                        String encKey1 = keyCodec.encode(key1);
+                        String encKey2 = keyCodec.encode(key2);
+                        assertEquals("$KV." + bucketName + "." + encKey1, m1.getSubject());
+                        assertEquals("$KV." + bucketName + "." + encKey2, m2.getSubject());
+                        Base64 base64 = new Base64();
+                        assertArrayEquals(base64.encode(v1.serialize()), m1.getData());
+                        assertArrayEquals(base64.encode(v2.serialize()), m2.getData());
+                        break;
+                    case HEX:
+                        String encKeyH1 = keyCodec.encode(key1);
+                        String encKeyH2 = keyCodec.encode(key2);
+                        assertEquals("$KV." + bucketName + "." + encKeyH1, m1.getSubject());
+                        assertEquals("$KV." + bucketName + "." + encKeyH2, m2.getSubject());
+                        Hex hex = new Hex();
+                        assertArrayEquals(hex.encode(v1.serialize()), m1.getData());
+                        assertArrayEquals(hex.encode(v2.serialize()), m2.getData());
                 }
             }
         }
@@ -169,13 +216,13 @@ public class EncodedKeyValueTests {
         try (NatsServerRunner runner = new NatsServerRunner(false, true)) {
             try (Connection nc = Nats.connect(runner.getURI())) {
                 DataKeyCodec dkc = new DataKeyCodec();
-                DataValueCodec dvc = new DataValueCodec(true);
+                DataValueCodec dvc = new DataValueCodec(GeneralType.BASE64);
 
                 String bucketName = NUID.nextGlobalSequence();
                 KeyValueManagement kvm = nc.keyValueManagement();
                 kvm.create(KeyValueConfiguration.builder().name(bucketName).build());
 
-                EncodedKeyValue<Data, Data> ekv = new EncodedKeyValue<>(nc, bucketName, dkc, dvc);
+                KvEncodedKeyEncodedValue<Data, Data> ekv = new KvEncodedKeyEncodedValue<>(nc, bucketName, dkc, dvc);
 
                 Data key1 = new Data("foo1", null, true);
                 Data key2 = new Data("foo2", null, true);
@@ -268,10 +315,10 @@ public class EncodedKeyValueTests {
         public boolean metaOnly;
         public int endOfDataReceived;
         public boolean endBeforeEntries;
-        public TestStringKeyCodec keyCodec;
-        public TestStringValueCodec valueCodec;
+        public KeyCodec<String> keyCodec;
+        public GeneralValueCodec valueCodec;
 
-        public TestKeyValueWatcher(String name, boolean beforeWatcher, boolean useBase64, KeyValueWatchOption... watchOptions) {
+        public TestKeyValueWatcher(String name, boolean beforeWatcher, GeneralType gt, KeyValueWatchOption... watchOptions) {
             this.name = name;
             this.beforeWatcher = beforeWatcher;
             this.watchOptions = watchOptions;
@@ -281,8 +328,8 @@ public class EncodedKeyValueTests {
                     break;
                 }
             }
-            keyCodec = new TestStringKeyCodec(useBase64);
-            valueCodec = new TestStringValueCodec(useBase64);
+            keyCodec = new GeneralKeyCodec(gt);
+            valueCodec = new GeneralValueCodec(gt);
         }
 
         @Override
@@ -313,12 +360,12 @@ public class EncodedKeyValueTests {
     static String TEST_WATCH_KEY_2 = "key.2";
 
     interface TestWatchSubSupplier {
-        NatsKeyValueWatchSubscription get(EncodedKeyValue<String, String> kv) throws Exception;
+        NatsKeyValueWatchSubscription get(KvEncodedKeyEncodedValue<String, String> kv) throws Exception;
     }
 
     @ParameterizedTest
-    @ValueSource(booleans = {false, true})
-    public void testWatch(boolean useBase64) throws Exception {
+    @EnumSource(GeneralType.class)
+    public void testWatch(GeneralType gt) throws Exception {
         Object[] key1AllExpecteds = new Object[]{
             "a", "aa", KeyValueOperation.DELETE, "aaa", KeyValueOperation.DELETE, KeyValueOperation.PURGE
         };
@@ -354,70 +401,70 @@ public class EncodedKeyValueTests {
             "aaa", "zzz",
         };
 
-        TestKeyValueWatcher key1FullWatcher = new TestKeyValueWatcher("key1FullWatcher", true, useBase64);
-        TestKeyValueWatcher key1MetaWatcher = new TestKeyValueWatcher("key1MetaWatcher", true, useBase64, META_ONLY);
-        TestKeyValueWatcher key1StartNewWatcher = new TestKeyValueWatcher("key1StartNewWatcher", true, useBase64, META_ONLY, UPDATES_ONLY);
-        TestKeyValueWatcher key1StartAllWatcher = new TestKeyValueWatcher("key1StartAllWatcher", true, useBase64, META_ONLY);
-        TestKeyValueWatcher key2FullWatcher = new TestKeyValueWatcher("key2FullWatcher", true, useBase64);
-        TestKeyValueWatcher key2MetaWatcher = new TestKeyValueWatcher("key2MetaWatcher", true, useBase64, META_ONLY);
-        TestKeyValueWatcher allAllFullWatcher = new TestKeyValueWatcher("allAllFullWatcher", true, useBase64);
-        TestKeyValueWatcher allAllMetaWatcher = new TestKeyValueWatcher("allAllMetaWatcher", true, useBase64, META_ONLY);
-        TestKeyValueWatcher allIgDelFullWatcher = new TestKeyValueWatcher("allIgDelFullWatcher", true, useBase64, IGNORE_DELETE);
-        TestKeyValueWatcher allIgDelMetaWatcher = new TestKeyValueWatcher("allIgDelMetaWatcher", true, useBase64, META_ONLY, IGNORE_DELETE);
-        TestKeyValueWatcher starFullWatcher = new TestKeyValueWatcher("starFullWatcher", true, useBase64);
-        TestKeyValueWatcher starMetaWatcher = new TestKeyValueWatcher("starMetaWatcher", true, useBase64, META_ONLY);
-        TestKeyValueWatcher gtFullWatcher = new TestKeyValueWatcher("gtFullWatcher", true, useBase64);
-        TestKeyValueWatcher gtMetaWatcher = new TestKeyValueWatcher("gtMetaWatcher", true, useBase64, META_ONLY);
-        TestKeyValueWatcher multipleFullWatcher = new TestKeyValueWatcher("multipleFullWatcher", true, useBase64);
-        TestKeyValueWatcher multipleMetaWatcher = new TestKeyValueWatcher("multipleMetaWatcher", true, useBase64, META_ONLY);
-        TestKeyValueWatcher key1AfterWatcher = new TestKeyValueWatcher("key1AfterWatcher", false, useBase64, META_ONLY);
-        TestKeyValueWatcher key1AfterIgDelWatcher = new TestKeyValueWatcher("key1AfterIgDelWatcher", false, useBase64, META_ONLY, IGNORE_DELETE);
-        TestKeyValueWatcher key1AfterStartNewWatcher = new TestKeyValueWatcher("key1AfterStartNewWatcher", false, useBase64, META_ONLY, UPDATES_ONLY);
-        TestKeyValueWatcher key1AfterStartFirstWatcher = new TestKeyValueWatcher("key1AfterStartFirstWatcher", false, useBase64, META_ONLY, INCLUDE_HISTORY);
-        TestKeyValueWatcher key2AfterWatcher = new TestKeyValueWatcher("key2AfterWatcher", false, useBase64, META_ONLY);
-        TestKeyValueWatcher key2AfterStartNewWatcher = new TestKeyValueWatcher("key2AfterStartNewWatcher", false, useBase64, META_ONLY, UPDATES_ONLY);
-        TestKeyValueWatcher key2AfterStartFirstWatcher = new TestKeyValueWatcher("key2AfterStartFirstWatcher", false, useBase64, META_ONLY, INCLUDE_HISTORY);
-        TestKeyValueWatcher key1FromRevisionAfterWatcher = new TestKeyValueWatcher("key1FromRevisionAfterWatcher", false, useBase64);
-        TestKeyValueWatcher allFromRevisionAfterWatcher = new TestKeyValueWatcher("allFromRevisionAfterWatcher", false, useBase64);
-        TestKeyValueWatcher key1Key2FromRevisionAfterWatcher = new TestKeyValueWatcher("key1Key2FromRevisionAfterWatcher", false, useBase64);
+        TestKeyValueWatcher key1FullWatcher = new TestKeyValueWatcher("key1FullWatcher", true, gt);
+        TestKeyValueWatcher key1MetaWatcher = new TestKeyValueWatcher("key1MetaWatcher", true, gt, META_ONLY);
+        TestKeyValueWatcher key1StartNewWatcher = new TestKeyValueWatcher("key1StartNewWatcher", true, gt, META_ONLY, UPDATES_ONLY);
+        TestKeyValueWatcher key1StartAllWatcher = new TestKeyValueWatcher("key1StartAllWatcher", true, gt, META_ONLY);
+        TestKeyValueWatcher key2FullWatcher = new TestKeyValueWatcher("key2FullWatcher", true, gt);
+        TestKeyValueWatcher key2MetaWatcher = new TestKeyValueWatcher("key2MetaWatcher", true, gt, META_ONLY);
+        TestKeyValueWatcher allAllFullWatcher = new TestKeyValueWatcher("allAllFullWatcher", true, gt);
+        TestKeyValueWatcher allAllMetaWatcher = new TestKeyValueWatcher("allAllMetaWatcher", true, gt, META_ONLY);
+        TestKeyValueWatcher allIgDelFullWatcher = new TestKeyValueWatcher("allIgDelFullWatcher", true, gt, IGNORE_DELETE);
+        TestKeyValueWatcher allIgDelMetaWatcher = new TestKeyValueWatcher("allIgDelMetaWatcher", true, gt, META_ONLY, IGNORE_DELETE);
+        TestKeyValueWatcher starFullWatcher = new TestKeyValueWatcher("starFullWatcher", true, gt);
+        TestKeyValueWatcher starMetaWatcher = new TestKeyValueWatcher("starMetaWatcher", true, gt, META_ONLY);
+        TestKeyValueWatcher gtFullWatcher = new TestKeyValueWatcher("gtFullWatcher", true, gt);
+        TestKeyValueWatcher gtMetaWatcher = new TestKeyValueWatcher("gtMetaWatcher", true, gt, META_ONLY);
+        TestKeyValueWatcher multipleFullWatcher = new TestKeyValueWatcher("multipleFullWatcher", true, gt);
+        TestKeyValueWatcher multipleMetaWatcher = new TestKeyValueWatcher("multipleMetaWatcher", true, gt, META_ONLY);
+        TestKeyValueWatcher key1AfterWatcher = new TestKeyValueWatcher("key1AfterWatcher", false, gt, META_ONLY);
+        TestKeyValueWatcher key1AfterIgDelWatcher = new TestKeyValueWatcher("key1AfterIgDelWatcher", false, gt, META_ONLY, IGNORE_DELETE);
+        TestKeyValueWatcher key1AfterStartNewWatcher = new TestKeyValueWatcher("key1AfterStartNewWatcher", false, gt, META_ONLY, UPDATES_ONLY);
+        TestKeyValueWatcher key1AfterStartFirstWatcher = new TestKeyValueWatcher("key1AfterStartFirstWatcher", false, gt, META_ONLY, INCLUDE_HISTORY);
+        TestKeyValueWatcher key2AfterWatcher = new TestKeyValueWatcher("key2AfterWatcher", false, gt, META_ONLY);
+        TestKeyValueWatcher key2AfterStartNewWatcher = new TestKeyValueWatcher("key2AfterStartNewWatcher", false, gt, META_ONLY, UPDATES_ONLY);
+        TestKeyValueWatcher key2AfterStartFirstWatcher = new TestKeyValueWatcher("key2AfterStartFirstWatcher", false, gt, META_ONLY, INCLUDE_HISTORY);
+        TestKeyValueWatcher key1FromRevisionAfterWatcher = new TestKeyValueWatcher("key1FromRevisionAfterWatcher", false, gt);
+        TestKeyValueWatcher allFromRevisionAfterWatcher = new TestKeyValueWatcher("allFromRevisionAfterWatcher", false, gt);
+        TestKeyValueWatcher key1Key2FromRevisionAfterWatcher = new TestKeyValueWatcher("key1Key2FromRevisionAfterWatcher", false, gt);
 
         List<String> allKeys = Arrays.asList(TEST_WATCH_KEY_1, TEST_WATCH_KEY_2, TEST_WATCH_KEY_NULL);
 
         try (NatsServerRunner runner = new NatsServerRunner(false, true)) {
             try (Connection nc = Nats.connect(runner.getURI())) {
-                _testWatch(nc, key1FullWatcher, key1AllExpecteds, -1, kv -> kv.watch(TEST_WATCH_KEY_1, key1FullWatcher, key1FullWatcher.watchOptions));
-                _testWatch(nc, key1MetaWatcher, key1AllExpecteds, -1, kv -> kv.watch(TEST_WATCH_KEY_1, key1MetaWatcher, key1MetaWatcher.watchOptions));
-                _testWatch(nc, key1StartNewWatcher, key1AllExpecteds, -1, kv -> kv.watch(TEST_WATCH_KEY_1, key1StartNewWatcher, key1StartNewWatcher.watchOptions));
-                _testWatch(nc, key1StartAllWatcher, key1AllExpecteds, -1, kv -> kv.watch(TEST_WATCH_KEY_1, key1StartAllWatcher, key1StartAllWatcher.watchOptions));
-                _testWatch(nc, key2FullWatcher, key2AllExpecteds, -1, kv -> kv.watch(TEST_WATCH_KEY_2, key2FullWatcher, key2FullWatcher.watchOptions));
-                _testWatch(nc, key2MetaWatcher, key2AllExpecteds, -1, kv -> kv.watch(TEST_WATCH_KEY_2, key2MetaWatcher, key2MetaWatcher.watchOptions));
-                _testWatch(nc, allAllFullWatcher, allExpecteds, -1, kv -> kv.watchAll(allAllFullWatcher, allAllFullWatcher.watchOptions));
-                _testWatch(nc, allAllMetaWatcher, allExpecteds, -1, kv -> kv.watchAll(allAllMetaWatcher, allAllMetaWatcher.watchOptions));
-                _testWatch(nc, allIgDelFullWatcher, allPutsExpecteds, -1, kv -> kv.watchAll(allIgDelFullWatcher, allIgDelFullWatcher.watchOptions));
-                _testWatch(nc, allIgDelMetaWatcher, allPutsExpecteds, -1, kv -> kv.watchAll(allIgDelMetaWatcher, allIgDelMetaWatcher.watchOptions));
-                _testWatch(nc, starFullWatcher, allExpecteds, -1, kv -> kv.watch("key.*", starFullWatcher, starFullWatcher.watchOptions));
-                _testWatch(nc, starMetaWatcher, allExpecteds, -1, kv -> kv.watch("key.*", starMetaWatcher, starMetaWatcher.watchOptions));
-                _testWatch(nc, gtFullWatcher, allExpecteds, -1, kv -> kv.watch("key.>", gtFullWatcher, gtFullWatcher.watchOptions));
-                _testWatch(nc, gtMetaWatcher, allExpecteds, -1, kv -> kv.watch("key.>", gtMetaWatcher, gtMetaWatcher.watchOptions));
-                _testWatch(nc, key1AfterWatcher, purgeOnlyExpecteds, -1, kv -> kv.watch(TEST_WATCH_KEY_1, key1AfterWatcher, key1AfterWatcher.watchOptions));
-                _testWatch(nc, key1AfterIgDelWatcher, noExpecteds, -1, kv -> kv.watch(TEST_WATCH_KEY_1, key1AfterIgDelWatcher, key1AfterIgDelWatcher.watchOptions));
-                _testWatch(nc, key1AfterStartNewWatcher, noExpecteds, -1, kv -> kv.watch(TEST_WATCH_KEY_1, key1AfterStartNewWatcher, key1AfterStartNewWatcher.watchOptions));
-                _testWatch(nc, key1AfterStartFirstWatcher, purgeOnlyExpecteds, -1, kv -> kv.watch(TEST_WATCH_KEY_1, key1AfterStartFirstWatcher, key1AfterStartFirstWatcher.watchOptions));
-                _testWatch(nc, key2AfterWatcher, key2AfterExpecteds, -1, kv -> kv.watch(TEST_WATCH_KEY_2, key2AfterWatcher, key2AfterWatcher.watchOptions));
-                _testWatch(nc, key2AfterStartNewWatcher, noExpecteds, -1, kv -> kv.watch(TEST_WATCH_KEY_2, key2AfterStartNewWatcher, key2AfterStartNewWatcher.watchOptions));
-                _testWatch(nc, key2AfterStartFirstWatcher, key2AllExpecteds, -1, kv -> kv.watch(TEST_WATCH_KEY_2, key2AfterStartFirstWatcher, key2AfterStartFirstWatcher.watchOptions));
-                _testWatch(nc, key1FromRevisionAfterWatcher, key1FromRevisionExpecteds, 2, kv -> kv.watch(TEST_WATCH_KEY_1, key1FromRevisionAfterWatcher, 2, key1FromRevisionAfterWatcher.watchOptions));
-                _testWatch(nc, allFromRevisionAfterWatcher, allFromRevisionExpecteds, 2, kv -> kv.watchAll(allFromRevisionAfterWatcher, 2, allFromRevisionAfterWatcher.watchOptions));
+                _testWatch(nc, gt, key1FullWatcher, key1AllExpecteds, -1, kv -> kv.watch(TEST_WATCH_KEY_1, key1FullWatcher, key1FullWatcher.watchOptions));
+                _testWatch(nc, gt, key1MetaWatcher, key1AllExpecteds, -1, kv -> kv.watch(TEST_WATCH_KEY_1, key1MetaWatcher, key1MetaWatcher.watchOptions));
+                _testWatch(nc, gt, key1StartNewWatcher, key1AllExpecteds, -1, kv -> kv.watch(TEST_WATCH_KEY_1, key1StartNewWatcher, key1StartNewWatcher.watchOptions));
+                _testWatch(nc, gt, key1StartAllWatcher, key1AllExpecteds, -1, kv -> kv.watch(TEST_WATCH_KEY_1, key1StartAllWatcher, key1StartAllWatcher.watchOptions));
+                _testWatch(nc, gt, key2FullWatcher, key2AllExpecteds, -1, kv -> kv.watch(TEST_WATCH_KEY_2, key2FullWatcher, key2FullWatcher.watchOptions));
+                _testWatch(nc, gt, key2MetaWatcher, key2AllExpecteds, -1, kv -> kv.watch(TEST_WATCH_KEY_2, key2MetaWatcher, key2MetaWatcher.watchOptions));
+                _testWatch(nc, gt, allAllFullWatcher, allExpecteds, -1, kv -> kv.watchAll(allAllFullWatcher, allAllFullWatcher.watchOptions));
+                _testWatch(nc, gt, allAllMetaWatcher, allExpecteds, -1, kv -> kv.watchAll(allAllMetaWatcher, allAllMetaWatcher.watchOptions));
+                _testWatch(nc, gt, allIgDelFullWatcher, allPutsExpecteds, -1, kv -> kv.watchAll(allIgDelFullWatcher, allIgDelFullWatcher.watchOptions));
+                _testWatch(nc, gt, allIgDelMetaWatcher, allPutsExpecteds, -1, kv -> kv.watchAll(allIgDelMetaWatcher, allIgDelMetaWatcher.watchOptions));
+                _testWatch(nc, gt, starFullWatcher, allExpecteds, -1, kv -> kv.watch("key.*", starFullWatcher, starFullWatcher.watchOptions));
+                _testWatch(nc, gt, starMetaWatcher, allExpecteds, -1, kv -> kv.watch("key.*", starMetaWatcher, starMetaWatcher.watchOptions));
+                _testWatch(nc, gt, gtFullWatcher, allExpecteds, -1, kv -> kv.watch("key.>", gtFullWatcher, gtFullWatcher.watchOptions));
+                _testWatch(nc, gt, gtMetaWatcher, allExpecteds, -1, kv -> kv.watch("key.>", gtMetaWatcher, gtMetaWatcher.watchOptions));
+                _testWatch(nc, gt, key1AfterWatcher, purgeOnlyExpecteds, -1, kv -> kv.watch(TEST_WATCH_KEY_1, key1AfterWatcher, key1AfterWatcher.watchOptions));
+                _testWatch(nc, gt, key1AfterIgDelWatcher, noExpecteds, -1, kv -> kv.watch(TEST_WATCH_KEY_1, key1AfterIgDelWatcher, key1AfterIgDelWatcher.watchOptions));
+                _testWatch(nc, gt, key1AfterStartNewWatcher, noExpecteds, -1, kv -> kv.watch(TEST_WATCH_KEY_1, key1AfterStartNewWatcher, key1AfterStartNewWatcher.watchOptions));
+                _testWatch(nc, gt, key1AfterStartFirstWatcher, purgeOnlyExpecteds, -1, kv -> kv.watch(TEST_WATCH_KEY_1, key1AfterStartFirstWatcher, key1AfterStartFirstWatcher.watchOptions));
+                _testWatch(nc, gt, key2AfterWatcher, key2AfterExpecteds, -1, kv -> kv.watch(TEST_WATCH_KEY_2, key2AfterWatcher, key2AfterWatcher.watchOptions));
+                _testWatch(nc, gt, key2AfterStartNewWatcher, noExpecteds, -1, kv -> kv.watch(TEST_WATCH_KEY_2, key2AfterStartNewWatcher, key2AfterStartNewWatcher.watchOptions));
+                _testWatch(nc, gt, key2AfterStartFirstWatcher, key2AllExpecteds, -1, kv -> kv.watch(TEST_WATCH_KEY_2, key2AfterStartFirstWatcher, key2AfterStartFirstWatcher.watchOptions));
+                _testWatch(nc, gt, key1FromRevisionAfterWatcher, key1FromRevisionExpecteds, 2, kv -> kv.watch(TEST_WATCH_KEY_1, key1FromRevisionAfterWatcher, 2, key1FromRevisionAfterWatcher.watchOptions));
+                _testWatch(nc, gt, allFromRevisionAfterWatcher, allFromRevisionExpecteds, 2, kv -> kv.watchAll(allFromRevisionAfterWatcher, 2, allFromRevisionAfterWatcher.watchOptions));
 
                 List<String> keys = Arrays.asList(TEST_WATCH_KEY_1, TEST_WATCH_KEY_2);
-                _testWatch(nc, key1Key2FromRevisionAfterWatcher, allFromRevisionExpecteds, 2, kv -> kv.watch(keys, key1Key2FromRevisionAfterWatcher, 2, key1Key2FromRevisionAfterWatcher.watchOptions));
-                _testWatch(nc, multipleFullWatcher, allExpecteds, -1, kv -> kv.watch(allKeys, multipleFullWatcher, multipleFullWatcher.watchOptions));
-                _testWatch(nc, multipleMetaWatcher, allExpecteds, -1, kv -> kv.watch(allKeys, multipleMetaWatcher, multipleMetaWatcher.watchOptions));
+                _testWatch(nc, gt, key1Key2FromRevisionAfterWatcher, allFromRevisionExpecteds, 2, kv -> kv.watch(keys, key1Key2FromRevisionAfterWatcher, 2, key1Key2FromRevisionAfterWatcher.watchOptions));
+                _testWatch(nc, gt, multipleFullWatcher, allExpecteds, -1, kv -> kv.watch(allKeys, multipleFullWatcher, multipleFullWatcher.watchOptions));
+                _testWatch(nc, gt, multipleMetaWatcher, allExpecteds, -1, kv -> kv.watch(allKeys, multipleMetaWatcher, multipleMetaWatcher.watchOptions));
             }
         }
     }
 
-    private void _testWatch(Connection nc, TestKeyValueWatcher watcher, Object[] expectedKves, long fromRevision, TestWatchSubSupplier supplier) throws Exception {
+    private void _testWatch(Connection nc, GeneralType gt, TestKeyValueWatcher watcher, Object[] expectedKves, long fromRevision, TestWatchSubSupplier supplier) throws Exception {
         KeyValueManagement kvm = nc.keyValueManagement();
 
         String bucket = NUID.nextGlobalSequence() + watcher.name + "Bucket";
@@ -427,7 +474,7 @@ public class EncodedKeyValueTests {
             .storageType(StorageType.Memory)
             .build());
 
-        EncodedKeyValue<String, String> kv = new EncodedKeyValue<>(nc.keyValue(bucket), watcher.keyCodec, watcher.valueCodec);
+        KvEncodedKeyEncodedValue<String, String> kv = new KvEncodedKeyEncodedValue<>(nc.keyValue(bucket), watcher.keyCodec, watcher.valueCodec);
 
         NatsKeyValueWatchSubscription sub = null;
 
@@ -465,13 +512,13 @@ public class EncodedKeyValueTests {
 
         sleep(1500); // give time for the watches to get messages
 
-        validateWatcher(expectedKves, watcher);
+        validateWatcher(gt, expectedKves, watcher);
         //noinspection ConstantConditions
         sub.unsubscribe();
         kvm.delete(bucket);
     }
 
-    private void validateWatcher(Object[] expectedKves, TestKeyValueWatcher watcher) {
+    private void validateWatcher(GeneralType gt, Object[] expectedKves, TestKeyValueWatcher watcher) {
         assertEquals(expectedKves.length, watcher.entries.size());
         assertEquals(1, watcher.endOfDataReceived);
 
@@ -494,24 +541,32 @@ public class EncodedKeyValueTests {
             if (expected == null) {
                 assertSame(KeyValueOperation.PUT, kve.getOperation());
                 assertNull(kve.getValue());
-                assertEquals(0, kve.getDataLen());
+                assertEquals(0, kve.getEncodedDataLen());
             }
             else if (expected instanceof String) {
                 assertSame(KeyValueOperation.PUT, kve.getOperation());
                 String s = (String) expected;
+                int encodedDataLen = s.length();
+                switch (gt) {
+                    case BASE64:
+                        encodedDataLen = Base64.encodeBase64(s.getBytes(StandardCharsets.UTF_8)).length;
+                        break;
+                    case HEX:
+                        encodedDataLen = Hex.encodeHex(s.getBytes(StandardCharsets.UTF_8)).length;
+                        break;
+                }
+                assertEquals(encodedDataLen, kve.getEncodedDataLen());
                 if (watcher.metaOnly) {
                     assertNull(kve.getValue());
-                    assertEquals(s.length(), kve.getDataLen());
                 }
                 else {
                     assertNotNull(kve.getValue());
-                    assertEquals(s.length(), kve.getDataLen());
                     assertEquals(s, kve.getValue());
                 }
             }
             else {
                 assertTrue(kve.getValue() == null || kve.getValue().isEmpty());
-                assertEquals(0, kve.getDataLen());
+                assertEquals(0, kve.getEncodedDataLen());
                 assertSame(expected, kve.getOperation());
             }
         }

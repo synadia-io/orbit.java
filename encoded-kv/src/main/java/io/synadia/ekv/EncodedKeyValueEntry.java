@@ -5,6 +5,8 @@ package io.synadia.ekv;
 
 import io.nats.client.api.KeyValueEntry;
 import io.nats.client.api.KeyValueOperation;
+import io.synadia.ekv.codec.KeyCodec;
+import io.synadia.ekv.codec.ValueCodec;
 
 import java.time.ZonedDateTime;
 
@@ -23,7 +25,7 @@ public class EncodedKeyValueEntry<KeyType, ValueType> {
         return kve.getBucket();
     }
 
-    public KeyType getKey() throws Exception {
+    public KeyType getKey() {
         return keyCodec.decode(kve.getKey());
     }
 
@@ -31,7 +33,7 @@ public class EncodedKeyValueEntry<KeyType, ValueType> {
         return valueCodec.decode(kve.getValue());
     }
 
-    public long getDataLen() {
+    public long getEncodedDataLen() {
         return kve.getDataLen();
     }
 
