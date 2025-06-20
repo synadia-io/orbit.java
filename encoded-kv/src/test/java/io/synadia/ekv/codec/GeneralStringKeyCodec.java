@@ -1,19 +1,19 @@
 // Copyright (c) 2025 Synadia Communications Inc. All Rights Reserved.
 // See LICENSE and NOTICE file for details.
 
-package io.synadia.ekv;
+package io.synadia.ekv.codec;
 
-import io.synadia.ekv.codec.AbstractEncodableStringKeyCodec;
+import io.synadia.ekv.misc.GeneralType;
 import org.apache.commons.codec.DecoderException;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.codec.binary.Hex;
 
 import java.nio.charset.StandardCharsets;
 
-public class GeneralKeyCodec extends AbstractEncodableStringKeyCodec {
+public class GeneralStringKeyCodec extends AbstractEncodableStringKeyCodec {
     final GeneralType gt;
 
-    public GeneralKeyCodec(GeneralType gt) {
+    public GeneralStringKeyCodec(GeneralType gt) {
         this.gt = gt;
     }
 

@@ -1,19 +1,19 @@
 // Copyright (c) 2025 Synadia Communications Inc. All Rights Reserved.
 // See LICENSE and NOTICE file for details.
 
-package io.synadia.ekv;
+package io.synadia.ekv.codec;
 
-import io.synadia.ekv.codec.ValueCodec;
+import io.synadia.ekv.misc.GeneralType;
 import org.apache.commons.codec.DecoderException;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.codec.binary.Hex;
 
 import java.nio.charset.StandardCharsets;
 
-public class GeneralValueCodec implements ValueCodec<String> {
+public class GeneralStringValueCodec implements ValueCodec<String> {
     final GeneralType gt;
 
-    public GeneralValueCodec(GeneralType gt) {
+    public GeneralStringValueCodec(GeneralType gt) {
         this.gt = gt;
     }
 
@@ -28,9 +28,10 @@ public class GeneralValueCodec implements ValueCodec<String> {
             case BASE64:
                 return Base64.encodeBase64(bytes);
             case HEX:
-                return new String(Hex.encodeHex(bytes)).getBytes(StandardCharsets.US_ASCII);
+                return new String(Hex.encodeHex(bytes)).getBytes(StandardCharsets.UTF_8);
         }
-        return bytes;
+
+        return value.getBytes(StandardCharsets.UTF_8);
     }
 
     @Override
@@ -39,20 +40,19 @@ public class GeneralValueCodec implements ValueCodec<String> {
             return null;
         }
 
-        byte[] decodedBytes = encodedValue;
         switch (gt) {
             case BASE64:
-                decodedBytes = Base64.decodeBase64(encodedValue);
-                break;
+                byte[] decodedBytes = Base64.decodeBase64(encodedValue);
+                return new String(decodedBytes, StandardCharsets.UTF_8);
             case HEX:
                 try {
-                    decodedBytes = Hex.decodeHex(new String(encodedValue, StandardCharsets.US_ASCII));
+                    byte[] hexBytes = Hex.decodeHex(new String(encodedValue, StandardCharsets.UTF_8));
+                    return new String(hexBytes, StandardCharsets.UTF_8);
                 }
                 catch (DecoderException e) {
                     throw new RuntimeException(e);
                 }
-                break;
         }
-        return new String(decodedBytes, StandardCharsets.UTF_8);
+        return new String(encodedValue, StandardCharsets.UTF_8);
     }
 }

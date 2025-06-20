@@ -1,3 +1,6 @@
+// Copyright (c) 2025 Synadia Communications Inc. All Rights Reserved.
+// See LICENSE and NOTICE file for details.
+
 package io.synadia.ekv.codec;
 
 import static io.nats.client.support.Validator.validateNonWildcardKvKeyRequired;
@@ -6,7 +9,7 @@ public abstract class AbstractEncodableStringKeyCodec implements KeyCodec<String
 
     protected abstract String encodeSegment(String segment);
 
-    protected abstract String decodeSegment(String encoded);
+    protected abstract String decodeSegment(String encodedSegment);
 
     @Override
     public String encode(String key) {

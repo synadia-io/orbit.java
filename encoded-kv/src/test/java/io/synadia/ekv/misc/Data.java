@@ -1,7 +1,7 @@
 // Copyright (c) 2025 Synadia Communications Inc. All Rights Reserved.
 // See LICENSE and NOTICE file for details.
 
-package io.synadia.ekv;
+package io.synadia.ekv.misc;
 
 import io.nats.client.support.*;
 
@@ -23,7 +23,9 @@ public class Data implements JsonSerializable {
         if (!(o instanceof Data)) return false;
 
         Data that = (Data) o;
-        return isKey == that.isKey && Objects.equals(part1, that.part1) && Objects.equals(part2, that.part2);
+        return isKey == that.isKey
+            && Objects.equals(part1, that.part1)
+            && Objects.equals(part2, that.part2);
     }
 
     @Override

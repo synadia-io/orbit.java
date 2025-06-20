@@ -9,8 +9,9 @@ import io.nats.client.api.KeyValueOperation;
 import io.nats.client.api.KeyValueWatchOption;
 import io.nats.client.api.StorageType;
 import io.nats.client.impl.NatsKeyValueWatchSubscription;
-import io.synadia.ekv.codec.KeyCodec;
-import io.synadia.ekv.codec.StringKeyCodec;
+import io.synadia.ekv.codec.*;
+import io.synadia.ekv.misc.Data;
+import io.synadia.ekv.misc.GeneralType;
 import nats.io.NatsServerRunner;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.codec.binary.Hex;
@@ -33,97 +34,10 @@ import static io.nats.client.api.KeyValueWatchOption.*;
 import static java.lang.Thread.sleep;
 import static org.junit.jupiter.api.Assertions.*;
 
-public class KvEncodedTests {
+public class WorkflowTests {
     @BeforeAll
     public static void beforeAll() {
         NatsServerRunner.setDefaultOutputLevel(Level.WARNING);
-    }
-
-    @Test
-    public void testStringKeyCodec() {
-        StringKeyCodec codec = new StringKeyCodec();
-        assertTrue(codec.allowsFiltering());
-        assertEquals("foo", codec.encode("foo"));
-        assertEquals("foo.bar", codec.encode("foo.bar"));
-        assertEquals("foo.bar", codec.encodeFilter("foo.bar"));
-        assertEquals("foo.*", codec.encodeFilter("foo.*"));
-        assertEquals("foo.>", codec.encodeFilter("foo.>"));
-
-        assertEquals("foo", codec.decode("foo"));
-        assertEquals("foo.bar", codec.decode("foo.bar"));
-
-        DataValueCodec dvc = new DataValueCodec(GeneralType.PLAIN);
-        Data value = new Data("data", "foo", false);
-        byte[] jsonBytes = value.serialize();
-        byte[] encoded = dvc.encode(value);
-        assertArrayEquals(jsonBytes, encoded);
-
-        Data decoded = dvc.decode(encoded);
-        assertEquals(value, decoded);
-    }
-
-    @Test
-    public void testEncodableStringKeyCodecBase64() {
-        Base64 base64 = new Base64();
-        String foo64 = base64.encodeToString("foo".getBytes());
-        String fooBar64 = foo64 + "." + base64.encodeToString("bar".getBytes());
-        String fooStar64 = foo64 + ".*";
-        String fooGt64 = foo64 + ".>";
-
-        GeneralKeyCodec codec = new GeneralKeyCodec(GeneralType.BASE64);
-        assertTrue(codec.allowsFiltering());
-        assertEquals(foo64, codec.encode("foo"));
-        assertEquals(fooBar64, codec.encode("foo.bar"));
-        assertEquals(fooBar64, codec.encodeFilter("foo.bar"));
-        assertEquals(fooStar64, codec.encodeFilter("foo.*"));
-        assertEquals(fooGt64, codec.encodeFilter("foo.>"));
-
-        assertEquals("foo", codec.decode(foo64));
-        assertEquals("foo.bar", codec.decode(fooBar64));
-
-        DataValueCodec dvc = new DataValueCodec(GeneralType.BASE64);
-        Data value = new Data("data", "foo", false);
-        byte[] jsonBytes = value.serialize();
-        byte[] encoded64 = base64.encode(jsonBytes);
-        byte[] encoded = dvc.encode(value);
-        assertArrayEquals(encoded64, encoded);
-
-        Data decoded = dvc.decode(encoded);
-        assertEquals(value, decoded);
-    }
-
-    @Test
-    public void testEncodableStringKeyCodecHex() throws Exception {
-        Hex hex = new Hex();
-        String fooHex = toHexString(hex, "foo");
-        String fooBarHex = fooHex + "." + toHexString(hex, "bar");
-        String fooStarHex = fooHex + ".*";
-        String fooGtHex = fooHex + ".>";
-
-        GeneralKeyCodec codec = new GeneralKeyCodec(GeneralType.HEX);
-        assertTrue(codec.allowsFiltering());
-        assertEquals(fooHex, codec.encode("foo"));
-        assertEquals(fooBarHex, codec.encode("foo.bar"));
-        assertEquals(fooBarHex, codec.encodeFilter("foo.bar"));
-        assertEquals(fooStarHex, codec.encodeFilter("foo.*"));
-        assertEquals(fooGtHex, codec.encodeFilter("foo.>"));
-
-        assertEquals("foo", codec.decode(fooHex));
-        assertEquals("foo.bar", codec.decode(fooBarHex));
-
-        DataValueCodec dvc = new DataValueCodec(GeneralType.HEX);
-        Data value = new Data("data", "foo", false);
-        byte[] jsonBytes = value.serialize();
-        byte[] encoded64 = hex.encode(jsonBytes);
-        byte[] encoded = dvc.encode(value);
-        assertArrayEquals(encoded64, encoded);
-
-        Data decoded = dvc.decode(encoded);
-        assertEquals(value, decoded);
-    }
-
-    private static String toHexString(Hex hex, String s) {
-        return new String(hex.encode(s.getBytes()), StandardCharsets.US_ASCII);
     }
 
     @ParameterizedTest
@@ -131,7 +45,7 @@ public class KvEncodedTests {
     public void testStringKeyWorkflow(GeneralType gt) throws Exception {
         try (NatsServerRunner runner = new NatsServerRunner(false, true)) {
             try (Connection nc = Nats.connect(runner.getURI())) {
-                GeneralKeyCodec keyCodec = new GeneralKeyCodec(gt);
+                GeneralStringKeyCodec keyCodec = new GeneralStringKeyCodec(gt);
                 DataValueCodec dvc = new DataValueCodec(gt);
 
                 String bucketName = NUID.nextGlobalSequence();
@@ -316,7 +230,7 @@ public class KvEncodedTests {
         public int endOfDataReceived;
         public boolean endBeforeEntries;
         public KeyCodec<String> keyCodec;
-        public GeneralValueCodec valueCodec;
+        public ValueCodec<String> valueCodec;
 
         public TestKeyValueWatcher(String name, boolean beforeWatcher, GeneralType gt, KeyValueWatchOption... watchOptions) {
             this.name = name;
@@ -328,8 +242,8 @@ public class KvEncodedTests {
                     break;
                 }
             }
-            keyCodec = new GeneralKeyCodec(gt);
-            valueCodec = new GeneralValueCodec(gt);
+            keyCodec = new GeneralStringKeyCodec(gt);
+            valueCodec = new GeneralStringValueCodec(gt);
         }
 
         @Override
