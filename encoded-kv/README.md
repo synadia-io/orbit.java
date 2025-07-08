@@ -24,8 +24,6 @@ It requires a _codec_, which
 [![Maven Central](https://maven-badges.herokuapp.com/maven-central/io.synadia/encoded-kv/badge.svg)](https://maven-badges.herokuapp.com/maven-central/io.synadia/encoded-kv)
 [![javadoc](https://javadoc.io/badge2/io.synadia/encoded-kv/javadoc.svg)](https://javadoc.io/doc/io.synadia/encoded-kv)
 
-The [Unit Tests](src/test/java/io/synadia/jnats/extension/DirectConsumerTests.java) may also be of interest.
-
 ---
 Copyright (c) 2025 Synadia Communications Inc. All Rights Reserved.
 See [LICENSE](LICENSE) and [NOTICE](NOTICE) file for details.

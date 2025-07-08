@@ -32,13 +32,12 @@ public class ChaosRunnerExample {
         Thread.sleep(1000);
 
         String[] urls = runner.getConnectionUrls();
-        List<Connection> conns = new ArrayList<>(urls.length);
         report("EXAMPLE", "Connection Urls:");
         for (String url : urls) {
             report("EXAMPLE", "  " + url);
         }
 
-
+        List<Connection> connections = new ArrayList<>(urls.length);
         for (int i = 0; i < NUM_CONNECTIONS; i++) {
             String cn = "CONN/" + i;
             Options options = Options.builder().servers(urls)
@@ -47,10 +46,11 @@ public class ChaosRunnerExample {
                 .build();
 
             Connection connection = Nats.connect(options);
-            conns.add(connection);
+            connections.add(connection);
             report("EXAMPLE", "Initial connection for " + cn, "Port: " + connection.getServerInfo().getPort());
         }
 
+        // this just allows time for the runner to work
         Thread.sleep(STAY_ALIVE);
         System.exit(0);
     }
