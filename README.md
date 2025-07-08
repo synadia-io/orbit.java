@@ -55,6 +55,15 @@ The functionality is described in [ADR-31](https://github.com/nats-io/nats-archi
 [![javadoc](https://javadoc.io/badge2/io.synadia/direct-batch/javadoc.svg)](https://javadoc.io/doc/io.synadia/direct-batch)
 [![Maven Central](https://maven-badges.herokuapp.com/maven-central/io.synadia/direct-batch/badge.svg)](https://maven-badges.herokuapp.com/maven-central/io.synadia/direct-batch)
 
+## Chaos Runner
+
+Run some NATS servers and cause chaos by bringing them up and down.
+
+[![README](https://img.shields.io/badge/README-blue?style=flat&link=chaos-runner/README.md)](chaos-runner/README.md)
+![Artifact](https://img.shields.io/badge/Artifact-io.synadia:direct--batch-00BC8E?labelColor=grey&style=flat)
+[![javadoc](https://javadoc.io/badge2/io.synadia/chaos-runner/javadoc.svg)](https://javadoc.io/doc/io.synadia/chaos-runner)
+[![Maven Central](https://maven-badges.herokuapp.com/maven-central/io.synadia/chaos-runner/badge.svg)](https://maven-badges.herokuapp.com/maven-central/io.synadia/chaos-runner)
+
 # Dependencies
 ### Gradle
 
