@@ -12,9 +12,9 @@ public class ChaosUtils {
     public static String toString(ChaosRunner r, String sep, String prefix, String indent, String outdent) {
         String spi = sep + prefix + indent;
         StringBuilder sb = new StringBuilder(prefix).append("Chaos Runner:");
-        sb.append(spi).append("servers=").append(r.count).append(outdent)
+        sb.append(spi).append("servers=").append(r.servers).append(outdent)
             .append(spi).append("js=").append(r.js).append(outdent);
-        if (r.count > 1) {
+        if (r.servers > 1) {
             sb.append(spi).append("clusterName=").append(r.clusterName).append(outdent)
                 .append(spi).append("serverNamePrefix=").append(r.serverNamePrefix).append(outdent);
         }
@@ -35,10 +35,5 @@ public class ChaosUtils {
             sb.append(part);
         }
         System.out.println(sb);
-    }
-
-    public static void report(String label, ChaosRunner runner) {
-        String prefix =  "[" + System.currentTimeMillis() + "] " + label + " | ";
-        System.out.println(toString(runner, System.lineSeparator(), prefix, "  ", ""));
     }
 }

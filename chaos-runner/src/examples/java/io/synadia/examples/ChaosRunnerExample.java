@@ -6,8 +6,8 @@ package io.synadia.examples;
 import io.nats.client.Connection;
 import io.nats.client.Nats;
 import io.nats.client.Options;
+import io.synadia.chaos.ChaosArguments;
 import io.synadia.chaos.ChaosRunner;
-import io.synadia.chaos.ChaosStarter;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -16,17 +16,21 @@ import static io.synadia.chaos.ChaosUtils.report;
 
 public class ChaosRunnerExample {
     static final int NUM_CONNECTIONS = 2;
-    static final int SERVER_COUNT = 1; // try 1, 3, 5
+
+    static final int SERVER_COUNT = 3; // 1, 3, 5
     static final long DELAY = 5000; // the delay to bring a server down
+    static final long INITIAL_DELAY = 10000; // the delay to bring a server down the first time
     static final long DOWN_TIME = 5000; // how long before bringing the server up
-    static final long STAY_ALIVE = 30_000; // how long to run the example program
+    static final long STAY_ALIVE = 60_000; // how long to run the example program
 
     public static void main(String[] args) throws Exception {
-        ChaosRunner runner = new ChaosStarter()
-            .count(SERVER_COUNT)
+        ChaosArguments arguments = new ChaosArguments()
+            .servers(SERVER_COUNT)
             .delay(DELAY)
-            .downTime(DOWN_TIME)
-            .start();
+            .initialDelay(INITIAL_DELAY)
+            .downTime(DOWN_TIME);
+
+        ChaosRunner runner = ChaosRunner.start(arguments);
 
         // just give the servers a little time to be ready be first connect
         Thread.sleep(1000);
