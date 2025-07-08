@@ -36,7 +36,7 @@ jobs:
         uses: actions/checkout@v3
       - name: Compile and Test
         run: |
-          pushd direct-batch
+          pushd chaos-runner
           chmod +x gradlew && ./gradlew clean test
           popd
       - name: Verify Javadoc
