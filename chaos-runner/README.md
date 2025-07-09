@@ -5,20 +5,23 @@
 A simple java program that can start 1 or more NATS Servers and then add chaos,
 by taking one of them down on a delay and bringing it back up after a downtime.
 
-**Current Release**: N/A
-&nbsp; **Current Snapshot**: 0.0.2-SNAPSHOT
+**Current Release**: 0.0.2
+&nbsp; **Current Snapshot**: 0.0.3-SNAPSHOT
 &nbsp; **Gradle and Maven** `io.synadia:chaos-runner`
 
 [Dependencies Help](https://github.com/synadia-io/orbit.java?tab=readme-ov-file#dependencies)
 
-## Usage
+## Uber Jar
 
-The easier way to use is to just get the chaos-runner source directory from this repo and build it yourself via the 
-```
-gradle uberJar
-```
-task from inside the chaos-runner folder, and then run the program from a command line with arguments.
-Alternatively you can run a program like the [ChaosRunnerExample](src/examples/java/io/synadia/examples/ChaosRunnerExample.java)
+The project builds an Uber Jar that contains the compiled code for the Chaos Runner and the Nats Server Runner.
+You can get this jar in 2 ways.
+
+1. Download the release: [chaos-runner-0.0.2-uber.jar](https://repo1.maven.org/maven2/io/synadia/chaos-runner/0.0.2/chaos-runner-0.0.2-uber.jar)
+
+2. Build from the source. Get the entire chaos-runner source from this Orbit repo, 
+   and from the chaos-runner project directory and run `gradle uberJar`
+   The Uber Jar `chaos-runner-0.0.2-SNAPSHOT-uber.jar` will appear in the `build/libs/` directory
+   (relative to the `chaos-runner` project directory.)
 
 ## Command Line Arguments
 
@@ -33,12 +36,14 @@ Alternatively you can run a program like the [ChaosRunnerExample](src/examples/j
 | `--dir <path>`       | The working dir. Used as the parent dir for JetStream storage directories. | _temp_      |
 | `--nojs`             | Do not run the server with JetStream. JetStream is on by default.          | JetStream   |
 | `--random`           | Take the servers down randomly. Default is Round Robin.                    | Round Robin |
-| `--port`             | The starting port.                                                         | 4220        |
+| `--port`             | The starting server port.                                                  | 4220        |
 | `--listen`           | The starting listen port for clusters.                                     | 4230        |
 
-Regarding ports. Given any starting port, the system automatically figures the ports for the other nodes.
-For example for 3 nodes, if the starting port is 4220, other ports are 4221 and 4222. 
-If the listen port is 4230, the other listen ports are 4231 and 4232 
+#### Regarding ports 
+Given any starting port, the system automatically figures the ports for the other nodes.
+For example for 3 nodes:
+* if the starting server port is 4220, the other ports are 4221 and 4222. 
+* if the listen port is 4230, the other listen ports are 4231 and 4232 
 
 ![Artifact](https://img.shields.io/badge/Artifact-io.synadia:chaos--runner-00BC8E?labelColor=grey&style=flat)
 [![License Apache 2](https://img.shields.io/badge/License-Apache2-blue.svg)](https://www.apache.org/licenses/LICENSE-2.0)
@@ -48,15 +53,23 @@ If the listen port is 4230, the other listen ports are 4231 and 4232
 
 ## Command Line Examples
 
-Assuming you have just run gradle from the command line inside the chaos-runner directory...
+```
+java -cp <Path-To>/<Jar-Name> io.synadia.chaos.ChaosRunner --delay 4000 --initial 10000 --cname mycluster --prefix myserver
+java -cp <Path-To>/<Jar-Name> io.synadia.chaos.ChaosRunner --servers 1 --delay 4000 --initial 10000
+```
 
-```
-java -cp build/libs/chaos-runner-0.0.2-uber.jar io.synadia.chaos.ChaosRunner --delay 4000 --initial 10000 --cname mycluster --prefix myserver
-```
+#### Path-To and Jar-Name
+1\.If you downloaded the Uber Jar release: 
+* the `<Path-To>` will be wherever you stored the file.
+* The `<Jar-Name>` will be `chaos-runner-0.0.2-uber.jar`.
 
-```
-java -cp build/libs/chaos-runner-0.0.2-uber.jar io.synadia.chaos.ChaosRunner --servers 1 --delay 4000 --initial 10000
-```
+2\. If you build it yourself:
+* the `<Path-To>` will be relative to the `chaos-runner` directory in `build/libs`
+* the `<Jar-Name>` will be `chaos-runner-0.0.2-SNAPSHOT-uber.jar`.
+
+## Other ways to run... 
+
+Alternatively you can run a program like the [ChaosRunnerExample](src/examples/java/io/synadia/examples/ChaosRunnerExample.java) from an ide.
 
 ---
 Copyright (c) 2025 Synadia Communications Inc. All Rights Reserved.
