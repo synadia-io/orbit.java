@@ -180,6 +180,7 @@ publishing {
             artifact sourcesJar
             artifact examplesJar
             artifact javadocJar
+            artifact uberJar
             pom {
                 name = 'chaos-runner'
                 packaging = 'jar'
