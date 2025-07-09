@@ -38,6 +38,6 @@ jobs:
           popd
       - name: Verify, Sign and Publish Release
         run: |
-          pushd direct-batch
+          pushd chaos-runner
           ./gradlew -i signArchives signMavenJavaPublication publishToSonatype closeAndReleaseSonatypeStagingRepository
           popd
