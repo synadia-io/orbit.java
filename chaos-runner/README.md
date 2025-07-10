@@ -25,25 +25,27 @@ You can get this jar in 2 ways.
 
 ## Command Line Arguments
 
-| Argument             | Description                                                                | Default     |
-|----------------------|----------------------------------------------------------------------------|-------------|
-| `--servers <number>` | Number of servers. Accepts 1, 3 or 5                                       | 3           |
-| `--delay <millis>`   | Delay to bring down a server, since all servers were up.                   | 5000        |
-| `--initial <millis>` | The first delay. Gives time to start your test program and run setup.      | 30000       |
-| `--down <millis>`    | Delay to bring a server up once it is brought down.                        | 5000        |
-| `--cname <name>`     | Cluster name. Ignored for 1 server.                                        | "cluster"   |
-| `--prefix <name>`    | Prefix to use for the server name. Used in it's entirety for 1 server      | "server"    |
-| `--dir <path>`       | The working dir. Used as the parent dir for JetStream storage directories. | _temp_      |
-| `--nojs`             | Do not run the server with JetStream. JetStream is on by default.          | JetStream   |
-| `--random`           | Take the servers down randomly. Default is Round Robin.                    | Round Robin |
-| `--port`             | The starting server port.                                                  | 4220        |
-| `--listen`           | The starting listen port for clusters.                                     | 4230        |
+| Argument                | Description                                                                | Default       |
+|-------------------------|----------------------------------------------------------------------------|---------------|
+| `--servers <1, 3 or 5>` | Number of servers. Accepts 1, 3 or 5                                       | 3             |
+| `--delay <millis>`      | Delay to bring down a server, starting when all servers are up.            | 5000          |
+| `--initial <millis>`    | The first delay. Gives time to start your test program and run setup.      | 30000         |
+| `--down <millis>`       | Delay to bring a server up once it is brought down.                        | 5000          |
+| `--cname <name>`        | Cluster name. Ignored for 1 server.                                        | "cluster"     |
+| `--prefix <name>`       | Prefix to use for the server name. Used in it's entirety for 1 server      | "server"      |
+| `--dir <path>`          | The working dir. Used as the parent dir for JetStream storage directories. | _system temp_ |
+| `--nojs`                | Do not run the server with JetStream. JetStream is on by default.          | JetStream     |
+| `--random`              | Take the servers down randomly. Default is Round Robin.                    | Round Robin   |
+| `--port`                | The starting server port.                                                  | 4222          |
+| `--listen`              | The starting listen port for clusters.                                     | 4232          |
 
 #### Regarding ports 
 Given any starting port, the system automatically figures the ports for the other nodes.
-For example for 3 nodes:
-* if the starting server port is 4220, the other ports are 4221 and 4222. 
-* if the listen port is 4230, the other listen ports are 4231 and 4232 
+For 1 node, the port and listen are used directly. For 3 or 5 nodes used for the first server,
+each server port is 1 more than the last. Make sure that starting and listen won't overlap.
+So for example, for 3 servers...
+* If the starting server port is 4222, the other ports are 4223 and 4224. 
+* If the listen port is 4232, the other listen ports are 4232 and 4233 
 
 ![Artifact](https://img.shields.io/badge/Artifact-io.synadia:chaos--runner-00BC8E?labelColor=grey&style=flat)
 [![License Apache 2](https://img.shields.io/badge/License-Apache2-blue.svg)](https://www.apache.org/licenses/LICENSE-2.0)
@@ -73,9 +75,11 @@ Alternatively you can run a program like the [ChaosRunnerExample](src/examples/j
 
 ### Running native image
 
-You can use [GraalVM](https://www.graalvm.org/) native-image to create native executable for your platform:
+You can use [GraalVM](https://www.graalvm.org/) native-image to create native executable for your platform
+* Assumes you've installed graalvm
+* You may need the path to the cmd if not already in your path. 
+
 ```
-# install GraalVM
 > native-image.cmd -cp <Path-To>\chaos-runner-0.0.2-uber.jar io.synadia.chaos.ChaosRunner chaos-runner
 > .\chaos-runner.exe --servers 1 --delay 4000 --initial 10000
 ```

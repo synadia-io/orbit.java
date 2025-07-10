@@ -4,7 +4,8 @@ import java.io.File;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
-import static io.nats.NatsRunnerUtils.*;
+import static io.nats.NatsRunnerUtils.DEFAULT_CLUSTER_NAME;
+import static io.nats.NatsRunnerUtils.DEFAULT_SERVER_NAME_PREFIX;
 
 public class ChaosArguments {
 
@@ -17,8 +18,8 @@ public class ChaosArguments {
     long delay = 5_000;
     long downTime = 5_000;
     boolean random = false;
-    int port = DEFAULT_PORT_START;
-    int listen = DEFAULT_LISTEN_START;
+    int port = 4222;
+    int listen = port + 10;
 
     public ChaosArguments servers(int servers) {
         this.servers = servers;
