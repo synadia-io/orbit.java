@@ -73,11 +73,16 @@ java -cp <Path-To>/<Jar-Name> io.synadia.chaos.ChaosRunner --servers 1 --delay 4
 
 Alternatively you can run a program like the [ChaosRunnerExample](src/examples/java/io/synadia/examples/ChaosRunnerExample.java) from an ide.
 
-### Running native image
+### Native image
 
-You can use [GraalVM](https://www.graalvm.org/) native-image to create native executable for your platform
-* Assumes you've installed graalvm
-* You may need the path to the cmd if not already in your path. 
+You can a download zip file containing a Windows executable `chaos-runner.exe` from the release page,
+[chaos-runner.zip](https://github.com/synadia-io/orbit.java/releases/download/cr%2F0.0.2/chaos-runner.zip)
+
+-or-
+
+You can use [GraalVM](https://www.graalvm.org/) native-image to create a native executable for your platform.
+This assumes you've installed graalvm. You may need to specify the ful path to the native-image.cmd 
+(or your platform equivalent) if not already in your path. 
 
 ```
 > native-image.cmd -cp <Path-To>\chaos-runner-0.0.2-uber.jar io.synadia.chaos.ChaosRunner chaos-runner
