@@ -69,15 +69,25 @@ public class ChaosRunnerExample {
         int[] monitorPorts = runner.getMonitorPorts();
         boolean hasMonitor = monitorPorts[0] > 0;
 
-        String[] reports = new String[ports.length];
+        String[] hzs = new String[ports.length];
         while (true) {
             Thread.sleep(HEALTH_CHECK_DELAY);
             if (hasMonitor) {
-                report("HealthZ");
+                boolean changed = false;
                 for (int i = 0; i < monitorPorts.length; i++) {
-                    int port = ports[i];
-                    int mport = monitorPorts[i];
-                    report(" ", port + "/" + mport, readHealthz(mport));
+                    String hz = readHealthz(monitorPorts[i]);
+                    if (!hz.equals(hzs[i])) {
+                        changed = true;
+                        hzs[i] = hz;
+                    }
+                }
+                if (changed) {
+                    report("HealthZ");
+                    for (int i = 0; i < monitorPorts.length; i++) {
+                        int port = ports[i];
+                        int mport = monitorPorts[i];
+                        report(" ", port + "/" + mport, hzs[i]);
+                    }
                 }
             }
         }
