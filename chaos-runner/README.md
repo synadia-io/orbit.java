@@ -5,8 +5,8 @@
 A simple java program that can start 1 or more NATS Servers and then add chaos,
 by taking one of them down on a delay and bringing it back up after a downtime.
 
-**Current Release**: 0.0.2
-&nbsp; **Current Snapshot**: 0.0.3-SNAPSHOT
+**Current Release**: 0.0.3
+&nbsp; **Current Snapshot**: 0.0.4-SNAPSHOT
 &nbsp; **Gradle and Maven** `io.synadia:chaos-runner`
 
 [Dependencies Help](https://github.com/synadia-io/orbit.java?tab=readme-ov-file#dependencies)
@@ -16,11 +16,11 @@ by taking one of them down on a delay and bringing it back up after a downtime.
 The project builds an Uber Jar that contains the compiled code for the Chaos Runner and the Nats Server Runner.
 You can get this jar in 2 ways.
 
-1. Download the release: [chaos-runner-0.0.2-uber.jar](https://repo1.maven.org/maven2/io/synadia/chaos-runner/0.0.2/chaos-runner-0.0.2-uber.jar)
+1. Download the release: [chaos-runner-0.0.3-uber.jar](https://repo1.maven.org/maven2/io/synadia/chaos-runner/0.0.3/chaos-runner-0.0.3-uber.jar)
 
 2. Build from the source. Get the entire chaos-runner source from this Orbit repo, 
    and from the chaos-runner project directory and run `gradle uberJar`
-   The Uber Jar `chaos-runner-0.0.2-SNAPSHOT-uber.jar` will appear in the `build/libs/` directory
+   The Uber Jar `chaos-runner-0.0.3-SNAPSHOT-uber.jar` will appear in the `build/libs/` directory
    (relative to the `chaos-runner` project directory.)
 
 ## Command Line Arguments
@@ -64,11 +64,11 @@ java -cp <Path-To>/<Jar-Name> io.synadia.chaos.ChaosRunner --servers 1 --delay 4
 #### Path-To and Jar-Name
 1\.If you downloaded the Uber Jar release: 
 * the `<Path-To>` will be wherever you stored the file.
-* The `<Jar-Name>` will be `chaos-runner-0.0.2-uber.jar`.
+* The `<Jar-Name>` will be `chaos-runner-0.0.3-uber.jar`.
 
 2\. If you build it yourself:
 * the `<Path-To>` will be relative to the `chaos-runner` directory in `build/libs`
-* the `<Jar-Name>` will be `chaos-runner-0.0.2-SNAPSHOT-uber.jar`.
+* the `<Jar-Name>` will be `chaos-runner-0.0.3-SNAPSHOT-uber.jar`.
 
 ## Other ways to run... 
 
@@ -77,7 +77,7 @@ Alternatively you can run a program like the [ChaosRunnerExample](src/examples/j
 ### Native image
 
 You can a download zip file containing a Windows executable `chaos-runner.exe` from the release page,
-[chaos-runner.zip](https://github.com/synadia-io/orbit.java/releases/download/cr%2F0.0.2/chaos-runner.zip)
+[chaos-runner-003-windows-exe.zip](https://github.com/synadia-io/orbit.java/releases/download/cr%2F0.0.3/chaos-runner-003-windows-exe.zip)
 
 -or-
 
@@ -86,7 +86,7 @@ This assumes you've installed graalvm. You may need to specify the full path to 
 (or your platform equivalent) if not already in your path. 
 
 ```
-> native-image.cmd --install-exit-handlers -cp <Path-To>\chaos-runner-0.0.2-uber.jar io.synadia.chaos.ChaosRunner chaos-runner
+> native-image.cmd --install-exit-handlers -cp <Path-To>\chaos-runner-0.0.3-uber.jar io.synadia.chaos.ChaosRunner chaos-runner
 > chaos-runner.exe --servers 1 --delay 4000 --initial 10000
 ```
 
