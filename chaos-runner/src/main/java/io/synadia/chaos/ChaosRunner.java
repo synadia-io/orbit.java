@@ -61,12 +61,21 @@ public class ChaosRunner {
         return ports;
     }
 
-    public int[] getMonitorPorts() {
-        int[] ports = new int[servers];
+    public int[] getListenPorts() {
+        int[] lports = new int[servers];
         for (int ix = 0; ix < servers; ix++) {
-            ports[ix] = clusterInserts.get(ix).node.monitor;
+            lports[ix] = clusterInserts.get(ix).node.listen;
         }
-        return ports;
+        return lports;
+    }
+
+    public int[] getMonitorPorts() {
+        int[] mports = new int[servers];
+        for (int ix = 0; ix < servers; ix++) {
+            Integer mport = clusterInserts.get(ix).node.monitor;
+            mports[ix] = mport == null ? 0 : mport;
+        }
+        return mports;
     }
 
     public String[] getConnectionUrls() {
@@ -186,17 +195,18 @@ public class ChaosRunner {
         if (servers == 1) {
             List<String> inserts = new ArrayList<>();
             ClusterNode cn;
-            if (jsStoreDirBase == null) {
-                cn = null;
-            }
-            else {
-                Path jsStorePath = Paths.get(jsStoreDirBase.toString(), "" + port);
-                cn = ClusterNode.builder()
-                    .port(port)
-                    .monitor(monitor)
-                    .jsStoreDir(jsStorePath)
-                    .build();
+            Path jsStorePath = Paths.get(jsStoreDirBase.toString(), "" + port);
+            cn = ClusterNode.builder()
+                .port(port)
+                .listen(listen)
+                .monitor(monitor < 1 ? null : monitor)
+                .jsStoreDir(jsStorePath)
+                .build();
 
+            if (monitor > 0) {
+                inserts.add("http: " + monitor);
+            }
+            if (js) {
                 String storeDir = jsStorePath.toString();
                 if (File.separatorChar == '\\') {
                     storeDir = storeDir.replace("\\", "\\\\").replace("/", "\\\\");
@@ -204,7 +214,6 @@ public class ChaosRunner {
                 else {
                     storeDir = storeDir.replace("\\", "/");
                 }
-                inserts.add("http: " + monitor);
                 inserts.add("jetstream {");
                 inserts.add("    store_dir=" + storeDir);
                 inserts.add("}");
@@ -215,7 +224,7 @@ public class ChaosRunner {
             clusterInserts.add(new ClusterInsert(cn, inserts.toArray(new String[0])));
         }
         else {
-            List<ClusterNode> cns = createNodes(servers, clusterName, serverNamePrefix, jsStoreDirBase, DEFAULT_HOST, port, listen, monitor);
+            List<ClusterNode> cns = createNodes(servers, clusterName, serverNamePrefix, jsStoreDirBase, DEFAULT_HOST, port, listen, monitor < 1 ? null : monitor);
             clusterInserts = createClusterInserts(cns);
         }
 

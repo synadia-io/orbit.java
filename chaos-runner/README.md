@@ -38,7 +38,7 @@ You can get this jar in 2 ways.
 | `--random`              | Take the servers down randomly. Default is Round Robin.                    | Round Robin   |
 | `--port`                | The starting server port.                                                  | 4222          |
 | `--listen`              | The starting listen port for clusters.                                     | 4232          |
-| `--monitor`             | The starting monitor port.                                                 | 4282          |
+| `--monitor`             | The starting monitor port. use 0 for no monitor                            | 4282          |
 
 #### Regarding ports 
 Given any starting port, the system automatically figures the ports for the other nodes.
@@ -86,7 +86,7 @@ This assumes you've installed graalvm. You may need to specify the ful path to t
 (or your platform equivalent) if not already in your path. 
 
 ```
-> native-image.cmd -cp <Path-To>\chaos-runner-0.0.2-uber.jar io.synadia.chaos.ChaosRunner chaos-runner
+> native-image.cmd --install-exit-handlers -cp <Path-To>\chaos-runner-0.0.2-uber.jar io.synadia.chaos.ChaosRunner chaos-runner
 > .\chaos-runner.exe --servers 1 --delay 4000 --initial 10000
 ```
 

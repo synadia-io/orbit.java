@@ -6,7 +6,6 @@ package io.synadia.examples;
 import io.nats.client.Connection;
 import io.nats.client.Nats;
 import io.nats.client.Options;
-import io.nats.client.api.ServerInfo;
 import io.synadia.chaos.ChaosArguments;
 import io.synadia.chaos.ChaosRunner;
 
@@ -21,22 +20,26 @@ import java.util.List;
 import static io.synadia.chaos.ChaosUtils.report;
 
 public class ChaosRunnerExample {
-    private static final int NUM_CONNECTIONS = 2;
-
-    private static final int SERVER_COUNT = 5; // 1, 3, 5
+    private static final int SERVER_COUNT = 3; // 1, 3, 5
     private static final long DELAY = 5000; // the delay to bring a server down
     private static final long INITIAL_DELAY = 10000; // the delay to bring a server down the first time
     private static final long DOWN_TIME = 5000; // how long before bringing the server up
     private static final int HEALTH_CHECK_DELAY = 3000;
 
+    private static final int NUM_CONNECTIONS = 5;
+
     public static void main(String[] args) throws Exception {
         ChaosArguments arguments = new ChaosArguments()
             .servers(SERVER_COUNT)
+            .workDirectory("C:\\temp\\chaos-runner")
             .serverNamePrefix("cr-example-server")
             .clusterName("cr-example-cluster")
             .delay(DELAY)
             .initialDelay(INITIAL_DELAY)
-            .downTime(DOWN_TIME);
+            .downTime(DOWN_TIME)
+            // this is done last so anything on the command line
+            // is used over the hard coded items.
+            .args(args);
 
         ChaosRunner runner = ChaosRunner.start(arguments);
 
@@ -49,30 +52,33 @@ public class ChaosRunnerExample {
             report(" ", url);
         }
 
+        @SuppressWarnings("MismatchedQueryAndUpdateOfCollection")
         List<Connection> connections = new ArrayList<>(urls.length);
         for (int i = 0; i < NUM_CONNECTIONS; i++) {
-            String cn = "CONN/" + i;
+            String connectionName = "Conn" + (i + 1);
             Options options = Options.builder().servers(urls)
-                .connectionListener(new ChaosConnectionListener(cn))
-                .errorListener(new ChaosErrorListener(cn))
+                .connectionListener(new ChaosConnectionListener(connectionName))
+                .errorListener(new ChaosErrorListener(connectionName))
                 .build();
 
             Connection connection = Nats.connect(options);
             connections.add(connection);
-            ServerInfo si = connection.getServerInfo();
-            report("Initial connection", cn, si.getPort(), si.getCluster());
         }
 
         int[] ports = runner.getConnectionPorts();
         int[] monitorPorts = runner.getMonitorPorts();
+        boolean hasMonitor = monitorPorts[0] > 0;
 
+        String[] reports = new String[ports.length];
         while (true) {
             Thread.sleep(HEALTH_CHECK_DELAY);
-            report("HealthZ");
-            for (int i = 0; i < monitorPorts.length; i++) {
-                int port = ports[i];
-                int mport = monitorPorts[i];
-                report(" ", port + "/" + mport, readHealthz(mport));
+            if (hasMonitor) {
+                report("HealthZ");
+                for (int i = 0; i < monitorPorts.length; i++) {
+                    int port = ports[i];
+                    int mport = monitorPorts[i];
+                    report(" ", port + "/" + mport, readHealthz(mport));
+                }
             }
         }
     }

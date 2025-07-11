@@ -140,6 +140,20 @@ tasks.register ('uberJar', Jar) {
     exclude 'META-INF/*.RSA','META-INF/*.SF','META-INF/*.DSA','**/examples**','placeholder.*'
 }
 
+tasks.register ('examplesUberJar', Jar) {
+    archiveClassifier.set('examplesUber')
+    from sourceSets.main.output
+    dependsOn configurations.runtimeClasspath
+    from {
+        configurations.runtimeClasspath
+                .findAll {
+                    it.name.contains('jnats') || it.name.contains('nats-server-runner') // examples needs jnats too
+                }
+                .collect { zipTree(it) }
+    }
+    exclude 'META-INF/*.RSA','META-INF/*.SF','META-INF/*.DSA','placeholder.*'
+}
+
 jacoco {
     toolVersion = "0.8.6"
 }

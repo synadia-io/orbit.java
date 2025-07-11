@@ -13,20 +13,20 @@ import io.nats.client.support.Status;
 import static io.synadia.chaos.ChaosUtils.report;
 
 public class ChaosErrorListener extends ErrorListenerConsoleImpl {
-    private final String reportLabel;
+    private final String connectionName;
 
     public ChaosErrorListener(String connectionName) {
-        this.reportLabel = "EL/" + connectionName;
+        this.connectionName = connectionName;
     }
 
     @Override
     public void errorOccurred(Connection conn, String error) {
-        report(reportLabel, supplyMessage("[SEVERE] errorOccurred", conn, null, null, "Error: ", error));
+        report("EL", connectionName, "Error", error);
     }
 
     @Override
     public void exceptionOccurred(Connection conn, Exception exp) {
-        report(reportLabel, supplyMessage("[SEVERE] exceptionOccurred", conn, null, null, "Exception: ", exp));
+        report("EL", connectionName, "Exception", exp);
     }
 
     @Override
@@ -39,7 +39,7 @@ public class ChaosErrorListener extends ErrorListenerConsoleImpl {
 
     @Override
     public void heartbeatAlarm(Connection conn, JetStreamSubscription sub, long lastStreamSequence, long lastConsumerSequence) {
-        report(reportLabel, supplyMessage("[SEVERE] heartbeatAlarm", conn, null, sub, "lastStreamSequence: ", lastStreamSequence, "lastConsumerSequence: ", lastConsumerSequence));
+        report("EL", connectionName, "Heartbeat Alarm", "Last Stream Sequence: " + lastStreamSequence, "Last Consumer Sequence: " + lastConsumerSequence);
     }
 
     @Override
@@ -60,5 +60,6 @@ public class ChaosErrorListener extends ErrorListenerConsoleImpl {
 
     @Override
     public void socketWriteTimeout(Connection conn) {
+        report("EL", connectionName, "Socket Write Timeout");
     }
 }
