@@ -31,8 +31,10 @@ public class ChaosUtils {
         String prefix = "[" + System.currentTimeMillis() + "] " + label;
         StringBuilder sb = new StringBuilder(prefix);
         for (Object part : parts) {
-            sb.append(" | ");
-            sb.append(part);
+            if (part != null) {
+                sb.append(" | ");
+                sb.append(part);
+            }
         }
         System.out.println(sb);
     }

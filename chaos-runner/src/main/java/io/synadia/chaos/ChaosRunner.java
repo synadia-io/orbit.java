@@ -34,6 +34,7 @@ public class ChaosRunner {
     public final boolean random;
     public final int port;
     public final int listen;
+    public final int monitor;
 
     private final List<ClusterInsert> clusterInserts;
     private final List<NatsServerRunner> natsServerRunners;
@@ -56,6 +57,14 @@ public class ChaosRunner {
         int[] ports = new int[servers];
         for (int ix = 0; ix < servers; ix++) {
             ports[ix] = clusterInserts.get(ix).node.port;
+        }
+        return ports;
+    }
+
+    public int[] getMonitorPorts() {
+        int[] ports = new int[servers];
+        for (int ix = 0; ix < servers; ix++) {
+            ports[ix] = clusterInserts.get(ix).node.monitor;
         }
         return ports;
     }
@@ -171,6 +180,7 @@ public class ChaosRunner {
         this.random = a.random;
         this.port = a.port;
         this.listen = a.listen;
+        this.monitor = a.monitor;
 
         natsServerRunners = new ArrayList<>();
         if (servers == 1) {
@@ -183,6 +193,7 @@ public class ChaosRunner {
                 Path jsStorePath = Paths.get(jsStoreDirBase.toString(), "" + port);
                 cn = ClusterNode.builder()
                     .port(port)
+                    .monitor(monitor)
                     .jsStoreDir(jsStorePath)
                     .build();
 
@@ -193,6 +204,7 @@ public class ChaosRunner {
                 else {
                     storeDir = storeDir.replace("\\", "/");
                 }
+                inserts.add("http: " + monitor);
                 inserts.add("jetstream {");
                 inserts.add("    store_dir=" + storeDir);
                 inserts.add("}");
@@ -203,7 +215,7 @@ public class ChaosRunner {
             clusterInserts.add(new ClusterInsert(cn, inserts.toArray(new String[0])));
         }
         else {
-            List<ClusterNode> cns = createNodes(servers, clusterName, serverNamePrefix, jsStoreDirBase, DEFAULT_HOST, port, listen, null);
+            List<ClusterNode> cns = createNodes(servers, clusterName, serverNamePrefix, jsStoreDirBase, DEFAULT_HOST, port, listen, monitor);
             clusterInserts = createClusterInserts(cns);
         }
 

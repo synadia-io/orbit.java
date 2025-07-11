@@ -19,7 +19,8 @@ public class ChaosArguments {
     long downTime = 5_000;
     boolean random = false;
     int port = 4222;
-    int listen = port + 10;
+    int listen = 4232;
+    int monitor = 4282;
 
     public ChaosArguments servers(int servers) {
         this.servers = servers;
@@ -84,6 +85,11 @@ public class ChaosArguments {
         return this;
     }
 
+    public ChaosArguments monitor(int monitor) {
+        this.monitor = monitor;
+        return this;
+    }
+
     public ChaosArguments args(String[] args) {
         if (args != null && args.length > 0) {
             try {
@@ -122,6 +128,9 @@ public class ChaosArguments {
                             break;
                         case "--listen":
                             listen(Integer.parseInt(args[++x]));
+                            break;
+                        case "--monitor":
+                            monitor(Integer.parseInt(args[++x]));
                             break;
                         case "":
                             break;

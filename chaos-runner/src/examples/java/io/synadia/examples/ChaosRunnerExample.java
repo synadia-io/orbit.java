@@ -6,26 +6,34 @@ package io.synadia.examples;
 import io.nats.client.Connection;
 import io.nats.client.Nats;
 import io.nats.client.Options;
+import io.nats.client.api.ServerInfo;
 import io.synadia.chaos.ChaosArguments;
 import io.synadia.chaos.ChaosRunner;
 
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
 
 import static io.synadia.chaos.ChaosUtils.report;
 
 public class ChaosRunnerExample {
-    static final int NUM_CONNECTIONS = 2;
+    private static final int NUM_CONNECTIONS = 2;
 
-    static final int SERVER_COUNT = 3; // 1, 3, 5
-    static final long DELAY = 5000; // the delay to bring a server down
-    static final long INITIAL_DELAY = 10000; // the delay to bring a server down the first time
-    static final long DOWN_TIME = 5000; // how long before bringing the server up
-    static final long STAY_ALIVE = 60_000; // how long to run the example program
+    private static final int SERVER_COUNT = 5; // 1, 3, 5
+    private static final long DELAY = 5000; // the delay to bring a server down
+    private static final long INITIAL_DELAY = 10000; // the delay to bring a server down the first time
+    private static final long DOWN_TIME = 5000; // how long before bringing the server up
+    private static final int HEALTH_CHECK_DELAY = 3000;
 
     public static void main(String[] args) throws Exception {
         ChaosArguments arguments = new ChaosArguments()
             .servers(SERVER_COUNT)
+            .serverNamePrefix("cr-example-server")
+            .clusterName("cr-example-cluster")
             .delay(DELAY)
             .initialDelay(INITIAL_DELAY)
             .downTime(DOWN_TIME);
@@ -36,9 +44,9 @@ public class ChaosRunnerExample {
         Thread.sleep(1000);
 
         String[] urls = runner.getConnectionUrls();
-        report("EXAMPLE", "Connection Urls:");
+        report("Connection Urls");
         for (String url : urls) {
-            report("EXAMPLE", "  " + url);
+            report(" ", url);
         }
 
         List<Connection> connections = new ArrayList<>(urls.length);
@@ -51,11 +59,52 @@ public class ChaosRunnerExample {
 
             Connection connection = Nats.connect(options);
             connections.add(connection);
-            report("EXAMPLE", "Initial connection for " + cn, "Port: " + connection.getServerInfo().getPort());
+            ServerInfo si = connection.getServerInfo();
+            report("Initial connection", cn, si.getPort(), si.getCluster());
         }
 
-        // this just allows time for the runner to work
-        Thread.sleep(STAY_ALIVE);
-        System.exit(0);
+        int[] ports = runner.getConnectionPorts();
+        int[] monitorPorts = runner.getMonitorPorts();
+
+        while (true) {
+            Thread.sleep(HEALTH_CHECK_DELAY);
+            report("HealthZ");
+            for (int i = 0; i < monitorPorts.length; i++) {
+                int port = ports[i];
+                int mport = monitorPorts[i];
+                report(" ", port + "/" + mport, readHealthz(mport));
+            }
+        }
+    }
+
+    private static String readHealthz(int port) {
+        return readEndpoint(port, "healthz");
+    }
+
+    private static String readEndpoint(int port, String endpoint) {
+        String sUrl = "http://localhost:" + port + "/" + endpoint;
+        try {
+            URL url = new URL(sUrl);
+            InputStream inputStream = url.openStream();
+            BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream));
+
+            boolean first = true;
+            String line;
+            StringBuilder content = new StringBuilder();
+            while ((line = reader.readLine()) != null) {
+                if (first) {
+                    first = false;
+                }
+                else {
+                    content.append(System.lineSeparator());
+                }
+                content.append(line);
+            }
+            reader.close();
+            return content.toString().trim();
+        }
+        catch (IOException e) {
+            return e.getMessage();
+        }
     }
 }
