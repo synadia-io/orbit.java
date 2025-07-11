@@ -82,12 +82,12 @@ You can a download zip file containing a Windows executable `chaos-runner.exe` f
 -or-
 
 You can use [GraalVM](https://www.graalvm.org/) native-image to create a native executable for your platform.
-This assumes you've installed graalvm. You may need to specify the ful path to the native-image.cmd 
+This assumes you've installed graalvm. You may need to specify the full path to the native-image.cmd 
 (or your platform equivalent) if not already in your path. 
 
 ```
 > native-image.cmd --install-exit-handlers -cp <Path-To>\chaos-runner-0.0.2-uber.jar io.synadia.chaos.ChaosRunner chaos-runner
-> .\chaos-runner.exe --servers 1 --delay 4000 --initial 10000
+> chaos-runner.exe --servers 1 --delay 4000 --initial 10000
 ```
 
 ---
