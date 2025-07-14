@@ -43,14 +43,26 @@ public class ChaosArguments {
     }
 
     public ChaosArguments workDirectory(String workDirectory) {
+        if (workDirectory == null || workDirectory.trim().isEmpty()) {
+            this.workDirectory = null;
+            return this;
+        }
         return workDirectory(Paths.get(workDirectory));
     }
 
     public ChaosArguments workDirectory(File workDirectory) {
+        if (workDirectory == null) {
+            this.workDirectory = null;
+            return this;
+        }
         return workDirectory(workDirectory.getPath());
     }
 
     public ChaosArguments workDirectory(Path workDirectory) {
+        if (workDirectory == null) {
+            this.workDirectory = null;
+            return this;
+        }
         this.workDirectory = workDirectory;
         return this;
     }
@@ -150,5 +162,53 @@ public class ChaosArguments {
     public void error(String errMsg) {
         System.err.println("ERROR: " + errMsg);
         System.exit(-1);
+    }
+
+    public int getServers() {
+        return servers;
+    }
+
+    public String getClusterName() {
+        return clusterName;
+    }
+
+    public String getServerNamePrefix() {
+        return serverNamePrefix;
+    }
+
+    public boolean isJs() {
+        return js;
+    }
+
+    public Path getWorkDirectory() {
+        return workDirectory;
+    }
+
+    public long getInitialDelay() {
+        return initialDelay;
+    }
+
+    public long getDelay() {
+        return delay;
+    }
+
+    public long getDownTime() {
+        return downTime;
+    }
+
+    public boolean isRandom() {
+        return random;
+    }
+
+    public int getPort() {
+        return port;
+    }
+
+    public int getListen() {
+        return listen;
+    }
+
+    public int getMonitor() {
+        return monitor;
     }
 }

@@ -257,6 +257,10 @@ public class ChaosRunner {
     }
 
     public static ChaosRunner start(ChaosArguments a) {
+        return start(a, true);
+    }
+
+    public static ChaosRunner start(ChaosArguments a, boolean print) {
         NatsServerRunner.setDefaultOutputLevel(Level.SEVERE);
         try {
             INSTANCE = new ChaosRunner(a);
@@ -265,7 +269,9 @@ public class ChaosRunner {
             System.out.println("Failed to start ChaosRunner: " + e.getMessage());
             System.exit(-1);
         }
-        System.out.println(ChaosUtils.toString(INSTANCE, System.lineSeparator(), "[" + System.currentTimeMillis() + "] ", "  ", ""));
+        if (print) {
+            System.out.println(ChaosUtils.toString(INSTANCE, System.lineSeparator(), "[" + System.currentTimeMillis() + "] ", "  ", ""));
+        }
 
         Runtime.getRuntime().addShutdownHook(
             new Thread("app-shutdown-hook") {
