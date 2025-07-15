@@ -3,6 +3,9 @@
 
 package io.synadia.chaos;
 
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
+
 public class ChaosUtils {
 
     public static String toString(ChaosRunner r) {
@@ -50,15 +53,45 @@ public class ChaosUtils {
         return sb;
     }
 
-    public static void report(String label, Object... parts) {
-        String prefix = "[" + System.currentTimeMillis() + "] " + label;
-        StringBuilder sb = new StringBuilder(prefix);
-        for (Object part : parts) {
-            if (part != null) {
-                sb.append(" | ");
-                sb.append(part);
-            }
+    static ChaosPrinter PRINTER;
+    public static ChaosPrinter getDefaultPrinter() {
+        if (PRINTER == null) {
+            PRINTER = new ChaosPrinter() {
+                @Override
+                public void out(Object... objects) {
+                    if (objects != null && objects.length > 0) {
+                        System.out.println(join(objects));
+                    }
+                }
+
+                @Override
+                public void err(Object... objects) {
+                    if (objects != null && objects.length > 0) {
+                        System.err.println(join(objects));
+                    }
+                }
+
+                private String join(Object[] objects) {
+                    StringBuilder sb = new StringBuilder(TIME_FORMATTER.format(ZonedDateTime.now()));
+                    for (Object object : objects) {
+                        sb.append(" | ");
+                        sb.append(object);
+                    }
+                    return sb.toString();
+                }
+            };
         }
-        System.out.println(sb);
+        return PRINTER;
+    }
+
+    public static final DateTimeFormatter TIME_FORMATTER
+        = DateTimeFormatter.ofPattern("HH:mm:ss.SSS");
+
+    public static void out(Object... objects) {
+        getDefaultPrinter().out(objects);
+    }
+
+    public static void err(Object... objects) {
+        getDefaultPrinter().err(objects);
     }
 }

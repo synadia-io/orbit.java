@@ -8,7 +8,7 @@ import io.nats.client.ConnectionListener;
 
 import java.util.concurrent.atomic.AtomicInteger;
 
-import static io.synadia.chaos.ChaosUtils.report;
+import static io.synadia.chaos.ChaosUtils.out;
 
 public class ChaosConnectionListener implements ConnectionListener {
     private static String message(Events event) {
@@ -43,10 +43,10 @@ public class ChaosConnectionListener implements ConnectionListener {
             cur = currentPort.get();
         }
         if (cur == 0) {
-            report("CL", connectionName, message(type));
+            out("CL", connectionName, message(type));
         }
         else {
-            report("CL", connectionName, message(type), "Port: " + cur);
+            out("CL", connectionName, message(type), "Port: " + cur);
         }
     }
 }

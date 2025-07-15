@@ -19,10 +19,15 @@ import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 
 import static io.nats.NatsRunnerUtils.*;
-import static io.synadia.chaos.ChaosUtils.report;
+import static io.synadia.chaos.ChaosUtils.getDefaultPrinter;
 
 public class ChaosRunner {
 
+    private static final String CR_LABEL = "ChaosRunner";
+
+    private static ChaosRunner INSTANCE;
+
+    public final ChaosPrinter printer;
     public final int servers;
     public final String clusterName;
     public final String serverNamePrefix;
@@ -40,18 +45,6 @@ public class ChaosRunner {
     private final List<NatsServerRunner> natsServerRunners;
     private final ScheduledThreadPoolExecutor executor;
     private int downIx = 0;
-
-    public void shutdown() {
-        try {
-            for (NatsServerRunner runner : natsServerRunners ) {
-                try {
-                    runner.close();
-                }
-                catch (Exception ignore) {}
-            }
-        }
-        catch (Exception ignore) {}
-    }
 
     public int[] getConnectionPorts() {
         int[] ports = new int[servers];
@@ -113,26 +106,26 @@ public class ChaosRunner {
             }
 
             NatsServerRunner runner = natsServerRunners.remove(downIx);
-            report("DOWN", runner.getPort());
+                printer.out(CR_LABEL, "DOWN", runner.getPort());
             clusterInserts.add(clusterInserts.remove(downIx));
             runner.close();
 
             scheduleUp();
         }
         catch (Throwable e) {
-            report("DOWN/EX", e);
+                printer.out(CR_LABEL, "DOWN/EX", e);
         }
     }
 
     private void upTask() {
         try {
             NatsServerRunner runner = createRunner(servers - 1);
-            report("UP", runner.getPort());
+                printer.out(CR_LABEL, "UP", runner.getPort());
             natsServerRunners.add(runner);
             scheduleDown(delay);
         }
         catch (Throwable e) {
-            report("UP/EX: ", e);
+                printer.out(CR_LABEL, "UP/EX: ", e);
             scheduleUp();
         }
     }
@@ -164,9 +157,7 @@ public class ChaosRunner {
         return ChaosUtils.toString(this, System.lineSeparator(), "", "  ", "");
     }
 
-    private static ChaosRunner INSTANCE;
-
-    private ChaosRunner(ChaosArguments a) throws IOException {
+    private ChaosRunner(ChaosArguments a, ChaosPrinter printer) throws IOException {
         if (a.workDirectory == null) {
             a.workDirectory = getTemporaryJetStreamStoreDirBase();
         }
@@ -178,6 +169,7 @@ public class ChaosRunner {
             throw new IllegalArgumentException("Number of servers must be 1, 3 or 5");
         }
 
+        this.printer = printer;
         this.servers = a.servers;
         this.clusterName = a.clusterName;
         this.serverNamePrefix = a.serverNamePrefix;
@@ -257,20 +249,19 @@ public class ChaosRunner {
     }
 
     public static ChaosRunner start(ChaosArguments a) {
-        return start(a, true);
+        return start(a, null);
     }
 
-    public static ChaosRunner start(ChaosArguments a, boolean print) {
+    public static ChaosRunner start(ChaosArguments a, ChaosPrinter printer) {
         NatsServerRunner.setDefaultOutputLevel(Level.SEVERE);
+        final ChaosPrinter finalPrinter = printer == null ? getDefaultPrinter() : printer;
+
         try {
-            INSTANCE = new ChaosRunner(a);
+            INSTANCE = new ChaosRunner(a, finalPrinter);
         }
         catch (IOException e) {
-            System.out.println("Failed to start ChaosRunner: " + e.getMessage());
+            finalPrinter.err(CR_LABEL, "Failed to start ChaosRunner", e);
             System.exit(-1);
-        }
-        if (print) {
-            System.out.println(ChaosUtils.toString(INSTANCE, System.lineSeparator(), "[" + System.currentTimeMillis() + "] ", "  ", ""));
         }
 
         Runtime.getRuntime().addShutdownHook(
@@ -278,10 +269,22 @@ public class ChaosRunner {
                 @Override
                 public void run() {
                     INSTANCE.shutdown();
-                    report("EXIT Chaos Runner");
+                    finalPrinter.out(CR_LABEL, "EXIT");
                 }
             });
 
         return INSTANCE;
+    }
+
+    private void shutdown() {
+        try {
+            for (NatsServerRunner runner : natsServerRunners ) {
+                try {
+                    runner.close();
+                }
+                catch (Exception ignore) {}
+            }
+        }
+        catch (Exception ignore) {}
     }
 }

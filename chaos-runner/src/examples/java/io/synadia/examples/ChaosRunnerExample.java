@@ -17,7 +17,7 @@ import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
 
-import static io.synadia.chaos.ChaosUtils.report;
+import static io.synadia.chaos.ChaosUtils.out;
 
 public class ChaosRunnerExample {
     private static final int SERVER_COUNT = 3; // 1, 3, 5
@@ -47,9 +47,9 @@ public class ChaosRunnerExample {
         Thread.sleep(1000);
 
         String[] urls = runner.getConnectionUrls();
-        report("Connection Urls");
+        out("Connection Urls");
         for (String url : urls) {
-            report(" ", url);
+            out(" ", url);
         }
 
         @SuppressWarnings("MismatchedQueryAndUpdateOfCollection")
@@ -82,11 +82,11 @@ public class ChaosRunnerExample {
                     }
                 }
                 if (changed) {
-                    report("HealthZ");
+                    out("HealthZ");
                     for (int i = 0; i < monitorPorts.length; i++) {
                         int port = ports[i];
                         int mport = monitorPorts[i];
-                        report(" ", port + "/" + mport, hzs[i]);
+                        out(" ", port + "/" + mport, hzs[i]);
                     }
                 }
             }
