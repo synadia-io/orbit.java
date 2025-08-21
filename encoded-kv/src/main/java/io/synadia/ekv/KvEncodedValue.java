@@ -11,16 +11,16 @@ import io.synadia.ekv.codec.ValueCodec;
 
 import java.io.IOException;
 
-public class KvStringKeyEncodedValue<ValueType> extends KvEncodedKeyEncodedValue<String, ValueType> {
-    public KvStringKeyEncodedValue(Connection connection, String bucketName, ValueCodec<ValueType> valueCodec) throws IOException {
+public class KvEncodedValue<ValueType> extends KvEncoded<String, ValueType> {
+    public KvEncodedValue(Connection connection, String bucketName, ValueCodec<ValueType> valueCodec) throws IOException {
         super(connection, bucketName, new StringKeyCodec(), valueCodec);
     }
 
-    public KvStringKeyEncodedValue(Connection connection, String bucketName, ValueCodec<ValueType> valueCodec, KeyValueOptions kvo) throws IOException {
+    public KvEncodedValue(Connection connection, String bucketName, ValueCodec<ValueType> valueCodec, KeyValueOptions kvo) throws IOException {
         super(connection, bucketName, new StringKeyCodec(), valueCodec, kvo);
     }
 
-    public KvStringKeyEncodedValue(KeyValue kv, ValueCodec<ValueType> valueCodec) {
+    public KvEncodedValue(KeyValue kv, ValueCodec<ValueType> valueCodec) {
         super(kv, new StringKeyCodec(), valueCodec);
     }
 }

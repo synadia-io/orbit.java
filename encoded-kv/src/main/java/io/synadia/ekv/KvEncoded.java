@@ -18,22 +18,22 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-public class KvEncodedKeyEncodedValue<KeyType, ValueType> {
+public class KvEncoded<KeyType, ValueType> {
     private final KeyValue kv;
     private final KeyCodec<KeyType> keyCodec;
     private final ValueCodec<ValueType> valueCodec;
 
-    public KvEncodedKeyEncodedValue(Connection connection, String bucketName, KeyCodec<KeyType> keyCodec, ValueCodec<ValueType> valueCodec) throws IOException {
+    public KvEncoded(Connection connection, String bucketName, KeyCodec<KeyType> keyCodec, ValueCodec<ValueType> valueCodec) throws IOException {
         this(connection, bucketName, keyCodec, valueCodec, null);
     }
 
-    public KvEncodedKeyEncodedValue(Connection connection, String bucketName, KeyCodec<KeyType> keyCodec, ValueCodec<ValueType> valueCodec, KeyValueOptions kvo) throws IOException {
+    public KvEncoded(Connection connection, String bucketName, KeyCodec<KeyType> keyCodec, ValueCodec<ValueType> valueCodec, KeyValueOptions kvo) throws IOException {
         kv = connection.keyValue(bucketName, kvo);
         this.keyCodec = keyCodec;
         this.valueCodec = valueCodec;
     }
 
-    public KvEncodedKeyEncodedValue(KeyValue kv, KeyCodec<KeyType> keyCodec, ValueCodec<ValueType> valueCodec) {
+    public KvEncoded(KeyValue kv, KeyCodec<KeyType> keyCodec, ValueCodec<ValueType> valueCodec) {
         this.kv = kv;
         this.keyCodec = keyCodec;
         this.valueCodec = valueCodec;

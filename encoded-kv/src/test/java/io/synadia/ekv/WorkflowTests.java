@@ -18,6 +18,7 @@ import org.apache.commons.codec.binary.Hex;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.EnumSource;
 
 import java.nio.charset.StandardCharsets;
@@ -41,26 +42,47 @@ public class WorkflowTests {
     }
 
     @ParameterizedTest
-    @EnumSource(GeneralType.class)
-    public void testStringKeyWorkflow(GeneralType gt) throws Exception {
+    @CsvSource({"PLAIN,N/A", "PLAIN,EVC", "PLAIN,EVC-NC", "PLAIN,EVC-KVO", "BASE64,N/A", "HEX,N/A"})
+    public void testStringKeyWorkflow(String gtName, String variant) throws Exception {
+        GeneralType gt = gtName.equals("PLAIN") ? GeneralType.PLAIN : (gtName.equals("BASE64") ? GeneralType.BASE64 : GeneralType.HEX);
         try (NatsServerRunner runner = new NatsServerRunner(false, true)) {
             try (Connection nc = Nats.connect(runner.getURI())) {
                 GeneralStringKeyCodec keyCodec = new GeneralStringKeyCodec(gt);
                 DataValueCodec dvc = new DataValueCodec(gt);
 
-                String bucketName = NUID.nextGlobalSequence();
+                String bucket = NUID.nextGlobalSequence();
                 KeyValueManagement kvm = nc.keyValueManagement();
-                kvm.create(KeyValueConfiguration.builder().name(bucketName).build());
+                kvm.create(KeyValueConfiguration.builder().name(bucket)
+                    .maxHistoryPerKey(3)
+                    .build());
 
-                // this is just for coverage of constructors.
-                KvEncodedKeyEncodedValue<String, Data> ekv;
+                // this is just for coverage of constructors and KvEncoded classes
+                KvEncoded<String, Data> ekv;
                 if (gt == GeneralType.PLAIN) {
-                    KeyValue kv = nc.keyValue(bucketName);
-                    ekv = new KvEncodedKeyEncodedValue<>(kv, keyCodec, dvc);
+                    switch (variant) {
+                        case "EVC":
+                            KeyValue kv = nc.keyValue(bucket);
+                            ekv = new KvEncodedValue<>(kv, dvc);
+                            break;
+                        case "EVC-NC":
+                            ekv = new KvEncodedValue<>(nc, bucket, dvc);
+                            break;
+                        case "EVC-KVO":
+                            ekv = new KvEncodedValue<>(nc, bucket, dvc, null); // COVERAGE
+                            break;
+                        default:
+                            ekv = new KvEncoded<>(nc, bucket, keyCodec, dvc);
+                    }
+                }
+                else if (gt == GeneralType.BASE64) {
+                    KeyValue kv = nc.keyValue(bucket);
+                    ekv = new KvEncoded<>(kv, keyCodec, dvc);
                 }
                 else {
-                    ekv = new KvEncodedKeyEncodedValue<>(nc, bucketName, keyCodec, dvc);
+                    ekv = new KvEncoded<>(nc, bucket, keyCodec, dvc);
                 }
+
+                assertEquals(bucket, ekv.getBucketName());
 
                 String key1 = "key.1";
                 String key2 = "key.2";
@@ -71,12 +93,16 @@ public class WorkflowTests {
                 Data v1 = new Data("v1", "foo", false);
                 Data v2 = new Data("v2", "bar", false);
 
-                validatePutRevision(1, ekv.put(key1, v1));
-                validatePutRevision(2, ekv.put(key2, v2));
+                validateRevision(1, ekv.put(key1, v1));
+                validateRevision(2, ekv.put(key2, v2));
 
-                validateGet(key1, v1, ekv.get(key1));
-                validateGet(key2, v2, ekv.get(key2));
+                validateGet(bucket, key1, v1, ekv.get(key1));
+                validateGet(bucket, key1, v1, ekv.get(key1, 1)); // COVERAGE for revision
+                validateGet(bucket, key2, v2, ekv.get(key2));
+                validateGet(bucket, key2, v2, ekv.get(key2, 2)); // COVERAGE for revision
 
+                assertNull(ekv.get(key1, 99));
+                assertNull(ekv.get(key2, 99));
                 assertNull(ekv.get("not-found"));
 
                 validateKeys(key1, key2, ekv.keys());
@@ -91,23 +117,23 @@ public class WorkflowTests {
                 validateKeys(null, key2, getFromQueue(ekv.consumeKeys(key2)));
                 validateKeys(key1, key2, getFromQueue(ekv.consumeKeys(keyList)));
 
-                String stream = "KV_" + bucketName;
+                String stream = "KV_" + bucket;
                 JetStreamSubscription sub = nc.jetStream().subscribe(">", PushSubscribeOptions.builder().stream(stream).build());
                 Message m1 = sub.nextMessage(Duration.ofSeconds(1));
                 Message m2 = sub.nextMessage(Duration.ofSeconds(1));
 
                 switch (gt) {
                     case PLAIN:
-                        assertEquals("$KV." + bucketName + ".key.1", m1.getSubject());
-                        assertEquals("$KV." + bucketName + ".key.2", m2.getSubject());
+                        assertEquals("$KV." + bucket + ".key.1", m1.getSubject());
+                        assertEquals("$KV." + bucket + ".key.2", m2.getSubject());
                         assertArrayEquals(v1.serialize(), m1.getData());
                         assertArrayEquals(v2.serialize(), m2.getData());
                         break;
                     case BASE64:
                         String encKey1 = keyCodec.encode(key1);
                         String encKey2 = keyCodec.encode(key2);
-                        assertEquals("$KV." + bucketName + "." + encKey1, m1.getSubject());
-                        assertEquals("$KV." + bucketName + "." + encKey2, m2.getSubject());
+                        assertEquals("$KV." + bucket + "." + encKey1, m1.getSubject());
+                        assertEquals("$KV." + bucket + "." + encKey2, m2.getSubject());
                         Base64 base64 = new Base64();
                         assertArrayEquals(base64.encode(v1.serialize()), m1.getData());
                         assertArrayEquals(base64.encode(v2.serialize()), m2.getData());
@@ -115,14 +141,87 @@ public class WorkflowTests {
                     case HEX:
                         String encKeyH1 = keyCodec.encode(key1);
                         String encKeyH2 = keyCodec.encode(key2);
-                        assertEquals("$KV." + bucketName + "." + encKeyH1, m1.getSubject());
-                        assertEquals("$KV." + bucketName + "." + encKeyH2, m2.getSubject());
+                        assertEquals("$KV." + bucket + "." + encKeyH1, m1.getSubject());
+                        assertEquals("$KV." + bucket + "." + encKeyH2, m2.getSubject());
                         Hex hex = new Hex();
                         assertArrayEquals(hex.encode(v1.serialize()), m1.getData());
                         assertArrayEquals(hex.encode(v2.serialize()), m2.getData());
                 }
+
+                String key3 = "key.3";
+                Data v3a = new Data("v3", "aaa", false);
+                Data v3b = new Data("v3", "bbb", false);
+                Data v3c = new Data("v3", "ccc", false);
+                Data v3d = new Data("v3", "ddd", false);
+                validateRevision(3, ekv.create(key3, v3a));
+                validateGet(bucket, key3, v3a, ekv.get(key3));
+
+                List<Object> dataHistory = new ArrayList<>();
+                dataHistory.add(v3a);
+                assertHistory(dataHistory, ekv.history(key3));
+
+                assertThrows(JetStreamApiException.class, () -> ekv.create(key3, v3a));
+
+                validateRevision(4, ekv.update(key3, v3b, 3));
+                validateGet(bucket, key3, v3b, ekv.get(key3));
+                dataHistory.add(v3b);
+                assertHistory(dataHistory, ekv.history(key3));
+
+                assertThrows(JetStreamApiException.class, () -> ekv.delete(key3, 3)); // COVERAGE
+                assertThrows(JetStreamApiException.class, () -> ekv.purge(key3, 3)); // COVERAGE
+
+                ekv.delete(key3);
+                assertNull(ekv.get(key3));
+
+                dataHistory.add(KeyValueOperation.DELETE);
+                assertHistory(dataHistory, ekv.history(key3));
+
+                // revision is 6 b/c delete
+                validateRevision(6, ekv.put(key3, v3c));
+                validateGet(bucket, key3, v3c, ekv.get(key3));
+
+                dataHistory.clear();
+                dataHistory.add(v3b);
+                dataHistory.add(KeyValueOperation.DELETE);
+                dataHistory.add(v3c);
+                assertHistory(dataHistory, ekv.history(key3));
+
+                ekv.delete(key3, 6);
+                assertNull(ekv.get(key3));
+                dataHistory.clear();
+                dataHistory.add(KeyValueOperation.DELETE);
+                dataHistory.add(v3c);
+                dataHistory.add(KeyValueOperation.DELETE);
+                assertHistory(dataHistory, ekv.history(key3));
+
+                // revision is 8 b/c delete
+                validateRevision(8, ekv.put(key3, v3d));
+                validateGet(bucket, key3, v3d, ekv.get(key3));
+                dataHistory.remove(0); // delete is replaced
+                dataHistory.add(v3d);
+
+                assertHistory(dataHistory, ekv.history(key3));
+                ekv.purge(key3, 8);
+                assertNull(ekv.get(key3));
+                dataHistory.clear();
+                dataHistory.add(KeyValueOperation.PURGE);
+                assertHistory(dataHistory, ekv.history(key3));
             }
         }
+    }
+
+    private void assertHistory(List<Object> expected, List<EncodedKeyValueEntry<String, Data>> apiHistory) {
+        System.out.println();
+        for (int x = 0; x < apiHistory.size(); x++) {
+            Object o = expected.get(x);
+            if (o instanceof KeyValueOperation) {
+                assertEquals(o, apiHistory.get(x).getOperation());
+            }
+            else {
+                assertEquals(o, apiHistory.get(x).getValue());
+            }
+        }
+        assertEquals(apiHistory.size(), expected.size());
     }
 
     @Test
@@ -132,23 +231,27 @@ public class WorkflowTests {
                 DataKeyCodec dkc = new DataKeyCodec();
                 DataValueCodec dvc = new DataValueCodec(GeneralType.BASE64);
 
-                String bucketName = NUID.nextGlobalSequence();
+                String bucket = NUID.nextGlobalSequence();
                 KeyValueManagement kvm = nc.keyValueManagement();
-                kvm.create(KeyValueConfiguration.builder().name(bucketName).build());
+                kvm.create(KeyValueConfiguration.builder().name(bucket).build());
 
-                KvEncodedKeyEncodedValue<Data, Data> ekv = new KvEncodedKeyEncodedValue<>(nc, bucketName, dkc, dvc);
+                KvEncoded<Data, Data> ekv = new KvEncoded<>(nc, bucket, dkc, dvc);
 
                 Data key1 = new Data("foo1", null, true);
                 Data key2 = new Data("foo2", null, true);
                 Data v1 = new Data("bar1", "baz1", false);
                 Data v2 = new Data("bar2", "baz2", false);
 
-                validatePutRevision(1, ekv.put(key1, v1));
-                validatePutRevision(2, ekv.put(key2, v2));
+                validateRevision(1, ekv.put(key1, v1));
+                validateRevision(2, ekv.put(key2, v2));
 
-                validateGet(key1, v1, ekv.get(key1));
-                validateGet(key2, v2, ekv.get(key2));
+                validateGet(bucket, key1, v1, ekv.get(key1));
+                validateGet(bucket, key1, v1, ekv.get(key1, 1)); // COVERAGE for revision
+                validateGet(bucket, key2, v2, ekv.get(key2));
+                validateGet(bucket, key2, v2, ekv.get(key2, 2)); // COVERAGE for revision
 
+                assertNull(ekv.get(key1, 99));
+                assertNull(ekv.get(key2, 99));
                 assertNull(ekv.get(new Data("not-found", null, true)));
 
                 validateKeys(key1, key2, ekv.keys());
@@ -166,23 +269,23 @@ public class WorkflowTests {
         }
     }
 
-    private static void validatePutRevision(long expectedRev, long actualRev) {
+    private static void validateRevision(long expectedRev, long actualRev) {
         assertEquals(expectedRev, actualRev);
     }
 
-    private static <T> void validateGet(T key, Data value, EncodedKeyValueEntry<T, Data> entry) throws Exception {
+    private static <T> void validateGet(String bucket, T key, Data value, EncodedKeyValueEntry<T, Data> entry) {
         assertNotNull(entry);
+        assertEquals(bucket, entry.getBucket());
         assertEquals(key, entry.getKey());
         assertEquals(value, entry.getValue());
+        assertTrue(entry.getRevision() >= 0); // COVERAGE
+        assertTrue(entry.getDelta() >= 0); // COVERAGE
     }
 
     private static <T> void validateKeys(T key1, T key2, List<T> keys) {
         int count = 0;
         if (key1 != null) {
             count++;
-            if (!keys.contains(key1)) {
-                int x = 0;
-            }
             assertTrue(keys.contains(key1));
         }
         else {
@@ -274,7 +377,7 @@ public class WorkflowTests {
     static String TEST_WATCH_KEY_2 = "key.2";
 
     interface TestWatchSubSupplier {
-        NatsKeyValueWatchSubscription get(KvEncodedKeyEncodedValue<String, String> kv) throws Exception;
+        NatsKeyValueWatchSubscription get(KvEncoded<String, String> kv) throws Exception;
     }
 
     @ParameterizedTest
@@ -388,7 +491,7 @@ public class WorkflowTests {
             .storageType(StorageType.Memory)
             .build());
 
-        KvEncodedKeyEncodedValue<String, String> kv = new KvEncodedKeyEncodedValue<>(nc.keyValue(bucket), watcher.keyCodec, watcher.valueCodec);
+        KvEncoded<String, String> kv = new KvEncoded<>(nc.keyValue(bucket), watcher.keyCodec, watcher.valueCodec);
 
         NatsKeyValueWatchSubscription sub = null;
 

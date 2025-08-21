@@ -19,36 +19,31 @@ public class GeneralByteValueCodec implements ValueCodec<byte[]> {
 
     @Override
     public byte[] encode(byte[] value) {
-        if (value == null) {
-            return null;
-        }
-
-        switch (gt) {
-            case BASE64:
-                return Base64.encodeBase64(value);
-            case HEX:
-                return new String(Hex.encodeHex(value)).getBytes(StandardCharsets.US_ASCII);
+        if (value != null) {
+            switch (gt) {
+                case BASE64:
+                    return Base64.encodeBase64(value);
+                case HEX:
+                    return new String(Hex.encodeHex(value)).getBytes(StandardCharsets.US_ASCII);
+            }
         }
         return value;
     }
 
     @Override
     public byte[] decode(byte[] encodedValue) {
-        if (encodedValue == null || encodedValue.length == 0) {
-            return null;
+        if (encodedValue != null && encodedValue.length > 0) {
+            switch (gt) {
+                case BASE64: return Base64.decodeBase64(encodedValue);
+                case HEX:
+                    try {
+                        return Hex.decodeHex(new String(encodedValue, StandardCharsets.US_ASCII));
+                    }
+                    catch (DecoderException e) {
+                        throw new RuntimeException(e);
+                    }
+            }
         }
-
-        switch (gt) {
-            case BASE64: return Base64.decodeBase64(encodedValue);
-            case HEX:
-                try {
-                    return Hex.decodeHex(new String(encodedValue, StandardCharsets.US_ASCII));
-                }
-                catch (DecoderException e) {
-                    throw new RuntimeException(e);
-                }
-        }
-
         return encodedValue;
     }
 }

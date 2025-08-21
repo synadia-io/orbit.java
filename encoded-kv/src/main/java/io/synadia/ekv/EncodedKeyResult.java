@@ -16,7 +16,7 @@ public class EncodedKeyResult<KeyType> {
         this.keyCodec = keyCodec;
     }
 
-    public KeyType getKey() throws Exception {
+    public KeyType getKey() {
         String key = keyResult.getKey();
         return key == null ? null : keyCodec.decode(key);
     }

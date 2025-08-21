@@ -3,10 +3,7 @@
 
 package io.synadia.ekv;
 
-import io.synadia.ekv.codec.DataValueCodec;
-import io.synadia.ekv.codec.GeneralStringKeyCodec;
-import io.synadia.ekv.codec.PathKeyCodec;
-import io.synadia.ekv.codec.StringKeyCodec;
+import io.synadia.ekv.codec.*;
 import io.synadia.ekv.misc.Data;
 import io.synadia.ekv.misc.GeneralType;
 import nats.io.NatsServerRunner;
@@ -139,5 +136,22 @@ public class CodecTests {
             assertEquals(encoded + PathKeyCodec.TRAILING_SUFFIX, pkcTrailingPath.encode(path));
             assertEquals(path, pkcTrailingPath.decode(decoded + PathKeyCodec.TRAILING_SUFFIX));
         }
+    }
+
+    @Test
+    public void testByteValueCodec() {
+        byte[] data = "data".getBytes();
+        ByteValueCodec bvc = new ByteValueCodec();
+        byte[] bytes = bvc.encode(data);
+        assertArrayEquals(data, bytes);
+        bytes = bvc.decode(data);
+        assertArrayEquals(data, bytes);
+    }
+
+    @Test
+    public void testFilteringNotSupported() {
+        DataKeyCodec dkc = new DataKeyCodec();
+        assertFalse(dkc.allowsFiltering());
+        assertThrows(UnsupportedOperationException.class, () -> dkc.encodeFilter(null));
     }
 }
