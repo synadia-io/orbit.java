@@ -23,7 +23,7 @@ public class DirectBatchContext {
     private final Connection conn;
     private final JetStreamOptions jso;
     private final String streamName;
-    final Duration timeout;
+    private final Duration timeout;
 
     /**
      * Construct a DirectBatchContext instance.

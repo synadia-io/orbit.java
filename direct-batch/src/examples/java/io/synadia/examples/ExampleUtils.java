@@ -25,7 +25,8 @@ public abstract class ExampleUtils {
             System.out.println("[" + listId + "] Message"
                 + " | subject: " + mi.getSubject()
                 + " | sequence: " + mi.getSeq()
-                + " | time: " + DateTimeUtils.toRfc3339(mi.getTime()));
+                + " | time: " + (mi.getTime() == null ? "null" : DateTimeUtils.toRfc3339(mi.getTime()))
+            );
         }
         else {
             if (mi.isEobStatus()) {
@@ -34,13 +35,14 @@ public abstract class ExampleUtils {
             else if (mi.isErrorStatus()) {
                 System.out.print("[" + listId + "] MI Error");
             }
-            else if (mi.isErrorStatus()) {
+            else if (mi.isStatus()) {
                 System.out.print("[" + listId + "] MI Status");
             }
             System.out.println(" | isStatus? " + mi.isStatus()
                 + " | isEobStatus? " + mi.isEobStatus()
                 + " | isErrorStatus? " + mi.isErrorStatus()
-                + " | status code: " + mi.getStatus().getCode());
+                + " | status code: " + (mi.getStatus() == null ? "null" : mi.getStatus().getCode())
+            );
         }
     }
 

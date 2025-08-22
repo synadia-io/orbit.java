@@ -1,0 +1,136 @@
+// Copyright (c) 2025 Synadia Communications Inc. All Rights Reserved.
+// See LICENSE and NOTICE file for details.
+
+package io.synadia.counter;
+
+import io.nats.client.*;
+import io.nats.client.api.*;
+import io.nats.client.impl.Headers;
+import io.synadia.direct.DirectBatchContext;
+import io.synadia.direct.MessageBatchGetRequest;
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
+
+import java.io.IOException;
+import java.math.BigInteger;
+import java.util.Arrays;
+import java.util.List;
+import java.util.concurrent.LinkedBlockingQueue;
+
+import static io.synadia.counter.CounterUtils.INCREMENT_HEADER;
+import static io.synadia.counter.CounterUtils.extractVal;
+
+public class CounterContext {
+
+    public static CounterContext createCounterStream(Connection conn, StreamConfiguration userConfig) throws JetStreamApiException, IOException {
+        return createCounterStream(conn, null, userConfig);
+    }
+
+    public static CounterContext createCounterStream(Connection conn, JetStreamOptions jso, StreamConfiguration userConfig) throws JetStreamApiException, IOException {
+        if (userConfig.getRetentionPolicy() != RetentionPolicy.Limits) {
+            throw new IllegalArgumentException("Retention Policy - Limits is the only allowed limit for counter streams.");
+        }
+        if (userConfig.getDiscardPolicy() == DiscardPolicy.New) {
+            throw new IllegalArgumentException("Discard Policy - New is not allowed for counter streams.");
+        }
+        StreamConfiguration config = StreamConfiguration.builder(userConfig)
+            .allowDirect(true)
+            .allowMessageCounter(true)
+            .build();
+
+        JetStreamManagement jsm = conn.jetStreamManagement(jso);
+        jsm.addStream(config);
+
+        return new CounterContext(config.getName(), conn, jso, jsm);
+    }
+
+    private final String streamName;
+    private final JetStreamManagement jsm;
+    private final JetStream js;
+    private final DirectBatchContext dbCtx;
+
+    public CounterContext(String streamName, Connection conn) throws IOException, JetStreamApiException {
+        this(streamName, conn, null, null);
+    }
+
+    public CounterContext(String streamName, Connection conn, JetStreamOptions jso) throws IOException, JetStreamApiException {
+        this(streamName, conn, jso, null);
+    }
+
+    private CounterContext(@NonNull String streamName, @NonNull Connection conn, @Nullable JetStreamOptions jso, @Nullable JetStreamManagement jsm) throws IOException, JetStreamApiException {
+        this.streamName = streamName;
+        this.jsm = jsm == null ? conn.jetStreamManagement(jso) : jsm;
+        js = this.jsm.jetStream();
+        dbCtx = new DirectBatchContext(conn, jso, streamName);
+    }
+
+    private BigInteger _add(String subject, String sv) throws IOException, JetStreamApiException {
+        Headers h = new Headers();
+        h.put(INCREMENT_HEADER, sv);
+        PublishAck pa = js.publish(subject, h, null);
+        String val = pa.getVal();
+        if (val == null) {
+            throw new IOException("Publish Failed");
+        }
+        return new BigInteger(val);
+    }
+
+    public BigInteger add(String subject, int value) throws JetStreamApiException, IOException {
+        return _add(subject, Integer.toString(value));
+    }
+
+    public BigInteger add(String subject, long value) throws JetStreamApiException, IOException {
+        return _add(subject, Long.toString(value));
+    }
+
+    public BigInteger add(String subject, BigInteger value) throws JetStreamApiException, IOException {
+        return _add(subject, value.toString());
+    }
+
+    public BigInteger increment(String subject) throws JetStreamApiException, IOException {
+        return _add(subject, "1");
+    }
+
+    public BigInteger decrement(String subject) throws JetStreamApiException, IOException {
+        return _add(subject, "-1");
+    }
+
+    public BigInteger set(String subject, int value) throws JetStreamApiException, IOException {
+        return set(subject, BigInteger.valueOf(value));
+    }
+
+    public BigInteger set(String subject, long value) throws JetStreamApiException, IOException {
+        return set(subject, BigInteger.valueOf(value));
+    }
+
+    public BigInteger set(String subject, BigInteger value) throws JetStreamApiException, IOException {
+        // 100 -> 200 = add(200 - 100) | 100 -> 0 = add(0 - 100) | -100 -> 0 = add(0 - -100) | -100 -> 200 = add(200 - -100)
+        BigInteger bi = get(subject);
+        return _add(subject, value.subtract(bi).toString());
+    }
+
+    public BigInteger zero(String subject) throws JetStreamApiException, IOException {
+        return set(subject, BigInteger.ZERO);
+    }
+
+    public BigInteger get(String subject) throws JetStreamApiException, IOException {
+        MessageInfo mi = jsm.getLastMessage(streamName, subject);
+        return new BigInteger(extractVal(mi.getData()));
+    }
+
+    public CounterEntry getEntry(String subject) throws JetStreamApiException, IOException {
+        MessageInfo mi = jsm.getLastMessage(streamName, subject);
+        return new CounterEntry(mi);
+    }
+
+    public LinkedBlockingQueue<CounterEntry> getEntries(String... subjects) {
+        return getEntries(Arrays.asList(subjects));
+    }
+
+    public LinkedBlockingQueue<CounterEntry> getEntries(List<String> subjects) {
+        LinkedBlockingQueue<CounterEntry> queue = new LinkedBlockingQueue<>();
+        MessageBatchGetRequest mbgr = MessageBatchGetRequest.multiLastForSubjects(subjects);
+        dbCtx.requestMessageBatch(mbgr, mi -> queue.add(new CounterEntry(mi)));
+        return queue;
+    }
+}
