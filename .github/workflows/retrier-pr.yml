@@ -6,9 +6,6 @@ on:
     paths:
       - 'retrier/**'
 
-env:
-  GODEBUG: x509sha1=1
-
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -19,7 +16,6 @@ jobs:
       SIGNING_KEY_ID: ${{ secrets.SIGNING_KEY_ID }}
       SIGNING_KEY: ${{ secrets.SIGNING_KEY }}
       SIGNING_PASSWORD: ${{ secrets.SIGNING_PASSWORD }}
-      GODEBUG: x509sha1=1
     steps:
       - name: Set up JDK 8
         uses: actions/setup-java@v3
