@@ -17,6 +17,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.LinkedBlockingQueue;
 
+import static io.nats.client.support.Validator.required;
 import static io.synadia.counter.CounterUtils.INCREMENT_HEADER;
 import static io.synadia.counter.CounterUtils.extractVal;
 
@@ -39,9 +40,9 @@ public class CounterContext {
             .build();
 
         JetStreamManagement jsm = conn.jetStreamManagement(jso);
-        jsm.addStream(config);
+        StreamInfo si = jsm.addStream(config);
 
-        return new CounterContext(config.getName(), conn, jso, jsm);
+        return new CounterContext(config.getName(), conn, jso, jsm, si);
     }
 
     private final String streamName;
@@ -50,18 +51,40 @@ public class CounterContext {
     private final DirectBatchContext dbCtx;
 
     public CounterContext(String streamName, Connection conn) throws IOException, JetStreamApiException {
-        this(streamName, conn, null, null);
+        this(streamName, conn, null, null, null);
     }
 
     public CounterContext(String streamName, Connection conn, JetStreamOptions jso) throws IOException, JetStreamApiException {
-        this(streamName, conn, jso, null);
+        this(streamName, conn, jso, null, null);
     }
 
-    private CounterContext(@NonNull String streamName, @NonNull Connection conn, @Nullable JetStreamOptions jso, @Nullable JetStreamManagement jsm) throws IOException, JetStreamApiException {
-        this.streamName = streamName;
+    private CounterContext(@NonNull String streamName,
+                           @NonNull Connection conn,
+                           @Nullable JetStreamOptions jso,
+                           @Nullable JetStreamManagement jsm,
+                           @Nullable StreamInfo si
+    ) throws IOException, JetStreamApiException
+    {
         this.jsm = jsm == null ? conn.jetStreamManagement(jso) : jsm;
         js = this.jsm.jetStream();
-        dbCtx = new DirectBatchContext(conn, jso, streamName);
+
+        if (si == null) {
+            this.streamName = required(streamName, "Stream name required,");
+            si = this.jsm.getStreamInfo(streamName);
+        }
+        else {
+            this.streamName = si.getConfiguration().getName();
+        }
+
+        if (!si.getConfiguration().getAllowDirect()) {
+            throw new IllegalArgumentException("Stream must have allow direct set.");
+        }
+
+        if (!si.getConfiguration().getAllowMessageCounter()) {
+            throw new IllegalArgumentException("Stream must have allow message counter set.");
+        }
+
+        dbCtx = new DirectBatchContext(conn, jso, streamName, si);
     }
 
     private BigInteger _add(String subject, String sv) throws IOException, JetStreamApiException {
@@ -114,8 +137,19 @@ public class CounterContext {
     }
 
     public BigInteger get(String subject) throws JetStreamApiException, IOException {
-        MessageInfo mi = jsm.getLastMessage(streamName, subject);
+        MessageInfo mi = jsm.getMessage(streamName, MessageGetRequest.lastForSubject(subject).noHeaders());
         return new BigInteger(extractVal(mi.getData()));
+    }
+
+    public LinkedBlockingQueue<CounterValue> getValues(String... subjects) {
+        return getValues(Arrays.asList(subjects));
+    }
+
+    public LinkedBlockingQueue<CounterValue> getValues(List<String> subjects) {
+        LinkedBlockingQueue<CounterValue> queue = new LinkedBlockingQueue<>();
+        MessageBatchGetRequest mbgr = MessageBatchGetRequest.multiLastForSubjects(subjects);
+        dbCtx.requestMessageBatch(mbgr, mi -> queue.add(new CounterValue(mi)));
+        return queue;
     }
 
     public CounterEntry getEntry(String subject) throws JetStreamApiException, IOException {
