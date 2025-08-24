@@ -2,6 +2,7 @@ package io.synadia.examples;
 
 import io.nats.client.NUID;
 import io.nats.client.api.MessageInfo;
+import io.nats.client.impl.Headers;
 import io.nats.client.support.DateTimeUtils;
 
 import java.util.ArrayList;
@@ -22,10 +23,13 @@ public abstract class ExampleUtils {
 
     public static void printMessageInfo(MessageInfo mi, Number listId) {
         if (mi.isMessage()) {
+            Headers h = mi.getHeaders();
+            String hs = (h == null || h.isEmpty()) ? "none" : h.toString();
             System.out.println("[" + listId + "] Message"
                 + " | subject: " + mi.getSubject()
                 + " | sequence: " + mi.getSeq()
                 + " | time: " + (mi.getTime() == null ? "null" : DateTimeUtils.toRfc3339(mi.getTime()))
+                + " | headers: " + hs
             );
         }
         else {

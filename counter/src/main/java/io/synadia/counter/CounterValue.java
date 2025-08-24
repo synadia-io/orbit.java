@@ -9,39 +9,31 @@ import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
 import java.math.BigInteger;
-import java.util.HashMap;
-import java.util.Map;
 
-import static io.synadia.counter.CounterUtils.extractIncrement;
 import static io.synadia.counter.CounterUtils.extractVal;
 
-public class CounterEntry {
+public class CounterValue {
     public final String subject;
     public final BigInteger value;
-    public final BigInteger lastIncrement;
-    public final Map<String, BigInteger> sources;
     public final Status status;
 
-    CounterEntry(MessageInfo mi) {
+    CounterValue(MessageInfo mi) {
         this.status = mi.getStatus();
-        this.sources = new HashMap<>();
         if (mi.isMessage()) {
             this.subject = mi.getSubject();
             this.value = new BigInteger(extractVal(mi.getData()));
-            this.lastIncrement = new BigInteger(extractIncrement(mi.getHeaders()));
         }
         else {
             this.subject = "";
             this.value = BigInteger.ZERO;
-            this.lastIncrement = BigInteger.ZERO;
         }
     }
 
     /**
-     * Whether this CounterEntry is a regular entry as opposed to an error/status
-     * @return true if the CounterEntry is a regular entry
+     * Whether this CounterValue is a regular value as opposed to an error/status
+     * @return true if the CounterEntry is a regular value
      */
-    public boolean isEntry() {
+    public boolean isValue() {
         return status == null;
     }
 
@@ -79,16 +71,6 @@ public class CounterEntry {
         return value;
     }
 
-    @NonNull
-    public BigInteger getLastIncrement() {
-        return lastIncrement;
-    }
-
-    @NonNull
-    public Map<String, BigInteger> getSources() {
-        return sources;
-    }
-
     @Nullable
     public Status getStatus() {
         return status;
@@ -96,16 +78,14 @@ public class CounterEntry {
 
     @Override
     public String toString() {
-        if (isEntry()) {
-            return "CounterEntry{" +
+        if (isValue()) {
+            return "CounterValue{" +
                 "subject='" + subject + '\'' +
                 ", value=" + value +
-                ", lastIncrement=" + lastIncrement +
-                ", sources=" + sources +
                 '}';
         }
 
-        return "CounterEntry{" +
+        return "CounterValue{" +
             "status=" + status +
             '}';
     }

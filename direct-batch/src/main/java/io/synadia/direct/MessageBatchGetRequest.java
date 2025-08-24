@@ -2,6 +2,7 @@ package io.synadia.direct;
 
 import io.nats.client.support.JsonSerializable;
 import io.nats.client.support.Validator;
+import org.jspecify.annotations.NonNull;
 
 import java.time.ZonedDateTime;
 import java.util.List;
@@ -22,6 +23,7 @@ public class MessageBatchGetRequest implements JsonSerializable {
     private final List<String> multiLastBySubjects;
     private final long upToSequence;
     private final ZonedDateTime upToTime;
+    private final boolean noHeaders;
 
     // batch constructor
     private MessageBatchGetRequest(String subject,
@@ -37,8 +39,40 @@ public class MessageBatchGetRequest implements JsonSerializable {
         this.multiLastBySubjects = null;
         this.upToSequence = -1;
         this.upToTime = null;
-
         this.minSequence = startTime == null && minSequence < 1 ? 1 : minSequence;
+        noHeaders = false;
+    }
+
+    // multi last for constructor
+    private MessageBatchGetRequest(List<String> subjects, long upToSequence, ZonedDateTime upToTime, int batch) {
+        if (subjects == null || subjects.isEmpty()) {
+            throw new IllegalArgumentException("Subjects are required.");
+        }
+        this.batch = batch;
+        nextBySubject = null;
+        this.maxBytes = -1;
+        this.minSequence = -1;
+        this.startTime = null;
+        this.multiLastBySubjects = subjects;
+        this.upToSequence = upToSequence;
+        this.upToTime = upToTime;
+        noHeaders = false;
+    }
+
+    private MessageBatchGetRequest(MessageBatchGetRequest r, boolean noHeaders) {
+        this.batch = r.batch;
+        this.nextBySubject = r.nextBySubject;
+        this.maxBytes = r.maxBytes;
+        this.minSequence = r.minSequence;
+        this.startTime = r.startTime;
+        this.multiLastBySubjects = r.multiLastBySubjects;
+        this.upToSequence = r.upToSequence;
+        this.upToTime = r.upToTime;
+        this.noHeaders = noHeaders;
+    }
+
+    public MessageBatchGetRequest noHeaders() {
+        return new MessageBatchGetRequest(this, true);
     }
 
     /**
@@ -106,21 +140,6 @@ public class MessageBatchGetRequest implements JsonSerializable {
      */
     public static MessageBatchGetRequest batchBytes(String subject, int batch, int maxBytes, ZonedDateTime startTime) {
         return new MessageBatchGetRequest(subject, batch, maxBytes, -1, startTime);
-    }
-
-    // multi last for constructor
-    private MessageBatchGetRequest(List<String> subjects, long upToSequence, ZonedDateTime upToTime, int batch) {
-        if (subjects == null || subjects.isEmpty()) {
-            throw new IllegalArgumentException("Subjects are required.");
-        }
-        this.batch = batch;
-        nextBySubject = null;
-        this.maxBytes = -1;
-        this.minSequence = -1;
-        this.startTime = null;
-        this.multiLastBySubjects = subjects;
-        this.upToSequence = upToSequence;
-        this.upToTime = upToTime;
     }
 
     /**
@@ -253,6 +272,7 @@ public class MessageBatchGetRequest implements JsonSerializable {
     }
 
     @Override
+    @NonNull
     public String toJson() {
         StringBuilder sb = beginJson();
         addField(sb, BATCH, batch);
@@ -263,6 +283,7 @@ public class MessageBatchGetRequest implements JsonSerializable {
         addStrings(sb, MULTI_LAST, multiLastBySubjects);
         addField(sb, UP_TO_SEQ, upToSequence);
         addField(sb, UP_TO_TIME, upToTime);
+        addFldWhenTrue(sb, NO_HDR, noHeaders);
         return endJson(sb).toString();
     }
 
