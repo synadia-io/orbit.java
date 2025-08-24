@@ -34,7 +34,7 @@ public class DirectBatchContext {
      * @throws JetStreamApiException the request had an error related to the data
      */
     public DirectBatchContext(Connection conn, String streamName) throws IOException, JetStreamApiException {
-        this(conn, null, streamName);
+        this(conn, null, streamName, null);
     }
 
     /**
@@ -47,6 +47,10 @@ public class DirectBatchContext {
      * @throws JetStreamApiException the request had an error related to the data
      */
     public DirectBatchContext(Connection conn, JetStreamOptions jso, String streamName) throws IOException, JetStreamApiException {
+        this(conn, jso, streamName, null);
+    }
+
+    public DirectBatchContext(Connection conn, JetStreamOptions jso, String streamName, StreamInfo si) throws IOException, JetStreamApiException {
         validateNotNull(conn, "Connection required,");
         if (!conn.getServerInfo().isNewerVersionThan("2.10.99")) {
             throw new IllegalArgumentException("Batch direct get not available until server version 2.11.0.");
@@ -55,8 +59,14 @@ public class DirectBatchContext {
         this.jso = jso == null ? DEFAULT_JS_OPTIONS : jso;
         JetStreamManagement jsm = conn.jetStreamManagement(this.jso);
 
-        this.streamName = required(streamName, "Stream name required,");
-        StreamInfo si = jsm.getStreamInfo(streamName);
+        if (si == null) {
+            this.streamName = required(streamName, "Stream name required,");
+            si = jsm.getStreamInfo(streamName);
+        }
+        else {
+            this.streamName = si.getConfiguration().getName();
+        }
+
         if (!si.getConfiguration().getAllowDirect()) {
             throw new IllegalArgumentException("Stream must have allow direct set.");
         }
