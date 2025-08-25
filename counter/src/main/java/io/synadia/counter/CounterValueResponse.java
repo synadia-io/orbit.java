@@ -10,7 +10,7 @@ import java.math.BigInteger;
 
 import static io.synadia.counter.CounterUtils.extractVal;
 
-public class CounterValueResponse extends CounterBaseResponse {
+public class CounterValueResponse extends CounterResponse {
 
     CounterValueResponse(MessageInfo mi) {
         super(mi);

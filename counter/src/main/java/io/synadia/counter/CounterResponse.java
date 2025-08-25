@@ -7,10 +7,10 @@ import io.nats.client.api.MessageInfo;
 import io.nats.client.support.Status;
 import org.jspecify.annotations.Nullable;
 
-abstract class CounterBaseResponse {
+abstract class CounterResponse {
     protected final MessageInfo mi;
 
-    CounterBaseResponse(MessageInfo mi) {
+    CounterResponse(MessageInfo mi) {
         this.mi = mi;
     }
 
@@ -20,7 +20,7 @@ abstract class CounterBaseResponse {
     }
 
     /**
-     * Whether this CounterEntry is a status message
+     * Whether this response is a status message
      * @return true if this CounterEntry is a status message
      */
     public boolean isStatus() {
@@ -28,7 +28,7 @@ abstract class CounterBaseResponse {
     }
 
     /**
-     * Whether this CounterEntry is a status message and is a direct EOB status
+     * Whether this response is a status message and is a direct EOB status
      * @return true if this CounterEntry is a status message and is a direct EOB status
      */
     public boolean isEobStatus() {
@@ -36,7 +36,7 @@ abstract class CounterBaseResponse {
     }
 
     /**
-     * Whether this CounterEntry is a status message and is an error status
+     * Whether this response is a status message and is an error status
      * @return true if this CounterEntry is a status message and is an error status
      */
     public boolean isErrorStatus() {

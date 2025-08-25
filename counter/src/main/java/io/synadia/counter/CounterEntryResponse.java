@@ -6,7 +6,7 @@ package io.synadia.counter;
 import io.nats.client.api.MessageInfo;
 import org.jspecify.annotations.Nullable;
 
-public class CounterEntryResponse extends CounterBaseResponse {
+public class CounterEntryResponse extends CounterResponse {
 
     CounterEntryResponse(MessageInfo mi) {
         super(mi);
