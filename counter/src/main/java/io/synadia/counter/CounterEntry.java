@@ -4,9 +4,7 @@
 package io.synadia.counter;
 
 import io.nats.client.api.MessageInfo;
-import io.nats.client.support.Status;
 import org.jspecify.annotations.NonNull;
-import org.jspecify.annotations.Nullable;
 
 import java.math.BigInteger;
 import java.util.HashMap;
@@ -16,97 +14,43 @@ import static io.synadia.counter.CounterUtils.extractIncrement;
 import static io.synadia.counter.CounterUtils.extractVal;
 
 public class CounterEntry {
-    public final String subject;
-    public final BigInteger value;
-    public final BigInteger lastIncrement;
-    public final Map<String, BigInteger> sources;
-    public final Status status;
+    public final MessageInfo mi;
 
     CounterEntry(MessageInfo mi) {
-        this.status = mi.getStatus();
-        this.sources = new HashMap<>();
-        if (mi.isMessage()) {
-            this.subject = mi.getSubject();
-            this.value = new BigInteger(extractVal(mi.getData()));
-            this.lastIncrement = new BigInteger(extractIncrement(mi.getHeaders()));
+        if (!mi.isMessage()) {
+            throw new IllegalArgumentException("Message is not a counter message");
         }
-        else {
-            this.subject = "";
-            this.value = BigInteger.ZERO;
-            this.lastIncrement = BigInteger.ZERO;
-        }
-    }
-
-    /**
-     * Whether this CounterEntry is a regular entry as opposed to an error/status
-     * @return true if the CounterEntry is a regular entry
-     */
-    public boolean isEntry() {
-        return status == null;
-    }
-
-    /**
-     * Whether this CounterEntry is a status message
-     * @return true if this CounterEntry is a status message
-     */
-    public boolean isStatus() {
-        return status != null;
-    }
-
-    /**
-     * Whether this CounterEntry is a status message and is a direct EOB status
-     * @return true if this CounterEntry is a status message and is a direct EOB status
-     */
-    public boolean isEobStatus() {
-        return status != null && status.isEob();
-    }
-
-    /**
-     * Whether this CounterEntry is a status message and is an error status
-     * @return true if this CounterEntry is a status message and is an error status
-     */
-    public boolean isErrorStatus() {
-        return status != null && !status.isEob();
+        this.mi = mi;
     }
 
     @NonNull
     public String getSubject() {
-        return subject;
+        //noinspection DataFlowIssue we know it's not null
+        return mi.getSubject();
     }
 
     @NonNull
     public BigInteger getValue() {
-        return value;
+        return new BigInteger(extractVal(mi.getData()));
     }
 
     @NonNull
     public BigInteger getLastIncrement() {
-        return lastIncrement;
+        return new BigInteger(extractIncrement(mi.getHeaders()));
     }
 
     @NonNull
     public Map<String, BigInteger> getSources() {
-        return sources;
-    }
-
-    @Nullable
-    public Status getStatus() {
-        return status;
+        return new HashMap<>(); // TODO
     }
 
     @Override
     public String toString() {
-        if (isEntry()) {
-            return "CounterEntry{" +
-                "subject='" + subject + '\'' +
-                ", value=" + value +
-                ", lastIncrement=" + lastIncrement +
-                ", sources=" + sources +
-                '}';
-        }
-
         return "CounterEntry{" +
-            "status=" + status +
+            "subject='" + getSubject() + '\'' +
+            ", value=" + getValue() +
+            ", lastIncrement=" + getLastIncrement() +
+            ", sources=" + getSources() +
             '}';
     }
 }

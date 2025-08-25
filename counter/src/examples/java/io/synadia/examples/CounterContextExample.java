@@ -9,8 +9,8 @@ import io.nats.client.JetStreamManagement;
 import io.nats.client.Nats;
 import io.nats.client.api.StreamConfiguration;
 import io.synadia.counter.CounterContext;
-import io.synadia.counter.CounterEntry;
-import io.synadia.counter.CounterValue;
+import io.synadia.counter.CounterEntryResponse;
+import io.synadia.counter.CounterValueResponse;
 
 import java.math.BigInteger;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -65,31 +65,34 @@ public class CounterContextExample {
                 System.out.println("  get(\"not-found\") -> " + e);
             }
 
+            System.out.println("\n2.3: get() with a default when the subject is not found");
+            System.out.println("  get(\"\"not-found\", BigInteger.ZERO\") -> " + counter.getOrElse("not-found", BigInteger.ZERO));
+
             System.out.println("\n3: getEntry() - The full CounterEntry for a subject, notice the last increment...");
             System.out.println("  getEntry(\"" + SUBJECT_A + "\") -> " + counter.getEntry(SUBJECT_A));
             System.out.println("  getEntry(\"" + SUBJECT_B + "\") -> " + counter.getEntry(SUBJECT_B));
             System.out.println("  getEntry(\"" + SUBJECT_C + "\") -> " + counter.getEntry(SUBJECT_C));
 
-            System.out.println("\n4.1: getValues() - Get the CounterValue object for multiple subjects. Maybe to total them up?\"");
-            LinkedBlockingQueue<CounterValue> qv = counter.getValues(SUBJECT_A, SUBJECT_B, SUBJECT_C);
+            System.out.println("\n4.1: getMany() - Get the CounterValue/Response object for multiple subjects. Maybe to total them up?\"");
+            LinkedBlockingQueue<CounterValueResponse> vResponses = counter.getMany(SUBJECT_A, SUBJECT_B, SUBJECT_C);
             BigInteger total = BigInteger.ZERO;
-            CounterValue value = qv.poll(1, TimeUnit.SECONDS);
-            while (value != null && value.isValue()) {
-                System.out.println("  " + value);
-                total = total.add(value.value);
-                value = qv.poll(10, TimeUnit.MILLISECONDS);
+            CounterValueResponse vr = vResponses.poll(1, TimeUnit.SECONDS);
+            while (vr != null && vr.isValue()) {
+                System.out.println("  " + vr);
+                total = total.add(vr.getValue());
+                vr = vResponses.poll(10, TimeUnit.MILLISECONDS);
             }
-            System.out.println("  The iteration is signaled done when the CounterValue is a status: " + value);
+            System.out.println("  The iteration is signaled done when the CounterValueResponse is a status: " + vr);
             System.out.println("  Values totaled: " + total);
 
-            System.out.println("\n4.2: getEntries() - Get CounterEntry for multiple subjects.");
-            LinkedBlockingQueue<CounterEntry> qe = counter.getEntries(SUBJECT_A, SUBJECT_B, SUBJECT_C);
-            CounterEntry entry = qe.poll(1, TimeUnit.SECONDS);
+            System.out.println("\n4.2: getEntries() - Get CounterEntry/Response for multiple subjects.");
+            LinkedBlockingQueue<CounterEntryResponse> responses = counter.getEntries(SUBJECT_A, SUBJECT_B, SUBJECT_C);
+            CounterEntryResponse entry = responses.poll(1, TimeUnit.SECONDS);
             while (entry != null && entry.isEntry()) {
                 System.out.println("  " + entry);
-                entry = qe.poll(10, TimeUnit.MILLISECONDS);
+                entry = responses.poll(10, TimeUnit.MILLISECONDS);
             }
-            System.out.println("  CounterEntry status 204 signals no more entries: " + entry);
+            System.out.println("  CounterEntryResponse status EOB signals no more entries: " + entry);
 
             System.out.println("\n5.1: set() - Set the value for a subject");
             System.out.println("  set(\"" + SUBJECT_A + "\", 9) -> " + counter.set(SUBJECT_A, 9));
@@ -113,41 +116,23 @@ public class CounterContextExample {
             System.out.println("  getEntry(\"" + SUBJECT_B + "\") -> " + counter.getEntry(SUBJECT_B));
             System.out.println("  getEntry(\"" + SUBJECT_C + "\") -> " + counter.getEntry(SUBJECT_C));
 
-            System.out.println("\n7.1: getValues() - Get multiple CounterValue - but no subjects have counters");
-            qv = counter.getValues("no-counters", "also-counters");
-            value = qv.poll(1, TimeUnit.SECONDS);
-            while (value != null && value.isValue()) {
-                System.out.println("  " + value);
-                value = qv.poll(10, TimeUnit.MILLISECONDS);
-            }
-            System.out.println("  CounterValue status 204 signals no more entries: " + value);
-
-            System.out.println("\n7.2: getEntries() - Get multiple CounterEntry - but no subjects have counters");
-            qe = counter.getEntries("no-counters", "also-counters");
-            entry = qe.poll(1, TimeUnit.SECONDS);
+            System.out.println("\n7: getEntries() - Get multiple CounterEntry/Response - but no subjects have counters");
+            responses = counter.getEntries("no-counters", "also-counters");
+            entry = responses.poll(1, TimeUnit.SECONDS);
             while (entry != null && entry.isEntry()) {
                 System.out.println("  " + entry);
-                entry = qe.poll(10, TimeUnit.MILLISECONDS);
+                entry = responses.poll(10, TimeUnit.MILLISECONDS);
             }
-            System.out.println("  The only CounterEntry received was a 404: " + entry);
+            System.out.println("  The only CounterEntryResponse received was a 404: " + entry);
 
-            System.out.println("\n8.1: getValues() - Get multiple CounterValue - some subjects have any counters");
-            qv = counter.getValues("no-counters", SUBJECT_A, SUBJECT_B, SUBJECT_C);
-            value = qv.poll(1, TimeUnit.SECONDS);
-            while (value != null && value.isValue()) {
-                System.out.println("  " + value);
-                value = qv.poll(10, TimeUnit.MILLISECONDS);
-            }
-            System.out.println("  CounterValue status 204 signals no more entries: " + value);
-
-            System.out.println("\n8.2: getEntries() - Get multiple CounterEntry - some subjects have any counters");
-            qe = counter.getEntries("no-counters", SUBJECT_A, SUBJECT_B, SUBJECT_C);
-            entry = qe.poll(1, TimeUnit.SECONDS);
+            System.out.println("\n8: getEntries() - Get multiple CounterEntry/Response - some subjects have any counters");
+            responses = counter.getEntries("no-counters", SUBJECT_A, SUBJECT_B, SUBJECT_C);
+            entry = responses.poll(1, TimeUnit.SECONDS);
             while (entry != null && entry.isEntry()) {
                 System.out.println("  " + entry);
-                entry = qe.poll(10, TimeUnit.MILLISECONDS);
+                entry = responses.poll(10, TimeUnit.MILLISECONDS);
             }
-            System.out.println("  CounterEntry status 204 signals no more entries: " + entry);
+            System.out.println("  CounterEntryResponse status EOB signals no more entries: " + entry);
         }
     }
 }

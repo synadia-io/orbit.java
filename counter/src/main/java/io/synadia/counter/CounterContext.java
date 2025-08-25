@@ -127,8 +127,7 @@ public class CounterContext {
     }
 
     public BigInteger set(String subject, BigInteger value) throws JetStreamApiException, IOException {
-        // 100 -> 200 = add(200 - 100) | 100 -> 0 = add(0 - 100) | -100 -> 0 = add(0 - -100) | -100 -> 200 = add(200 - -100)
-        BigInteger bi = get(subject);
+        BigInteger bi = getOrElse(subject, BigInteger.ZERO);
         return _add(subject, value.subtract(bi).toString());
     }
 
@@ -141,14 +140,32 @@ public class CounterContext {
         return new BigInteger(extractVal(mi.getData()));
     }
 
-    public LinkedBlockingQueue<CounterValue> getValues(String... subjects) {
-        return getValues(Arrays.asList(subjects));
+    public BigInteger getOrElse(String subject, int dflt) {
+        return getOrElse(subject, BigInteger.valueOf(dflt));
     }
 
-    public LinkedBlockingQueue<CounterValue> getValues(List<String> subjects) {
-        LinkedBlockingQueue<CounterValue> queue = new LinkedBlockingQueue<>();
-        MessageBatchGetRequest mbgr = MessageBatchGetRequest.multiLastForSubjects(subjects);
-        dbCtx.requestMessageBatch(mbgr, mi -> queue.add(new CounterValue(mi)));
+    public BigInteger getOrElse(String subject, long dflt) {
+        return getOrElse(subject, BigInteger.valueOf(dflt));
+    }
+
+    public BigInteger getOrElse(String subject, BigInteger dflt) {
+        try {
+            MessageInfo mi = jsm.getMessage(streamName, MessageGetRequest.lastForSubject(subject).noHeaders());
+            return new BigInteger(extractVal(mi.getData()));
+        }
+        catch (IOException | JetStreamApiException e) {
+            return dflt;
+        }
+    }
+
+    public LinkedBlockingQueue<CounterValueResponse> getMany(String... subjects) {
+        return getMany(Arrays.asList(subjects));
+    }
+
+    public LinkedBlockingQueue<CounterValueResponse> getMany(List<String> subjects) {
+        LinkedBlockingQueue<CounterValueResponse> queue = new LinkedBlockingQueue<>();
+        MessageBatchGetRequest mbgr = MessageBatchGetRequest.multiLastForSubjects(subjects).noHeaders();
+        dbCtx.requestMessageBatch(mbgr, mi -> queue.add(new CounterValueResponse(mi)));
         return queue;
     }
 
@@ -157,14 +174,14 @@ public class CounterContext {
         return new CounterEntry(mi);
     }
 
-    public LinkedBlockingQueue<CounterEntry> getEntries(String... subjects) {
+    public LinkedBlockingQueue<CounterEntryResponse> getEntries(String... subjects) {
         return getEntries(Arrays.asList(subjects));
     }
 
-    public LinkedBlockingQueue<CounterEntry> getEntries(List<String> subjects) {
-        LinkedBlockingQueue<CounterEntry> queue = new LinkedBlockingQueue<>();
+    public LinkedBlockingQueue<CounterEntryResponse> getEntries(List<String> subjects) {
+        LinkedBlockingQueue<CounterEntryResponse> queue = new LinkedBlockingQueue<>();
         MessageBatchGetRequest mbgr = MessageBatchGetRequest.multiLastForSubjects(subjects);
-        dbCtx.requestMessageBatch(mbgr, mi -> queue.add(new CounterEntry(mi)));
+        dbCtx.requestMessageBatch(mbgr, mi -> queue.add(new CounterEntryResponse(mi)));
         return queue;
     }
 }
