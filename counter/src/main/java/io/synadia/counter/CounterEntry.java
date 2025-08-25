@@ -47,7 +47,7 @@ public class CounterEntry {
     @Override
     public String toString() {
         return "CounterEntry{" +
-            "subject='" + getSubject() + '\'' +
+            "subject=\"" + getSubject() + '\"' +
             ", value=" + getValue() +
             ", lastIncrement=" + getLastIncrement() +
             ", sources=" + getSources() +

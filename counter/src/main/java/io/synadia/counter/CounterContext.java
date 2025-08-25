@@ -136,6 +136,9 @@ public class CounterContext {
     }
 
     public BigInteger get(String subject) throws JetStreamApiException, IOException {
+        if (subject.contains("*") || subject.contains(">")) {
+            throw new IllegalArgumentException("Subject must not contain wildcards '*' or '>'.");
+        }
         MessageInfo mi = jsm.getMessage(streamName, MessageGetRequest.lastForSubject(subject).noHeaders());
         return new BigInteger(extractVal(mi.getData()));
     }
@@ -150,8 +153,7 @@ public class CounterContext {
 
     public BigInteger getOrElse(String subject, BigInteger dflt) {
         try {
-            MessageInfo mi = jsm.getMessage(streamName, MessageGetRequest.lastForSubject(subject).noHeaders());
-            return new BigInteger(extractVal(mi.getData()));
+            return get(subject);
         }
         catch (IOException | JetStreamApiException e) {
             return dflt;
