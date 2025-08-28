@@ -21,13 +21,13 @@ import static io.nats.client.support.Validator.required;
 import static io.synadia.counter.CounterUtils.INCREMENT_HEADER;
 import static io.synadia.counter.CounterUtils.extractVal;
 
-public class CounterContext {
+public class Counter {
 
-    public static CounterContext createCounterStream(Connection conn, StreamConfiguration userConfig) throws JetStreamApiException, IOException {
+    public static Counter createCounterStream(Connection conn, StreamConfiguration userConfig) throws JetStreamApiException, IOException {
         return createCounterStream(conn, null, userConfig);
     }
 
-    public static CounterContext createCounterStream(Connection conn, JetStreamOptions jso, StreamConfiguration userConfig) throws JetStreamApiException, IOException {
+    public static Counter createCounterStream(Connection conn, JetStreamOptions jso, StreamConfiguration userConfig) throws JetStreamApiException, IOException {
         if (userConfig.getRetentionPolicy() != RetentionPolicy.Limits) {
             throw new IllegalArgumentException("Retention Policy - Limits is the only allowed limit for counter streams.");
         }
@@ -42,7 +42,7 @@ public class CounterContext {
         JetStreamManagement jsm = conn.jetStreamManagement(jso);
         StreamInfo si = jsm.addStream(config);
 
-        return new CounterContext(config.getName(), conn, jso, jsm, si);
+        return new Counter(config.getName(), conn, jso, jsm, si);
     }
 
     private final String streamName;
@@ -50,19 +50,19 @@ public class CounterContext {
     private final JetStream js;
     private final DirectBatchContext dbCtx;
 
-    public CounterContext(String streamName, Connection conn) throws IOException, JetStreamApiException {
+    public Counter(String streamName, Connection conn) throws IOException, JetStreamApiException {
         this(streamName, conn, null, null, null);
     }
 
-    public CounterContext(String streamName, Connection conn, JetStreamOptions jso) throws IOException, JetStreamApiException {
+    public Counter(String streamName, Connection conn, JetStreamOptions jso) throws IOException, JetStreamApiException {
         this(streamName, conn, jso, null, null);
     }
 
-    private CounterContext(@NonNull String streamName,
-                           @NonNull Connection conn,
-                           @Nullable JetStreamOptions jso,
-                           @Nullable JetStreamManagement jsm,
-                           @Nullable StreamInfo si
+    private Counter(@NonNull String streamName,
+                    @NonNull Connection conn,
+                    @Nullable JetStreamOptions jso,
+                    @Nullable JetStreamManagement jsm,
+                    @Nullable StreamInfo si
     ) throws IOException, JetStreamApiException
     {
         this.jsm = jsm == null ? conn.jetStreamManagement(jso) : jsm;
@@ -136,9 +136,7 @@ public class CounterContext {
     }
 
     public BigInteger get(String subject) throws JetStreamApiException, IOException {
-        if (subject.contains("*") || subject.contains(">")) {
-            throw new IllegalArgumentException("Subject must not contain wildcards '*' or '>'.");
-        }
+        validateSingleSubject(subject);
         MessageInfo mi = jsm.getMessage(streamName, MessageGetRequest.lastForSubject(subject).noHeaders());
         return new BigInteger(extractVal(mi.getData()));
     }
@@ -160,11 +158,17 @@ public class CounterContext {
         }
     }
 
-    public LinkedBlockingQueue<CounterValueResponse> getMany(String... subjects) {
-        return getMany(Arrays.asList(subjects));
+    public CounterValue getValue(String subject) throws JetStreamApiException, IOException {
+        validateSingleSubject(subject);
+        MessageInfo mi = jsm.getMessage(streamName, MessageGetRequest.lastForSubject(subject).noHeaders());
+        return new CounterValue(mi);
     }
 
-    public LinkedBlockingQueue<CounterValueResponse> getMany(List<String> subjects) {
+    public LinkedBlockingQueue<CounterValueResponse> getValues(String... subjects) {
+        return getValues(Arrays.asList(subjects));
+    }
+
+    public LinkedBlockingQueue<CounterValueResponse> getValues(List<String> subjects) {
         LinkedBlockingQueue<CounterValueResponse> queue = new LinkedBlockingQueue<>();
         MessageBatchGetRequest mbgr = MessageBatchGetRequest.multiLastForSubjects(subjects).noHeaders();
         dbCtx.requestMessageBatch(mbgr, mi -> queue.add(new CounterValueResponse(mi)));
@@ -185,5 +189,14 @@ public class CounterContext {
         MessageBatchGetRequest mbgr = MessageBatchGetRequest.multiLastForSubjects(subjects);
         dbCtx.requestMessageBatch(mbgr, mi -> queue.add(new CounterEntryResponse(mi)));
         return queue;
+    }
+
+    private static void validateSingleSubject(String subject) {
+        if (subject == null || subject.isEmpty()) {
+            throw new IllegalArgumentException("Subject required.");
+        }
+        if (subject.contains("*") || subject.contains(">")) {
+            throw new IllegalArgumentException("Subject must not contain wildcards '*' or '>'.");
+        }
     }
 }

@@ -8,7 +8,7 @@ import io.nats.client.JetStreamApiException;
 import io.nats.client.JetStreamManagement;
 import io.nats.client.Nats;
 import io.nats.client.api.StreamConfiguration;
-import io.synadia.counter.CounterContext;
+import io.synadia.counter.Counter;
 import io.synadia.counter.CounterEntryResponse;
 import io.synadia.counter.CounterValueResponse;
 
@@ -24,7 +24,7 @@ public class CounterContextExample {
 
             // Set up a fresh counter stream
             try { jsm.deleteStream("counter-stream"); }  catch (JetStreamApiException ignore) {}
-            CounterContext counter = CounterContext.createCounterStream(nc,
+            Counter counter = Counter.createCounterStream(nc,
                 StreamConfiguration.builder()
                     .name("counter-stream")
                     .subjects("cs.*")
@@ -83,7 +83,7 @@ public class CounterContextExample {
 
             // ----------------------------------------------------------------------------------------------------
             System.out.println("\n4.1: getMany(\"cs.A\", \"cs.B\", \"cs.C\") - Get the CounterValue/Response object for multiple subjects. Maybe to total them up?\"");
-            LinkedBlockingQueue<CounterValueResponse> vResponses = counter.getMany("cs.A", "cs.B", "cs.C");
+            LinkedBlockingQueue<CounterValueResponse> vResponses = counter.getValues("cs.A", "cs.B", "cs.C");
             BigInteger total = BigInteger.ZERO;
             CounterValueResponse vr = vResponses.poll(1, TimeUnit.SECONDS);
             while (vr != null && vr.isValue()) {
@@ -104,7 +104,7 @@ public class CounterContextExample {
             System.out.println(" " + er + " -> No more entries.");
 
             System.out.println("\n4.3: getMany(\"cs.*\") - Get the CounterValue/Response for wildcard subject(s).");
-            vResponses = counter.getMany("cs.*");
+            vResponses = counter.getValues("cs.*");
             vr = vResponses.poll(1, TimeUnit.SECONDS);
             while (vr != null && vr.isValue()) {
                 System.out.println(" " + vr);
