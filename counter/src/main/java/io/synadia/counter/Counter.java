@@ -110,65 +110,47 @@ public class Counter {
         return _add(subject, value.toString());
     }
 
-    public BigInteger increment(String subject) throws JetStreamApiException, IOException {
-        return _add(subject, "1");
+    public BigInteger setViaAdd(String subject, int value) throws JetStreamApiException, IOException {
+        return setViaAdd(subject, BigInteger.valueOf(value));
     }
 
-    public BigInteger decrement(String subject) throws JetStreamApiException, IOException {
-        return _add(subject, "-1");
+    public BigInteger setViaAdd(String subject, long value) throws JetStreamApiException, IOException {
+        return setViaAdd(subject, BigInteger.valueOf(value));
     }
 
-    public BigInteger set(String subject, int value) throws JetStreamApiException, IOException {
-        return set(subject, BigInteger.valueOf(value));
-    }
-
-    public BigInteger set(String subject, long value) throws JetStreamApiException, IOException {
-        return set(subject, BigInteger.valueOf(value));
-    }
-
-    public BigInteger set(String subject, BigInteger value) throws JetStreamApiException, IOException {
+    public BigInteger setViaAdd(String subject, BigInteger value) throws JetStreamApiException, IOException {
         BigInteger bi = getOrElse(subject, BigInteger.ZERO);
         return _add(subject, value.subtract(bi).toString());
-    }
-
-    public BigInteger zero(String subject) throws JetStreamApiException, IOException {
-        return set(subject, BigInteger.ZERO);
     }
 
     public BigInteger get(String subject) throws JetStreamApiException, IOException {
         validateSingleSubject(subject);
         MessageInfo mi = jsm.getMessage(streamName, MessageGetRequest.lastForSubject(subject).noHeaders());
-        return new BigInteger(extractVal(mi.getData()));
+        return extractVal(mi);
     }
 
-    public BigInteger getOrElse(String subject, int dflt) {
+    public BigInteger getOrElse(String subject, int dflt) throws IOException {
         return getOrElse(subject, BigInteger.valueOf(dflt));
     }
 
-    public BigInteger getOrElse(String subject, long dflt) {
+    public BigInteger getOrElse(String subject, long dflt) throws IOException {
         return getOrElse(subject, BigInteger.valueOf(dflt));
     }
 
-    public BigInteger getOrElse(String subject, BigInteger dflt) {
+    public BigInteger getOrElse(String subject, BigInteger dflt) throws IOException {
         try {
             return get(subject);
         }
-        catch (IOException | JetStreamApiException e) {
+        catch (JetStreamApiException e) {
             return dflt;
         }
     }
 
-    public CounterValue getValue(String subject) throws JetStreamApiException, IOException {
-        validateSingleSubject(subject);
-        MessageInfo mi = jsm.getMessage(streamName, MessageGetRequest.lastForSubject(subject).noHeaders());
-        return new CounterValue(mi);
+    public LinkedBlockingQueue<CounterValueResponse> getMultiple(String... subjects) {
+        return getMultiple(Arrays.asList(subjects));
     }
 
-    public LinkedBlockingQueue<CounterValueResponse> getValues(String... subjects) {
-        return getValues(Arrays.asList(subjects));
-    }
-
-    public LinkedBlockingQueue<CounterValueResponse> getValues(List<String> subjects) {
+    public LinkedBlockingQueue<CounterValueResponse> getMultiple(List<String> subjects) {
         LinkedBlockingQueue<CounterValueResponse> queue = new LinkedBlockingQueue<>();
         MessageBatchGetRequest mbgr = MessageBatchGetRequest.multiLastForSubjects(subjects).noHeaders();
         dbCtx.requestMessageBatch(mbgr, mi -> queue.add(new CounterValueResponse(mi)));
@@ -176,6 +158,7 @@ public class Counter {
     }
 
     public CounterEntry getEntry(String subject) throws JetStreamApiException, IOException {
+        validateSingleSubject(subject);
         MessageInfo mi = jsm.getLastMessage(streamName, subject);
         return new CounterEntry(mi);
     }

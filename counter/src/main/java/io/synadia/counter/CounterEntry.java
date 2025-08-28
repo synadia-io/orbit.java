@@ -31,12 +31,12 @@ public class CounterEntry {
 
     @NonNull
     public BigInteger getValue() {
-        return new BigInteger(extractVal(mi.getData()));
+        return extractVal(mi);
     }
 
     @NonNull
     public BigInteger getLastIncrement() {
-        return new BigInteger(extractIncrement(mi.getHeaders()));
+        return extractIncrement(mi);
     }
 
     @NonNull

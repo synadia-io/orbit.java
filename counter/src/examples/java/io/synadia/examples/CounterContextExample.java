@@ -31,7 +31,7 @@ public class CounterContextExample {
                     .build());
 
             // ----------------------------------------------------------------------------------------------------
-            System.out.println("1: Add to a subject...");
+            System.out.println("1.1: Add to a subject...");
             System.out.println(" add(\"cs.A\", 1) -> " + counter.add("cs.A", 1));
             System.out.println(" add(\"cs.A\", 2) -> " + counter.add("cs.A", 2));
             System.out.println(" add(\"cs.A\", 3) -> " + counter.add("cs.A", 3));
@@ -55,35 +55,49 @@ public class CounterContextExample {
 
             System.out.println("\n2.2: get() when the subject is not found");
             try {
-                counter.get("not-found");
+                counter.get("cs.not-found");
             }
             catch (JetStreamApiException e) {
-                System.out.println(" get(\"not-found\") -> " + e);
+                System.out.println(" get(\"cs.not-found\") -> " + e);
             }
 
             System.out.println("\n2.3: get() for a single subject does not allow wildcards");
             try {
                 counter.get("cs.*");
             }
-            catch (RuntimeException e) {
+            catch (IllegalArgumentException e) {
                 System.out.println(" get(\"cs.*\") -> " + e);
             }
 
-            System.out.println("\n2.3: get() with a default when the subject is not found");
-            System.out.println(" get(\"not-found\", BigInteger.ZERO\") -> " + counter.getOrElse("not-found", BigInteger.ZERO));
+            System.out.println("\n2.4: getOrElse() with a default when the subject is found");
+            System.out.println(" getOrElse(\"cs.C\", BigInteger.ZERO\") -> " + counter.getOrElse("cs.C", BigInteger.ZERO));
 
-            System.out.println("\n2.4: get() with a default when the subject IS found");
-            System.out.println(" get(\"cs.C\", BigInteger.ZERO\") -> " + counter.getOrElse("cs.C", BigInteger.ZERO));
+            System.out.println("\n2.5: getOrElse() with a default when the subject is not found");
+            try {
+                counter.get("cs.not-found");
+            }
+            catch (JetStreamApiException e) {
+                System.out.println("  get(\"cs.not-found\") -> " + e);
+            }
+            System.out.println("  getOrElse(\"cs.not-found\", 77777) -> " + counter.getOrElse("cs.not-found", 77777));
 
             // ----------------------------------------------------------------------------------------------------
-            System.out.println("\n3: getEntry() - The full CounterEntry for a subject, notice the last increment...");
+            System.out.println("\n3.1: getEntry() - The full CounterEntry for a subject, notice the last increment...");
             System.out.println(" getEntry(\"cs.A\") -> " + counter.getEntry("cs.A"));
             System.out.println(" getEntry(\"cs.B\") -> " + counter.getEntry("cs.B"));
             System.out.println(" getEntry(\"cs.C\") -> " + counter.getEntry("cs.C"));
 
+            System.out.println("\n3.2: getEntry() does not allow wildcards");
+            try {
+                counter.getEntry("cs.>");
+            }
+            catch (IllegalArgumentException e) {
+                System.out.println(" getEntry(\"cs.>\") -> " + e);
+            }
+
             // ----------------------------------------------------------------------------------------------------
-            System.out.println("\n4.1: getMany(\"cs.A\", \"cs.B\", \"cs.C\") - Get the CounterValue/Response object for multiple subjects. Maybe to total them up?\"");
-            LinkedBlockingQueue<CounterValueResponse> vResponses = counter.getValues("cs.A", "cs.B", "cs.C");
+            System.out.println("\n4.1: getMultiple(\"cs.A\", \"cs.B\", \"cs.C\") - Get the CounterValueResponse objects for multiple subjects. Maybe to total them up?\"");
+            LinkedBlockingQueue<CounterValueResponse> vResponses = counter.getMultiple("cs.A", "cs.B", "cs.C");
             BigInteger total = BigInteger.ZERO;
             CounterValueResponse vr = vResponses.poll(1, TimeUnit.SECONDS);
             while (vr != null && vr.isValue()) {
@@ -91,10 +105,10 @@ public class CounterContextExample {
                 total = total.add(vr.getValue());
                 vr = vResponses.poll(10, TimeUnit.MILLISECONDS);
             }
-            System.out.println(" " + vr + " -> No more entries.");
+            System.out.println(" " + vr + " -> No more values.");
             System.out.println(" Values totaled: " + total);
 
-            System.out.println("\n4.2: getEntries(\"cs.A\", \"cs.B\", \"cs.C\") - Get CounterEntry/Response for multiple subjects.");
+            System.out.println("\n4.2: getEntries(\"cs.A\", \"cs.B\", \"cs.C\") - Get the CounterEntryResponse objects for multiple subjects.");
             LinkedBlockingQueue<CounterEntryResponse> eResponses = counter.getEntries("cs.A", "cs.B", "cs.C");
             CounterEntryResponse er = eResponses.poll(1, TimeUnit.SECONDS);
             while (er != null && er.isEntry()) {
@@ -103,16 +117,16 @@ public class CounterContextExample {
             }
             System.out.println(" " + er + " -> No more entries.");
 
-            System.out.println("\n4.3: getMany(\"cs.*\") - Get the CounterValue/Response for wildcard subject(s).");
-            vResponses = counter.getValues("cs.*");
+            System.out.println("\n4.3: getMultiple(\"cs.*\") - Get the CounterValueResponse objects for wildcard subject(s).");
+            vResponses = counter.getMultiple("cs.*");
             vr = vResponses.poll(1, TimeUnit.SECONDS);
             while (vr != null && vr.isValue()) {
                 System.out.println(" " + vr);
                 vr = vResponses.poll(10, TimeUnit.MILLISECONDS);
             }
-            System.out.println(" " + vr + " -> No more entries.");
+            System.out.println(" " + vr + " -> No more values.");
 
-            System.out.println("\n4.4: getEntries(\"cs.*\") - Get CounterEntry/Response for wildcard subject(s).");
+            System.out.println("\n4.4: getEntries(\"cs.*\") - Get CounterEntryResponse objects for wildcard subject(s).");
             eResponses = counter.getEntries("cs.*");
             er = eResponses.poll(1, TimeUnit.SECONDS);
             while (er != null && er.isEntry()) {
@@ -122,32 +136,41 @@ public class CounterContextExample {
             System.out.println(" " + er + " -> No more entries.");
 
             // ----------------------------------------------------------------------------------------------------
-            System.out.println("\n5.1: set() - Set the value for a subject");
-            System.out.println(" set(\"cs.A\", 9) -> " + counter.set("cs.A", 9));
-            System.out.println(" set(\"cs.B\", 99) -> " + counter.set("cs.B", 99));
-            System.out.println(" set(\"cs.C\", 999) -> " + counter.set("cs.C", 999));
+            System.out.println("\n5.1: setViaAdd() - Sets the value for a subject by" +
+                               "\n     1) calling getOrElse(subject, BigInteger.ZERO)" +
+                               "\n     2) then calling add with the set value minus the current value.");
+            System.out.println(" setViaAdd(\"cs.A\", 9) -> " + counter.setViaAdd("cs.A", 9));
+            System.out.println(" setViaAdd(\"cs.B\", 99) -> " + counter.setViaAdd("cs.B", 99));
+            System.out.println(" setViaAdd(\"cs.C\", 999) -> " + counter.setViaAdd("cs.C", 999));
 
-            System.out.println("\n5.2: getEntry() - Get the full CounterEntry, notice the last increment after a set represents" +
-                               "\n     the difference between the entry before the set and the set value.");
+            System.out.println("\n5.2: getEntry() - Get the full CounterEntry, notice the last increment after a setViaAdd" +
+                               "\n     represents the difference between the entry before the set and the set value.");
             System.out.println(" getEntry(\"cs.A\") -> " + counter.getEntry("cs.A"));
             System.out.println(" getEntry(\"cs.B\") -> " + counter.getEntry("cs.B"));
             System.out.println(" getEntry(\"cs.C\") -> " + counter.getEntry("cs.C"));
 
-            // ----------------------------------------------------------------------------------------------------
-            System.out.println("\n6.1: zero() is a shortcut to set the value of a subject to 0.");
-            System.out.println(" zero(\"cs.A\") -> " + counter.zero("cs.A"));
-            System.out.println(" zero(\"cs.B\") -> " + counter.zero("cs.B"));
-            System.out.println(" zero(\"cs.C\") -> " + counter.zero("cs.C"));
-
-            System.out.println("\n6.2: getEntry() - Get the full CounterEntry, notice the last increment after a zero represents" +
-                               "\n     the difference between the entry before the zero() and 0.");
-            System.out.println(" getEntry(\"cs.A\") -> " + counter.getEntry("cs.A"));
-            System.out.println(" getEntry(\"cs.B\") -> " + counter.getEntry("cs.B"));
-            System.out.println(" getEntry(\"cs.C\") -> " + counter.getEntry("cs.C"));
+            System.out.println("\n5.3: It's safe to call setViaAdd() even if the subject did not exist because it uses getOrElse;");
+            try {
+                counter.get("cs.did-not-exist");
+            }
+            catch (JetStreamApiException e) {
+                System.out.println("  get(\"cs.did-not-exist\") -> " + e);
+            }
+            System.out.println("  setViaAdd(\"cs.did-not-exist\", 99999) -> " + counter.setViaAdd("cs.did-not-exist", 99999));
+            System.out.println("  get(\"cs.did-not-exist\") -> " + counter.get("cs.did-not-exist"));
 
             // ----------------------------------------------------------------------------------------------------
-            System.out.println("\n7: getEntries(\"no-counters\", \"also-counters\") - Get multiple but no subjects have counters.");
-            eResponses = counter.getEntries("no-counters", "also-counters");
+            System.out.println("\n6.1: getMultiple(\"cs.no-counters\", \"cs.also-counters\") - getMultiple but no subjects have counters.");
+            vResponses = counter.getMultiple("cs.no-counters", "cs.also-counters");
+            vr = vResponses.poll(1, TimeUnit.SECONDS);
+            while (vr != null && vr.isValue()) {
+                System.out.println(" " + er);
+                vr = vResponses.poll(10, TimeUnit.MILLISECONDS);
+            }
+            System.out.println(" " + vr);
+
+            System.out.println("\n6.2: getEntries(\"cs.no-counters\", \"cs.also-counters\") - getEntries but no subjects have counters.");
+            eResponses = counter.getEntries("cs.no-counters", "cs.also-counters");
             er = eResponses.poll(1, TimeUnit.SECONDS);
             while (er != null && er.isEntry()) {
                 System.out.println(" " + er);
@@ -156,35 +179,23 @@ public class CounterContextExample {
             System.out.println(" " + er);
 
             // ----------------------------------------------------------------------------------------------------
-            System.out.println("\n8: getEntries(\"no-counters\", \"cs.A\", \"cs.B\", \"cs.C\") - Get multiple when some subjects have counters.");
-            eResponses = counter.getEntries("no-counters", "cs.A", "cs.B", "cs.C");
+            System.out.println("\n7.1: getMultiple(\"no-counters\", \"cs.A\", \"cs.B\", \"cs.C\") - getMultiple when some subjects have counters.");
+            vResponses = counter.getMultiple("cs.no-counters", "cs.A", "cs.B", "cs.C");
+            vr = vResponses.poll(1, TimeUnit.SECONDS);
+            while (vr != null && vr.isValue()) {
+                System.out.println(" " + vr);
+                vr = vResponses.poll(10, TimeUnit.MILLISECONDS);
+            }
+            System.out.println(" " + vr + " -> No more values.");
+
+            System.out.println("\n7.2: getEntries(\"no-counters\", \"cs.A\", \"cs.B\", \"cs.C\") - getEntries when some subjects have counters.");
+            eResponses = counter.getEntries("cs.no-counters", "cs.A", "cs.B", "cs.C");
             er = eResponses.poll(1, TimeUnit.SECONDS);
             while (er != null && er.isEntry()) {
                 System.out.println(" " + er);
                 er = eResponses.poll(10, TimeUnit.MILLISECONDS);
             }
             System.out.println(" " + er + " -> No more entries.");
-
-            // ----------------------------------------------------------------------------------------------------
-            System.out.println("\n9: getOrElse() returns the 'else' value if the subject is not found.");
-            try {
-                counter.get("or-else");
-            }
-            catch (JetStreamApiException e) {
-                System.out.println("  get(\"or-else\") -> " + e);
-            }
-            System.out.println("  getOrElse(\"or-else\", 77777) -> " + counter.getOrElse("or-else", 77777));
-
-            // ----------------------------------------------------------------------------------------------------
-            System.out.println("\n10: It's safe to call set() even if the subject did not exist.");
-            try {
-                counter.get("cs.X");
-            }
-            catch (JetStreamApiException e) {
-                System.out.println("  get(\"cs.X\") -> " + e);
-            }
-            System.out.println("  set(\"cs.X\", 99999) -> " + counter.add("cs.X", 99999));
-            System.out.println("  get(\"cs.X\") -> " + counter.get("cs.X"));
         }
     }
 }

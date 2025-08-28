@@ -3,23 +3,31 @@
 
 package io.synadia.counter;
 
+import io.nats.client.api.MessageInfo;
 import io.nats.client.impl.Headers;
+
+import java.math.BigInteger;
 
 public final class CounterUtils {
 
     public static final String INCREMENT_HEADER = "Nats-Incr";
 
-    public static String extractVal(byte[] data) {
-        String s = new String(data);
+    public static BigInteger extractVal(MessageInfo mi) {
+        String s = new String(mi.getData());
         // {"val":"-123"}
         // don't want to assume anything about how the json is formatted/spaced
         int colonAt = s.indexOf(':');
         int numberStart = s.indexOf('"', colonAt + 1) + 1;
         int lastQuote = s.lastIndexOf('"');
-        return s.substring(numberStart, lastQuote).trim();
+        return new BigInteger(s.substring(numberStart, lastQuote).trim());
     }
 
-    public static String extractIncrement(Headers h) {
-        return  h == null ? "0" : h.getFirst(INCREMENT_HEADER);
+    public static BigInteger extractIncrement(MessageInfo mi) {
+        Headers h = mi.getHeaders();
+        if (h == null) {
+            return BigInteger.ZERO;
+        }
+        String inc = h.getFirst(INCREMENT_HEADER);
+        return inc == null ? BigInteger.ZERO : new BigInteger(inc);
     }
 }
