@@ -4,53 +4,78 @@
 package io.synadia.counter;
 
 import io.nats.client.api.MessageInfo;
+import io.nats.client.impl.Headers;
 import org.jspecify.annotations.NonNull;
 
 import java.math.BigInteger;
-import java.util.HashMap;
 import java.util.Map;
 
-import static io.synadia.counter.CounterUtils.extractIncrement;
-import static io.synadia.counter.CounterUtils.extractVal;
+import static io.synadia.counter.CounterUtils.*;
 
 public class CounterEntry {
-    public final MessageInfo mi;
+    private final String subject;
+    private final BigInteger value;
+    private final BigInteger lastIncrement;
+    private final Map<String, Map<String, BigInteger>> sources;
 
     CounterEntry(MessageInfo mi) {
         if (!mi.isMessage()) {
-            throw new IllegalArgumentException("Message is not a counter message");
+            throw invalidCounterMessage(null);
         }
-        this.mi = mi;
+
+        subject = mi.getSubject();
+        try {
+            value = extractVal(mi.getData());
+        }
+        catch (RuntimeException e) {
+            throw invalidCounterMessage(e);
+        }
+
+        Headers h = mi.getHeaders();
+        if (h == null) {
+            throw invalidCounterMessage(null);
+        }
+
+        String temp = h.getFirst(CounterUtils.INCREMENT_HEADER);
+        if (temp == null) {
+            throw invalidCounterMessage(null);
+        }
+        lastIncrement = extractLastIncrement(temp);
+
+        sources = extractSources(h.getFirst(CounterUtils.SOURCES_HEADER));
+    }
+
+    private static RuntimeException invalidCounterMessage(Exception e) {
+        return new RuntimeException("Message is not a counter message", e);
     }
 
     @NonNull
     public String getSubject() {
-        //noinspection DataFlowIssue we know it's not null
-        return mi.getSubject();
+        return subject;
     }
 
     @NonNull
     public BigInteger getValue() {
-        return extractVal(mi);
+        return value;
     }
 
     @NonNull
     public BigInteger getLastIncrement() {
-        return extractIncrement(mi);
+        return lastIncrement;
     }
 
     @NonNull
-    public Map<String, BigInteger> getSources() {
-        return new HashMap<>(); // TODO
+    public Map<String, Map<String, BigInteger>> getSources() {
+        return sources;
     }
 
     @Override
     public String toString() {
         return "CounterEntry{" +
-            "subject=\"" + getSubject() + '\"' +
-            ", value=" + getValue() +
-            ", lastIncrement=" + getLastIncrement() +
-            ", sources=" + getSources() +
+            "subject=\"" + subject + '\"' +
+            ", value=" + value +
+            ", lastIncrement=" + lastIncrement +
+            ", sources=" + sources +
             '}';
     }
 }

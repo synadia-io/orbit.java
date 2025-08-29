@@ -7,6 +7,7 @@ import io.nats.client.Connection;
 import io.nats.client.JetStreamApiException;
 import io.nats.client.JetStreamManagement;
 import io.nats.client.Nats;
+import io.nats.client.api.StorageType;
 import io.nats.client.api.StreamConfiguration;
 import io.synadia.counter.Counter;
 import io.synadia.counter.CounterEntryResponse;
@@ -28,6 +29,7 @@ public class CounterContextExample {
                 StreamConfiguration.builder()
                     .name("counter-stream")
                     .subjects("cs.*")
+                    .storageType(StorageType.Memory)
                     .build());
 
             // ----------------------------------------------------------------------------------------------------

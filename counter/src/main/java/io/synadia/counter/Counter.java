@@ -88,6 +88,7 @@ public class Counter {
     }
 
     private BigInteger _add(String subject, String sv) throws IOException, JetStreamApiException {
+        validateSingleSubject(subject);
         Headers h = new Headers();
         h.put(INCREMENT_HEADER, sv);
         PublishAck pa = js.publish(subject, h, null);
@@ -110,6 +111,14 @@ public class Counter {
         return _add(subject, value.toString());
     }
 
+    public BigInteger increment(String subject) throws JetStreamApiException, IOException {
+        return _add(subject, "1");
+    }
+
+    public BigInteger decrement(String subject) throws JetStreamApiException, IOException {
+        return _add(subject, "-1");
+    }
+
     public BigInteger setViaAdd(String subject, int value) throws JetStreamApiException, IOException {
         return setViaAdd(subject, BigInteger.valueOf(value));
     }
@@ -126,7 +135,7 @@ public class Counter {
     public BigInteger get(String subject) throws JetStreamApiException, IOException {
         validateSingleSubject(subject);
         MessageInfo mi = jsm.getMessage(streamName, MessageGetRequest.lastForSubject(subject).noHeaders());
-        return extractVal(mi);
+        return extractVal(mi.getData());
     }
 
     public BigInteger getOrElse(String subject, int dflt) throws IOException {

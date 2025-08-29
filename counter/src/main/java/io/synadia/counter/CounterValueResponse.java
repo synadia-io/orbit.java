@@ -26,7 +26,7 @@ public class CounterValueResponse extends CounterResponse {
 
     @Nullable
     public BigInteger getValue() {
-        return mi.isMessage() ? extractVal(mi) : null;
+        return mi.isMessage() ? extractVal(mi.getData()) : null;
     }
 
     @Override
