@@ -4,7 +4,6 @@
 package io.synadia.examples;
 
 import io.nats.client.*;
-import io.nats.client.support.DateTimeUtils;
 import io.synadia.sm.ScheduledMessageBuilder;
 
 import java.util.concurrent.CountDownLatch;
@@ -38,15 +37,15 @@ public class ScheduleAtSpecificTime {
 
                 // subscribe to the target subject
                 js.subscribe(TARGET_SUBJECT, d, m -> {
-                    latch.countDown();
                     report("TARGET", m);
                     m.ack();
+                    latch.countDown();
                 }, false);
 
                 Message m = new ScheduledMessageBuilder()
                     .publishSubject(SCHEDULER_SUBJECT)
                     .targetSubject(TARGET_SUBJECT)
-                    .scheduleAt(DateTimeUtils.gmtNow().plusSeconds(10))
+//                    .scheduleAt(DateTimeUtils.gmtNow().plusSeconds(10))
                     .scheduleCustom("@at 1970-01-01T00:00:00Z")
                     .data("payload")
                     .build();
