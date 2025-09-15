@@ -420,18 +420,18 @@ public class DirectBatchTests {
     @SuppressWarnings("DuplicateBranchesInSwitch")
     private static void _verify(List<MessageInfo> list, String label, boolean lastIsEob) {
         switch (label) {
-            case "1"   : _verify(list, 1,  23, lastIsEob, 1, 2, 3);  break;
-            case "1A"  : _verify(list, 1,  3,  lastIsEob, 1, 6, 11); break;
-            case "2"   : _verify(list, 4,  20, lastIsEob, 4, 5, 6);  break;
-            case "2A"  : _verify(list, 6,  2,  lastIsEob, 6, 11, 16); break;
-            case "3"   : _verify(list, 6,  18, lastIsEob, 6, 7, 8);  break;
-            case "3A"  : _verify(list, 6,  2,  lastIsEob, 6, 11, 16); break;
-            case "4"   : _verify(list, 1,  23, lastIsEob, 1, 2);  break;
-            case "4A"  : _verify(list, 1,  3,  lastIsEob, 1, 6); break;
-            case "5"   : _verify(list, 4,  20, lastIsEob, 4, 5);  break;
-            case "5A"  : _verify(list, 6,  2,  lastIsEob, 6, 11); break;
-            case "6"   : _verify(list, 6,  18, lastIsEob, 6, 7);  break;
-            case "6A"  : _verify(list, 6,  2,  lastIsEob, 6, 11); break;
+            case "1"   : _verify(list, 1,  22, lastIsEob, 1, 2, 3);  break;
+            case "1A"  : _verify(list, 1,  2,  lastIsEob, 1, 6, 11); break;
+            case "2"   : _verify(list, 4,  19, lastIsEob, 4, 5, 6);  break;
+            case "2A"  : _verify(list, 6,  1,  lastIsEob, 6, 11, 16); break;
+            case "3"   : _verify(list, 6,  17, lastIsEob, 6, 7, 8);  break;
+            case "3A"  : _verify(list, 6,  1,  lastIsEob, 6, 11, 16); break;
+            case "4"   : _verify(list, 1,  22, lastIsEob, 1, 2);  break;
+            case "4A"  : _verify(list, 1,  2,  lastIsEob, 1, 6); break;
+            case "5"   : _verify(list, 4,  19, lastIsEob, 4, 5);  break;
+            case "5A"  : _verify(list, 6,  1,  lastIsEob, 6, 11); break;
+            case "6"   : _verify(list, 6,  17, lastIsEob, 6, 7);  break;
+            case "6A"  : _verify(list, 6,  1,  lastIsEob, 6, 11); break;
             case "M1"  : _verify(list, 21, 0,  lastIsEob, 21, 23, 25);  break;
             case "M1A" : _verify(list, 21, 2,  lastIsEob, 21, 22, 23, 24, 25); break;
             case "M2"  : _verify(list, 18, 0,  lastIsEob, 18, 20, 21);  break;

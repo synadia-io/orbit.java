@@ -75,7 +75,7 @@ jar {
     manifest {
         attributes('Automatic-Module-Name': 'io.synadia.counter')
     }
-    bnd (['Implementation-Title': 'JetStream Distributed Counter',
+    bnd (['Implementation-Title': 'JetStream Distributed Counters',
           'Implementation-Version': jarVersion,
           'Implementation-Vendor': 'synadia.io']
     )
@@ -90,7 +90,7 @@ test {
 javadoc {
     options.overview = 'src/main/javadoc/overview.html' // relative to source root
     source = sourceSets.main.allJava
-    title = "Synadia Communications Inc. JetStream Distributed Counter"
+    title = "Synadia Communications Inc. JetStream Distributed Counters"
     classpath = sourceSets.main.runtimeClasspath
     doLast {
         if (!OperatingSystem.current().isWindows()) {

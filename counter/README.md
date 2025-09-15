@@ -1,6 +1,6 @@
 ![Synadia](src/main/javadoc/images/synadia-logo.png) &nbsp;&nbsp;&nbsp;&nbsp; ![NATS](src/main/javadoc/images/large-logo.png)
 
-# JetStream Distributed Counter CRDT
+# JetStream Distributed Counters CRDT
 
 https://github.com/nats-io/nats-architecture-and-design/blob/main/adr/ADR-49.md
 

@@ -14,10 +14,10 @@ instead of the usual first response for a request. This allows you to implement 
 &nbsp; **Gradle and Maven** `io.synadia:request-many`
 [Dependencies Help](https://github.com/synadia-io/orbit.java?tab=readme-ov-file#dependencies)
 
-![Artifact](https://img.shields.io/badge/Artifact-io.synadia:retrier-00BC8E?labelColor=grey&style=flat)
+![Artifact](https://img.shields.io/badge/Artifact-io.synadia:request--many-00BC8E?labelColor=grey&style=flat)
 [![License Apache 2](https://img.shields.io/badge/License-Apache2-blue.svg)](https://www.apache.org/licenses/LICENSE-2.0)
-[![Maven Central](https://maven-badges.herokuapp.com/maven-central/io.synadia/retrier/badge.svg)](https://maven-badges.herokuapp.com/maven-central/io.synadia/retrier)
-[![javadoc](https://javadoc.io/badge2/io.synadia/retrier/javadoc.svg)](https://javadoc.io/doc/io.synadia/retrier)
+[![Maven Central](https://maven-badges.herokuapp.com/maven-central/io.synadia/request-many/badge.svg)](https://maven-badges.herokuapp.com/maven-central/io.synadia/request-many)
+[![javadoc](https://javadoc.io/badge2/io.synadia/request-many/javadoc.svg)](https://javadoc.io/doc/io.synadia/request-many)
 
 ### Request Many Usage
 
