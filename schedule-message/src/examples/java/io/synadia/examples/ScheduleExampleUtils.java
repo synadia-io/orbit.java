@@ -6,10 +6,11 @@ package io.synadia.examples;
 import io.nats.client.Connection;
 import io.nats.client.JetStreamApiException;
 import io.nats.client.JetStreamManagement;
+import io.nats.client.Message;
 import io.nats.client.api.StorageType;
 import io.nats.client.api.StreamConfiguration;
 import io.nats.client.api.StreamInfo;
-import io.nats.client.support.Debug;
+import io.nats.client.impl.Headers;
 
 import java.io.IOException;
 
@@ -34,15 +35,45 @@ public class ScheduleExampleUtils {
                 .allowMessageSchedules()
                 .build();
             StreamInfo si = jsm.addStream(sc);
-            Debug.info("Created stream: " + si.getConfiguration());
+            report("Created stream", si.getConfiguration());
         }
         catch (Exception e) {
-            Debug.info("Failed creating stream: '' " + e);
+            report("Failed creating stream", e);
             System.exit(-1);
         }
     }
 
-    public static void report(String... strings) {
-        System.out.println("[" + System.currentTimeMillis() + "] " + String.join(" ", strings));
+    public static void report(Object... objects) {
+        StringBuilder sb = new StringBuilder();
+        boolean first = true;
+        for (Object o : objects) {
+            if (first) {
+                first = false;
+            }
+            else {
+                sb.append(" | ");
+            }
+            if (o instanceof Message) {
+                sb.append(toString((Message)o));
+            }
+            else {
+                sb.append(o.toString());
+            }
+        }
+        System.out.println("[" + System.currentTimeMillis() + "] " + sb);
+    }
+
+    public static String toString(Message msg) {
+        StringBuilder sb = new StringBuilder(System.lineSeparator())
+            .append("  Subject: ").append(msg.getSubject());
+        Headers h = msg.getHeaders();
+        if (h != null && !h.isEmpty()) {
+            sb.append(System.lineSeparator()).append("  Headers:");
+            for (String key : h.keySet()) {
+                sb.append(System.lineSeparator()).append("    ");
+                sb.append(key).append("=").append(h.get(key));
+            }
+        }
+        return sb.toString();
     }
 }

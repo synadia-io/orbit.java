@@ -5,10 +5,11 @@ package io.synadia.examples;
 
 import io.nats.client.*;
 import io.nats.client.support.DateTimeUtils;
-import io.nats.client.support.Debug;
 import io.synadia.sm.ScheduledMessageBuilder;
 
 import java.util.concurrent.CountDownLatch;
+
+import static io.synadia.examples.ScheduleExampleUtils.report;
 
 public class ScheduleAtSpecificTime {
     public static final String STREAM = "scheduler-stream";
@@ -31,24 +32,25 @@ public class ScheduleAtSpecificTime {
 
                 // subscribe to the subject that receives the schedule message
                 js.subscribe(SCHEDULER_SUBJECT, d, m -> {
-                    Debug.info("SCHEDULE", m);
+                    report("SCHEDULE", m);
                     m.ack();
                 }, false);
 
                 // subscribe to the target subject
                 js.subscribe(TARGET_SUBJECT, d, m -> {
-                    Debug.info("TARGET", m);
-                    m.ack();
                     latch.countDown();
+                    report("TARGET", m);
+                    m.ack();
                 }, false);
 
                 Message m = new ScheduledMessageBuilder()
                     .publishSubject(SCHEDULER_SUBJECT)
                     .targetSubject(TARGET_SUBJECT)
-                    .scheduleAt(DateTimeUtils.gmtNow().plusSeconds(3))
+                    .scheduleAt(DateTimeUtils.gmtNow().plusSeconds(10))
+                    .scheduleCustom("@at 1970-01-01T00:00:00Z")
                     .data("payload")
                     .build();
-                Debug.info("PUBLISH", m);
+                report("PUBLISH", m);
                 js.publish(m);
 
                 latch.await();

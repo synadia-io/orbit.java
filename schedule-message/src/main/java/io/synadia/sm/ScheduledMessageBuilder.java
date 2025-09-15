@@ -151,7 +151,16 @@ public class ScheduledMessageBuilder {
     }
 
     /**
-     * Schedule with one of the predefined enum values
+     * Schedule with a custom string. Use at your own risk
+     * @param custom the time to schedule
+     * @return a ScheduledMessageBuilder object
+     */
+    public ScheduledMessageBuilder scheduleCustom(String custom) {
+        scheduleString = custom;
+        return this;
+    }
+    /**
+     * Schedule for at a specific time
      * @param zdt the time to schedule
      * @return a ScheduledMessageBuilder object
      */
