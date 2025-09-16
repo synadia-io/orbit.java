@@ -3,45 +3,10 @@
 
 package io.synadia.examples;
 
-import io.nats.client.Connection;
-import io.nats.client.JetStreamApiException;
-import io.nats.client.JetStreamManagement;
 import io.nats.client.Message;
-import io.nats.client.api.StorageType;
-import io.nats.client.api.StreamConfiguration;
-import io.nats.client.api.StreamInfo;
 import io.nats.client.impl.Headers;
 
-import java.io.IOException;
-
 public class ScheduleExampleUtils {
-
-    public static void createOrReplaceStream(Connection connection, String stream, String... subjects) throws IOException, JetStreamApiException {
-        createOrReplaceStream(connection.jetStreamManagement(), stream, subjects);
-    }
-
-    public static void createOrReplaceStream(JetStreamManagement jsm, String stream, String... subjects) throws IOException, JetStreamApiException {
-        report("createOrReplaceStream");
-        try {
-            jsm.deleteStream(stream);
-        }
-        catch (Exception ignore) {}
-
-        try {
-            StreamConfiguration sc = StreamConfiguration.builder()
-                .name(stream)
-                .storageType(StorageType.Memory)
-                .subjects(subjects)
-                .allowMessageSchedules()
-                .build();
-            StreamInfo si = jsm.addStream(sc);
-            report("Created stream", si.getConfiguration());
-        }
-        catch (Exception e) {
-            report("Failed creating stream", e);
-            System.exit(-1);
-        }
-    }
 
     public static void report(Object... objects) {
         StringBuilder sb = new StringBuilder();

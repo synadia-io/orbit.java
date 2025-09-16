@@ -13,7 +13,7 @@ import java.nio.charset.StandardCharsets;
 import java.time.ZonedDateTime;
 
 /**
- * Class to make setting a per message ttl easier.
+ * Class to make a message that can be published to a stream that allows message scheduling
  */
 public class ScheduledMessageBuilder {
 
@@ -152,14 +152,15 @@ public class ScheduledMessageBuilder {
     }
 
     /**
-     * Schedule with a custom string. Use at your own risk
-     * @param custom the time to schedule
+     * Schedule with a time of now minus 1 second,
+     * which will be in the past by the time it gets to the server,
+     * so the scheduled message will be published immediately.
      * @return a ScheduledMessageBuilder object
      */
-    public ScheduledMessageBuilder scheduleCustom(String custom) {
-        scheduleString = custom;
-        return this;
+    public ScheduledMessageBuilder scheduleImmediate() {
+        return scheduleAt(DateTimeUtils.gmtNow().minusSeconds(1));
     }
+
     /**
      * Schedule for at a specific time
      * @param zdt the time to schedule

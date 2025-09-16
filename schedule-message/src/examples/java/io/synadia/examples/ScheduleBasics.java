@@ -4,14 +4,17 @@
 package io.synadia.examples;
 
 import io.nats.client.*;
+import io.nats.client.api.StorageType;
+import io.nats.client.api.StreamInfo;
 import io.nats.client.support.DateTimeUtils;
 import io.synadia.sm.ScheduledMessageBuilder;
+import io.synadia.sm.ScheduledStreamUtil;
 
 import java.util.concurrent.CountDownLatch;
 
 import static io.synadia.examples.ScheduleExampleUtils.report;
 
-public class ScheduleAtSpecificTime {
+public class ScheduleBasics {
     public static final String STREAM = "scheduler";
 
     public static final String SCHEDULE_PREFIX = "schedule.";
@@ -30,8 +33,15 @@ public class ScheduleAtSpecificTime {
                 .build();
 
             try (Connection connection = Nats.connectReconnectOnConnect(options)) {
-                ScheduleExampleUtils.createOrReplaceStream(connection, STREAM, STREAM_SUBJECTS);
+                JetStreamManagement jsm = connection.jetStreamManagement();;
                 JetStream js = connection.jetStream();
+
+                // delete the stream in case it existed, just for a fresh example
+                try { jsm.deleteStream(STREAM); } catch (Exception ignore) {}
+
+                // Use the utility to properly create a schedulable stream
+                StreamInfo si = ScheduledStreamUtil.createSchedulableStream(jsm, STREAM, StorageType.Memory, STREAM_SUBJECTS);
+                report("Created stream", si.getConfiguration());
 
                 CountDownLatch latch = new CountDownLatch(2);
                 Dispatcher d = connection.createDispatcher();
@@ -50,10 +60,10 @@ public class ScheduleAtSpecificTime {
                 }, false);
 
                 Message m = new ScheduledMessageBuilder()
-                    .publishSubject(SCHEDULE_PREFIX + "custom")
-                    .targetSubject(TARGET_PREFIX + "custom")
-                    .scheduleCustom("@at 1970-01-01T00:00:00Z")
-                    .data("Schedule-In-Past")
+                    .publishSubject(SCHEDULE_PREFIX + "now")
+                    .targetSubject(TARGET_PREFIX + "now")
+                    .scheduleImmediate()
+                    .data("Schedule-Now")
                     .build();
                 report("PUBLISH", m);
                 js.publish(m);
@@ -62,7 +72,7 @@ public class ScheduleAtSpecificTime {
                     .publishSubject(SCHEDULE_PREFIX + "at")
                     .targetSubject(TARGET_PREFIX + "at")
                     .scheduleAt(DateTimeUtils.gmtNow().plusSeconds(5))
-                    .data("Scheduled-In-Future")
+                    .data("Scheduled-At")
                     .build();
                 report("PUBLISH", m);
                 js.publish(m);
