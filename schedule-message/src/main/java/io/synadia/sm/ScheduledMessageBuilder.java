@@ -5,6 +5,7 @@ import io.nats.client.MessageTtl;
 import io.nats.client.impl.Headers;
 import io.nats.client.impl.NatsMessage;
 import io.nats.client.support.DateTimeUtils;
+import io.nats.client.support.NatsJetStreamConstants;
 import io.nats.client.support.Validator;
 
 import java.nio.charset.Charset;
@@ -214,10 +215,10 @@ public class ScheduledMessageBuilder {
         if (headers == null) {
             headers = new Headers();
         }
-        headers.put("Nats-Schedule-Target", targetSubject);
-        headers.put("Nats-Schedule", scheduleString);
+        headers.put(NatsJetStreamConstants.NATS_SCHEDULE_TARGET_HDR, targetSubject);
+        headers.put(NatsJetStreamConstants.NATS_SCHEDULE_HDR, scheduleString);
         if (messageTtl != null) {
-            headers.put("Nats-Schedule-TTL", messageTtl.getTtlString());
+            headers.put(NatsJetStreamConstants.NATS_SCHEDULE_TTL_HDR, messageTtl.getTtlString());
         }
 
         return NatsMessage.builder()
