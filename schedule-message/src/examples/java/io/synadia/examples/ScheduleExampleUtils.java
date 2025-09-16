@@ -66,6 +66,12 @@ public class ScheduleExampleUtils {
     public static String toString(Message msg) {
         StringBuilder sb = new StringBuilder(System.lineSeparator())
             .append("  Subject: ").append(msg.getSubject());
+        if (msg.getData() == null || msg.getData().length == 0) {
+            sb.append(" | No Data");
+        }
+        else {
+            sb.append(" | Data: ").append(new String(msg.getData()));
+        }
         Headers h = msg.getHeaders();
         if (h != null && !h.isEmpty()) {
             sb.append(System.lineSeparator()).append("  Headers:");
