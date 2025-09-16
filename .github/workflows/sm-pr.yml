@@ -1,4 +1,4 @@
-name: Chaos Runner Pull Request
+name: Scheduled Message Pull Request
 
 on:
   pull_request:

@@ -1,4 +1,4 @@
-name: Chaos Runner Release
+name: Scheduled Message Release
 
 on:
   push:

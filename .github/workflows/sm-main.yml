@@ -1,4 +1,4 @@
-name: Chaos Runner Main Snapshot
+name: Scheduled Message Main Snapshot
 
 on:
   push:
