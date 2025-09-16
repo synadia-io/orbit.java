@@ -60,7 +60,7 @@ public class ScheduleBasics {
                 }, false);
 
                 Message m = new ScheduledMessageBuilder()
-                    .publishSubject(SCHEDULE_PREFIX + "now")
+                    .scheduleSubject(SCHEDULE_PREFIX + "now")
                     .targetSubject(TARGET_PREFIX + "now")
                     .scheduleImmediate()
                     .data("Schedule-Now")
@@ -69,7 +69,7 @@ public class ScheduleBasics {
                 js.publish(m);
 
                 m = new ScheduledMessageBuilder()
-                    .publishSubject(SCHEDULE_PREFIX + "at")
+                    .scheduleSubject(SCHEDULE_PREFIX + "at")
                     .targetSubject(TARGET_PREFIX + "at")
                     .scheduleAt(DateTimeUtils.gmtNow().plusSeconds(5))
                     .data("Scheduled-At")

@@ -1,3 +1,6 @@
+// Copyright (c) 2025 Synadia Communications Inc. All Rights Reserved.
+// See LICENSE and NOTICE file for details.
+
 package io.synadia.sm;
 
 import io.nats.client.Message;
@@ -17,72 +20,22 @@ import java.time.ZonedDateTime;
  */
 public class ScheduledMessageBuilder {
 
-    public enum Predefined {
-        /**
-         * Run once a year, midnight, Jan. 1st. Same as Yearly. Equivalent to cron string 0 0 0 1 1 *
-         */
-        Annually("@annually"),
-
-        /**
-         * Run once a year, midnight, Jan. 1st. Same as Annually. Equivalent to cron string 0 0 0 1 1 *
-         */
-        Yearly("@yearly"),
-
-        /**
-         * Run once a month, midnight, first of month. Same as cron format 0 0 0 1 * *
-         */
-        Monthly("@monthly"),
-
-        /**
-         * Run once a week, midnight between Sat/Sun. Equivalent to cron string 0 0 0 * * 0
-         */
-        Weekly("@weekly"),
-
-        /**
-         * Run once a day, midnight. Same as Daily. Equivalent to cron string 0 0 0 * * *
-         */
-        Midnight("@midnight"),
-
-        /**
-         * Run once a day, midnight. Same as Midnight. Equivalent to cron string 0 0 0 * * *
-         */
-        Daily("@daily"),
-
-        /**
-         * Run once an hour, beginning of hour. Equivalent to cron string 0 0 * * * *
-         */
-        Hourly("@hourly");
-
-        final String value;
-
-        Predefined(String value) {
-            this.value = value;
-        }
-    }
-
     private String scheduleString;
-    private String publishSubject;
+    private String scheduleSubject;
     private String targetSubject;
     private Headers headers;
     private byte[] data;
     private MessageTtl messageTtl;
 
-    public ScheduledMessageBuilder() {
-    }
-
-    public ScheduledMessageBuilder(Message message) {
-        this.publishSubject = message.getSubject();
-        this.headers = message.getHeaders();
-        this.data = message.getData();
-    }
+    public ScheduledMessageBuilder() {}
 
     /**
-     * Set the publish subject
-     * @param publishSubject the publish subject
+     * Set the schedule subject
+     * @param scheduleSubject the schedule subject
      * @return the builder
      */
-    public ScheduledMessageBuilder publishSubject(final String publishSubject) {
-        this.publishSubject = publishSubject;
+    public ScheduledMessageBuilder scheduleSubject(String scheduleSubject) {
+        this.scheduleSubject = scheduleSubject;
         return this;
     }
 
@@ -91,18 +44,18 @@ public class ScheduledMessageBuilder {
      * @param targetSubject the target subject
      * @return the builder
      */
-    public ScheduledMessageBuilder targetSubject(final String targetSubject) {
+    public ScheduledMessageBuilder targetSubject(String targetSubject) {
         this.targetSubject = targetSubject;
         return this;
     }
 
     /**
-     * Set the headers
-     * @param headers the headers
+     * Set the data from a byte array. null data changed to empty byte array
+     * @param data the data
      * @return the builder
      */
-    public ScheduledMessageBuilder headers(final Headers headers) {
-        this.headers = headers;
+    public ScheduledMessageBuilder data(byte[] data) {
+        this.data = data;
         return this;
     }
 
@@ -112,7 +65,7 @@ public class ScheduledMessageBuilder {
      * @param data the data string
      * @return the builder
      */
-    public ScheduledMessageBuilder data(final String data) {
+    public ScheduledMessageBuilder data(String data) {
         if (data != null) {
             this.data = data.getBytes(StandardCharsets.UTF_8);
         }
@@ -125,40 +78,29 @@ public class ScheduledMessageBuilder {
      * @param charset the charset, for example {@code StandardCharsets.UTF_8}
      * @return the builder
      */
-    public ScheduledMessageBuilder data(final String data, final Charset charset) {
+    public ScheduledMessageBuilder data(String data, final Charset charset) {
         this.data = data.getBytes(charset);
         return this;
     }
 
     /**
-     * Set the data from a byte array. null data changed to empty byte array
-     *
-     * @param data the data
+     * Set the headers
+     * @param headers the headers
      * @return the builder
      */
-    public ScheduledMessageBuilder data(final byte[] data) {
-        this.data = data;
+    public ScheduledMessageBuilder headers(Headers headers) {
+        this.headers = headers;
         return this;
     }
 
     /**
-     * Schedule with one of the predefined enum values
-     * @param predefined One of the predefined enum values
-     * @return a ScheduledMessageBuilder object
+     * Copy the subject, data and headers from an existing message
+     * @param message the message
      */
-    public ScheduledMessageBuilder schedule(Predefined predefined) {
-        scheduleString = predefined == null ? null : predefined.value;
-        return this;
-    }
-
-    /**
-     * Schedule with a time of now minus 1 second,
-     * which will be in the past by the time it gets to the server,
-     * so the scheduled message will be published immediately.
-     * @return a ScheduledMessageBuilder object
-     */
-    public ScheduledMessageBuilder scheduleImmediate() {
-        return scheduleAt(DateTimeUtils.gmtNow().minusSeconds(1));
+    public ScheduledMessageBuilder copy(Message message) {
+        scheduleSubject(message.getSubject());
+        headers(message.getHeaders());
+        return data(message.getData());
     }
 
     /**
@@ -168,6 +110,26 @@ public class ScheduledMessageBuilder {
      */
     public ScheduledMessageBuilder scheduleAt(ZonedDateTime zdt) {
         scheduleString = zdt == null ? null : "@at " + DateTimeUtils.toRfc3339(zdt);
+        return this;
+    }
+
+    /**
+     * Schedule to run immediately. This is like scheduleAt with time of "now" minus 1 second,
+     * which will be in the past by the time it gets to the server,
+     * so the scheduled message will be published immediately.
+     * @return a ScheduledMessageBuilder object
+     */
+    public ScheduledMessageBuilder scheduleImmediate() {
+        return scheduleAt(DateTimeUtils.gmtNow().minusSeconds(1));
+    }
+
+    /**
+     * Schedule with one of the predefined enum values
+     * @param predefined One of the predefined enum values
+     * @return a ScheduledMessageBuilder object
+     */
+    public ScheduledMessageBuilder schedule(PredefinedSchedules predefined) {
+        scheduleString = predefined == null ? null : predefined.value;
         return this;
     }
 
@@ -203,10 +165,10 @@ public class ScheduledMessageBuilder {
     }
 
     public Message build() {
-        Validator.required(publishSubject, "Publish Subject is required.");
+        Validator.required(scheduleSubject, "Publish Subject is required.");
         Validator.required(targetSubject, "Target Subject is required.");
-        if (Validator.notPrintableOrHasWildGt(publishSubject)) {
-            Validator.required(publishSubject, "Publish Subject cannot contain '*' or '>'.");
+        if (Validator.notPrintableOrHasWildGt(scheduleSubject)) {
+            Validator.required(scheduleSubject, "Publish Subject cannot contain '*' or '>'.");
         }
         if (Validator.notPrintableOrHasWildGt(targetSubject)) {
             Validator.required(targetSubject, "Target Subject cannot contain '*' or '>'.");
@@ -223,7 +185,7 @@ public class ScheduledMessageBuilder {
         }
 
         return NatsMessage.builder()
-            .subject(publishSubject)
+            .subject(scheduleSubject)
             .headers(headers)
             .data(data)
             .build();
