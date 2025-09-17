@@ -23,7 +23,6 @@ public class MessageBatchGetRequest implements JsonSerializable {
     private final List<String> multiLastBySubjects;
     private final long upToSequence;
     private final ZonedDateTime upToTime;
-    private final boolean noHeaders;
 
     // batch constructor
     private MessageBatchGetRequest(String subject,
@@ -40,7 +39,6 @@ public class MessageBatchGetRequest implements JsonSerializable {
         this.upToSequence = -1;
         this.upToTime = null;
         this.minSequence = startTime == null && minSequence < 1 ? 1 : minSequence;
-        noHeaders = false;
     }
 
     // multi last for constructor
@@ -56,23 +54,6 @@ public class MessageBatchGetRequest implements JsonSerializable {
         this.multiLastBySubjects = subjects;
         this.upToSequence = upToSequence;
         this.upToTime = upToTime;
-        noHeaders = false;
-    }
-
-    private MessageBatchGetRequest(MessageBatchGetRequest r, boolean noHeaders) {
-        this.batch = r.batch;
-        this.nextBySubject = r.nextBySubject;
-        this.maxBytes = r.maxBytes;
-        this.minSequence = r.minSequence;
-        this.startTime = r.startTime;
-        this.multiLastBySubjects = r.multiLastBySubjects;
-        this.upToSequence = r.upToSequence;
-        this.upToTime = r.upToTime;
-        this.noHeaders = noHeaders;
-    }
-
-    public MessageBatchGetRequest noHeaders() {
-        return new MessageBatchGetRequest(this, true);
     }
 
     /**
@@ -283,7 +264,6 @@ public class MessageBatchGetRequest implements JsonSerializable {
         addStrings(sb, MULTI_LAST, multiLastBySubjects);
         addField(sb, UP_TO_SEQ, upToSequence);
         addField(sb, UP_TO_TIME, upToTime);
-        addFldWhenTrue(sb, NO_HDR, noHeaders);
         return endJson(sb).toString();
     }
 

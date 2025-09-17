@@ -17,6 +17,9 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.LinkedBlockingQueue;
 
+import static io.nats.client.support.ApiConstants.LAST_BY_SUBJECT;
+import static io.nats.client.support.ApiConstants.NO_HDR;
+import static io.nats.client.support.JsonUtils.*;
 import static io.nats.client.support.Validator.required;
 import static io.synadia.counter.CounterUtils.INCREMENT_HEADER;
 import static io.synadia.counter.CounterUtils.extractVal;
@@ -132,9 +135,30 @@ public class Counter {
         return _add(subject, value.subtract(bi).toString());
     }
 
+    static class NoHeadersMessageGetRequest extends MessageGetRequest {
+        public NoHeadersMessageGetRequest(String lastBySubject) {
+            super(-1, lastBySubject, null, null);
+        }
+
+        @Override
+        public boolean isLastBySubject() {
+            // this makes sure that the underlying getMessage call
+            // doesn't use the JSAPI_DIRECT_GET_LAST api
+            return false;
+        }
+
+        @Override
+        public @NonNull String toJson() {
+            StringBuilder sb = beginJson();
+            addField(sb, LAST_BY_SUBJECT, getLastBySubject());
+            addField(sb, NO_HDR, true);
+            return endJson(sb).toString();
+        }
+    }
+
     public BigInteger get(String subject) throws JetStreamApiException, IOException {
         validateSingleSubject(subject);
-        MessageInfo mi = jsm.getMessage(streamName, MessageGetRequest.lastForSubject(subject).noHeaders());
+        MessageInfo mi = jsm.getMessage(streamName, new NoHeadersMessageGetRequest(subject));
         return extractVal(mi.getData());
     }
 
@@ -161,7 +185,7 @@ public class Counter {
 
     public LinkedBlockingQueue<CounterValueResponse> getMultiple(List<String> subjects) {
         LinkedBlockingQueue<CounterValueResponse> queue = new LinkedBlockingQueue<>();
-        MessageBatchGetRequest mbgr = MessageBatchGetRequest.multiLastForSubjects(subjects).noHeaders();
+        MessageBatchGetRequest mbgr = MessageBatchGetRequest.multiLastForSubjects(subjects);
         dbCtx.requestMessageBatch(mbgr, mi -> queue.add(new CounterValueResponse(mi)));
         return queue;
     }
