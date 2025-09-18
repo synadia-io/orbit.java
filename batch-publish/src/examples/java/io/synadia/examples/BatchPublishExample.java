@@ -16,7 +16,7 @@ public class BatchPublishExample {
     static final String STREAM = "bp-stream";
     static final String SUBJECT = "bp-subject";
     static final int BATCH_SIZE = 1000; // !!! MAX IS 1000
-    static final int CONFIRM_EVERY = 50;
+    static final int CONFIRM_EVERY = 100;
 
     public static void main(String[] args) throws Exception {
         try (Connection nc = Nats.connect(NATS_URL)) {
@@ -34,27 +34,31 @@ public class BatchPublishExample {
             JetStream js = nc.jetStream();
 
             BatchPublisher publisher = new BatchPublisher(nc);
-            publisher.open();
 
-            for (int i = 1; i < BATCH_SIZE; i++) {
+            for (int i = 1; i <= BATCH_SIZE; i++) {
                 Headers h = new Headers();
-                h.put("my-id", "" + i);
-                if (CONFIRM_EVERY > 0 && i % CONFIRM_EVERY == 0) {
-                    publisher.publishConfirm(SUBJECT, h, ("data-" + i).getBytes());
-                    System.out.println("Batch In Progress Confirmed at " + i);
+                h.put("bp-id", "xyz-" + i);
+                byte[] data = ("data-" + i).getBytes();
+                if (i == 1) {
+                    publisher.open(SUBJECT, h, data);
+                    System.out.println("Batch " + publisher.getBatchId() + " | Opened");
+                }
+                else if (i == BATCH_SIZE) {
+                    PublishAck pa = publisher.publishLast(SUBJECT, h, data);
+                    assert pa.getJv() != null;
+                    System.out.println("Batch " + pa.getBatchId() + " | Committed " + pa.getJv().toJson());
+                }
+                else if (CONFIRM_EVERY > 0 && i % CONFIRM_EVERY == 0) {
+                    if (publisher.publishConfirm(SUBJECT, h, data)) {
+                        System.out.println("Batch " + publisher.getBatchId() + " | Progress confirmed at message " + i);
+                    }
                 }
                 else {
-                    publisher.publish(SUBJECT, h, ("data-" + i).getBytes());
+                    publisher.publish(SUBJECT, h, data);
                 }
             }
 
-            Headers h = new Headers();
-            h.put("my-id", "" + BATCH_SIZE);
-            PublishAck pa = publisher.publishLast(SUBJECT, h, ("data-" + BATCH_SIZE).getBytes());
-            assert pa.getJv() != null;
-            System.out.println("Commit Ack: " + pa.getJv().toJson());
-
-            // simple subscript
+            // simple subscription
             JetStreamSubscription sub = js.subscribe(SUBJECT, PushSubscribeOptions.builder()
                 .configuration(ConsumerConfiguration.builder()
                     .filterSubject(SUBJECT)

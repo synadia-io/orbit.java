@@ -54,20 +54,33 @@ public class BatchPublisher {
         lastSeq = 0;
     }
 
-    public void open() {
-        _open(new NUID().next());
+    public String getBatchId() {
+        if (openedHeaders == null) {
+            return null;
+        }
+        return openedHeaders.getFirst(NatsJetStreamConstants.NATS_BATCH_ID_HDR);
     }
 
-    public void open(String batchId) {
+    public boolean open(String subject, byte[] data) throws BatchPublishException {
+        return open(new NUID().next(), subject, null, data);
+    }
+
+    public boolean open(String subject, Headers userHeaders, byte[] data) throws BatchPublishException {
+        return open(new NUID().next(), subject, null, data);
+    }
+
+    public boolean open(String batchId, String subject, byte[] data) throws BatchPublishException {
         validateNotNull(batchId, "Batch ID");
-        _open(batchId);
+        return open(new NUID().next(), subject, null, data);
     }
 
-    private void _open(String batchId) {
+    public boolean open(String batchId, String subject, Headers userHeaders, byte[] data) throws BatchPublishException {
+        validateNotNull(batchId, "Batch ID");
         lastSeq = 0;
         openedHeaders = new Headers();
         openedHeaders.put(NatsJetStreamConstants.NATS_BATCH_ID_HDR, batchId);
         lastUserHeaderKeys = new ArrayList<>();
+        return publishConfirm(subject, userHeaders, data);
     }
 
     public void publish(String subject, byte[] data) {
