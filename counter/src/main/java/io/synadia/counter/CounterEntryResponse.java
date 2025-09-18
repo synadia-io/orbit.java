@@ -6,6 +6,10 @@ package io.synadia.counter;
 import io.nats.client.api.MessageInfo;
 import org.jspecify.annotations.Nullable;
 
+import java.math.BigInteger;
+
+import static io.synadia.counter.CounterUtils.extractVal;
+
 public class CounterEntryResponse extends CounterResponse {
 
     CounterEntryResponse(MessageInfo mi) {
@@ -18,6 +22,11 @@ public class CounterEntryResponse extends CounterResponse {
      */
     public boolean isEntry() {
         return mi.isMessage();
+    }
+
+    @Nullable
+    public BigInteger getValue() {
+        return mi.isMessage() ? extractVal(mi.getData()) : null;
     }
 
     @Nullable

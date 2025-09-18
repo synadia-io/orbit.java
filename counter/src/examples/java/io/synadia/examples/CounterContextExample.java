@@ -11,7 +11,6 @@ import io.nats.client.api.StorageType;
 import io.nats.client.api.StreamConfiguration;
 import io.synadia.counter.Counter;
 import io.synadia.counter.CounterEntryResponse;
-import io.synadia.counter.CounterValueResponse;
 
 import java.math.BigInteger;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -98,37 +97,20 @@ public class CounterContextExample {
             }
 
             // ----------------------------------------------------------------------------------------------------
-            System.out.println("\n4.1: getMultiple(\"cs.A\", \"cs.B\", \"cs.C\") - Get the CounterValueResponse objects for multiple subjects. Maybe to total them up?\"");
-            LinkedBlockingQueue<CounterValueResponse> vResponses = counter.getMultiple("cs.A", "cs.B", "cs.C");
-            BigInteger total = BigInteger.ZERO;
-            CounterValueResponse vr = vResponses.poll(1, TimeUnit.SECONDS);
-            while (vr != null && vr.isValue()) {
-                System.out.println(" " + vr);
-                total = total.add(vr.getValue());
-                vr = vResponses.poll(10, TimeUnit.MILLISECONDS);
-            }
-            System.out.println(" " + vr + " -> No more values.");
-            System.out.println(" Values totaled: " + total);
-
-            System.out.println("\n4.2: getEntries(\"cs.A\", \"cs.B\", \"cs.C\") - Get the CounterEntryResponse objects for multiple subjects.");
+            System.out.println("\n4.1: getEntries(\"cs.A\", \"cs.B\", \"cs.C\") - Get the CounterEntryResponse objects for multiple subjects.");
             LinkedBlockingQueue<CounterEntryResponse> eResponses = counter.getEntries("cs.A", "cs.B", "cs.C");
+            BigInteger total = BigInteger.ZERO;
             CounterEntryResponse er = eResponses.poll(1, TimeUnit.SECONDS);
             while (er != null && er.isEntry()) {
                 System.out.println(" " + er);
+                // the entry response has a method to simplify getting the value
+                total = total.add(er.getValue());
                 er = eResponses.poll(10, TimeUnit.MILLISECONDS);
             }
             System.out.println(" " + er + " -> No more entries.");
+            System.out.println(" Values totaled: " + total);
 
-            System.out.println("\n4.3: getMultiple(\"cs.*\") - Get the CounterValueResponse objects for wildcard subject(s).");
-            vResponses = counter.getMultiple("cs.*");
-            vr = vResponses.poll(1, TimeUnit.SECONDS);
-            while (vr != null && vr.isValue()) {
-                System.out.println(" " + vr);
-                vr = vResponses.poll(10, TimeUnit.MILLISECONDS);
-            }
-            System.out.println(" " + vr + " -> No more values.");
-
-            System.out.println("\n4.4: getEntries(\"cs.*\") - Get CounterEntryResponse objects for wildcard subject(s).");
+            System.out.println("\n4.2: getEntries(\"cs.*\") - Get CounterEntryResponse objects for wildcard subject(s).");
             eResponses = counter.getEntries("cs.*");
             er = eResponses.poll(1, TimeUnit.SECONDS);
             while (er != null && er.isEntry()) {
@@ -162,16 +144,7 @@ public class CounterContextExample {
             System.out.println("  get(\"cs.did-not-exist\") -> " + counter.get("cs.did-not-exist"));
 
             // ----------------------------------------------------------------------------------------------------
-            System.out.println("\n6.1: getMultiple(\"cs.no-counters\", \"cs.also-counters\") - getMultiple but no subjects have counters.");
-            vResponses = counter.getMultiple("cs.no-counters", "cs.also-counters");
-            vr = vResponses.poll(1, TimeUnit.SECONDS);
-            while (vr != null && vr.isValue()) {
-                System.out.println(" " + er);
-                vr = vResponses.poll(10, TimeUnit.MILLISECONDS);
-            }
-            System.out.println(" " + vr);
-
-            System.out.println("\n6.2: getEntries(\"cs.no-counters\", \"cs.also-counters\") - getEntries but no subjects have counters.");
+            System.out.println("\n6.1: getEntries(\"cs.no-counters\", \"cs.also-counters\") - getEntries but no subjects have counters.");
             eResponses = counter.getEntries("cs.no-counters", "cs.also-counters");
             er = eResponses.poll(1, TimeUnit.SECONDS);
             while (er != null && er.isEntry()) {
@@ -181,16 +154,7 @@ public class CounterContextExample {
             System.out.println(" " + er);
 
             // ----------------------------------------------------------------------------------------------------
-            System.out.println("\n7.1: getMultiple(\"no-counters\", \"cs.A\", \"cs.B\", \"cs.C\") - getMultiple when some subjects have counters.");
-            vResponses = counter.getMultiple("cs.no-counters", "cs.A", "cs.B", "cs.C");
-            vr = vResponses.poll(1, TimeUnit.SECONDS);
-            while (vr != null && vr.isValue()) {
-                System.out.println(" " + vr);
-                vr = vResponses.poll(10, TimeUnit.MILLISECONDS);
-            }
-            System.out.println(" " + vr + " -> No more values.");
-
-            System.out.println("\n7.2: getEntries(\"no-counters\", \"cs.A\", \"cs.B\", \"cs.C\") - getEntries when some subjects have counters.");
+            System.out.println("\n7.1: getEntries(\"no-counters\", \"cs.A\", \"cs.B\", \"cs.C\") - getEntries when some subjects have counters.");
             eResponses = counter.getEntries("cs.no-counters", "cs.A", "cs.B", "cs.C");
             er = eResponses.poll(1, TimeUnit.SECONDS);
             while (er != null && er.isEntry()) {
