@@ -17,9 +17,10 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 
 public class CounterContextExample {
+    static final String NATS_URL = "nats://localhost:4222";
 
     public static void main(String[] args) throws Exception {
-        try (Connection nc = Nats.connect()) {
+        try (Connection nc = Nats.connect(NATS_URL)) {
             JetStreamManagement jsm = nc.jetStreamManagement();
 
             // Set up a fresh counter stream

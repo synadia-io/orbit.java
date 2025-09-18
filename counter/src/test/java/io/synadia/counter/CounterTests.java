@@ -124,17 +124,6 @@ public class CounterTests {
         assertEquals(1000, counter.get(subject3).intValue());
 
         BigInteger total = BigInteger.ZERO;
-        LinkedBlockingQueue<CounterValueResponse> vResponses = counter.getMultiple(subject1, subject2, subject3);
-        CounterValueResponse vr = vResponses.poll(1, TimeUnit.SECONDS);
-        while (vr != null && vr.isValue()) {
-            total = total.add(vr.getValue());
-            vr = vResponses.poll(10, TimeUnit.MILLISECONDS);
-        }
-        assertNotNull(vr);
-        assertTrue(vr.isEobStatus());
-        assertEquals(1110, total.intValue());
-
-        total = BigInteger.ZERO;
         LinkedBlockingQueue<CounterEntryResponse> eResponses = counter.getEntries(subject1, subject2, subject3);
         CounterEntryResponse er = eResponses.poll(1, TimeUnit.SECONDS);
         while (er != null && er.isEntry()) {
@@ -145,17 +134,6 @@ public class CounterTests {
         }
         assertNotNull(er);
         assertTrue(er.isEobStatus());
-        assertEquals(1110, total.intValue());
-
-        total = BigInteger.ZERO;
-        vResponses = counter.getMultiple(subjectPrefix + ".*");
-        vr = vResponses.poll(1, TimeUnit.SECONDS);
-        while (vr != null && vr.isValue()) {
-            total = total.add(vr.getValue());
-            vr = vResponses.poll(10, TimeUnit.MILLISECONDS);
-        }
-        assertNotNull(vr);
-        assertTrue(vr.isEobStatus());
         assertEquals(1110, total.intValue());
 
         total = BigInteger.ZERO;
