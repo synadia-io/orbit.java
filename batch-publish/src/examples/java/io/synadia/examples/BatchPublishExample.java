@@ -33,28 +33,27 @@ public class BatchPublishExample {
 
             JetStream js = nc.jetStream();
 
-            BatchPublisher publisher = new BatchPublisher(nc);
+            BatchPublisher publisher = BatchPublisher.builder()
+                .connection(nc)
+                .batchId(NUID.nextGlobal())
+                .build();
 
             for (int i = 1; i <= BATCH_SIZE; i++) {
                 Headers h = new Headers();
-                h.put("bp-id", "xyz-" + i);
+                h.put("my-id", "xyz-" + i);
                 byte[] data = ("data-" + i).getBytes();
-                if (i == 1) {
-                    publisher.open(SUBJECT, h, data);
-                    System.out.println("Batch " + publisher.getBatchId() + " | Opened");
-                }
-                else if (i == BATCH_SIZE) {
-                    PublishAck pa = publisher.publishLast(SUBJECT, h, data);
+                if (i == BATCH_SIZE) {
+                    System.out.println("Commit");
+                    PublishAck pa = publisher.commit(SUBJECT, h, data);
                     assert pa.getJv() != null;
-                    System.out.println("Batch " + pa.getBatchId() + " | Committed " + pa.getJv().toJson());
+                    System.out.println("Batch [" + pa.getBatchId() + "] Committed " + pa.getJv().toJson());
                 }
                 else if (CONFIRM_EVERY > 0 && i % CONFIRM_EVERY == 0) {
-                    if (publisher.publishConfirm(SUBJECT, h, data)) {
-                        System.out.println("Batch " + publisher.getBatchId() + " | Progress confirmed at message " + i);
-                    }
+                    publisher.addWithConfirm(SUBJECT, h, data);
+                    System.out.println("Batch [" + publisher.getBatchId() + "] Progress confirmed at message " + i);
                 }
                 else {
-                    publisher.publish(SUBJECT, h, data);
+                    publisher.add(SUBJECT, h, data);
                 }
             }
 

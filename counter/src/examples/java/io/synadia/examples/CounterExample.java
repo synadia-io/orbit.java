@@ -16,7 +16,7 @@ import java.math.BigInteger;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 
-public class CounterContextExample {
+public class CounterExample {
     static final String NATS_URL = "nats://localhost:4222";
 
     public static void main(String[] args) throws Exception {
