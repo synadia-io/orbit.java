@@ -4,19 +4,17 @@
 package io.synadia.examples;
 
 import io.nats.client.*;
-import io.nats.client.api.AckPolicy;
-import io.nats.client.api.ConsumerConfiguration;
-import io.nats.client.api.PublishAck;
-import io.nats.client.api.StreamConfiguration;
+import io.nats.client.api.*;
 import io.nats.client.impl.Headers;
 import io.synadia.bp.BatchPublisher;
 
-public class BatchPublishExample {
+public class BasicBatchPublishExample {
     static final String NATS_URL = "nats://localhost:4222";
     static final String STREAM = "bp-stream";
     static final String SUBJECT = "bp-subject";
     static final int BATCH_SIZE = 1000; // !!! MAX IS 1000
-    static final int CONFIRM_EVERY = 100;
+    static final boolean ACK_FIRST = true; // default is true usually never change this.
+    static final int AUTO_ACK_EVERY = 100; // 0 or less means no auto ack
 
     public static void main(String[] args) throws Exception {
         try (Connection nc = Nats.connect(NATS_URL)) {
@@ -36,26 +34,27 @@ public class BatchPublishExample {
             BatchPublisher publisher = BatchPublisher.builder()
                 .connection(nc)
                 .batchId(NUID.nextGlobal())
+                .ackFirst(ACK_FIRST)
+                .ackEvery(AUTO_ACK_EVERY)
                 .build();
 
             for (int i = 1; i <= BATCH_SIZE; i++) {
                 Headers h = new Headers();
-                h.put("my-id", "xyz-" + i);
+                h.put("my-header", "xyz-" + i);
                 byte[] data = ("data-" + i).getBytes();
                 if (i == BATCH_SIZE) {
-                    System.out.println("Commit");
                     PublishAck pa = publisher.commit(SUBJECT, h, data);
                     assert pa.getJv() != null;
                     System.out.println("Batch [" + pa.getBatchId() + "] Committed " + pa.getJv().toJson());
-                }
-                else if (CONFIRM_EVERY > 0 && i % CONFIRM_EVERY == 0) {
-                    publisher.addWithConfirm(SUBJECT, h, data);
-                    System.out.println("Batch [" + publisher.getBatchId() + "] Progress confirmed at message " + i);
                 }
                 else {
                     publisher.add(SUBJECT, h, data);
                 }
             }
+
+            StreamInfo si = jsm.getStreamInfo(STREAM, StreamInfoOptions.allSubjects());
+            long messages = si.getStreamState().getSubjectMap().get(SUBJECT);
+            System.out.println("Stream State shows '" + SUBJECT + "' has " + messages + " messages.");
 
             // simple subscription
             JetStreamSubscription sub = js.subscribe(SUBJECT, PushSubscribeOptions.builder()
@@ -70,7 +69,7 @@ public class BatchPublishExample {
                 count++;
                 m = sub.nextMessage(50);
             }
-            System.out.println("Retrieved " + count + " messages.");
+            System.out.println("Consumed " + count + " messages from '" + SUBJECT + "'");
         }
     }
 
