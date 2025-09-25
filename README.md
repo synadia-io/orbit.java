@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="orbit_sm.png" alt="Orbit">
+  <img src="orbit_shorter.png" alt="Orbit">
 </p>
 
 Orbit.java is a set of independent utilities or extensions around the [JNATS](https://github.com/nats-io/nats.java) ecosystem that aims to
