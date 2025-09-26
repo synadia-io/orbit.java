@@ -20,7 +20,7 @@ Extension for retrying anything.
 
 ## JS Publish Extensions
 
-Extensions around Jetstream Publishing
+General extensions for Jetstream Publishing
 
 [![README](https://img.shields.io/badge/README-blue?style=flat&link=js-publish-extensions/README.md)](js-publish-extensions/README.md)
 ![Artifact](https://img.shields.io/badge/Artifact-io.synadia:jnats--js--publish--extensions-00BC8E?labelColor=grey&style=flat)
@@ -60,9 +60,37 @@ The functionality is described in [ADR-31](https://github.com/nats-io/nats-archi
 Run some NATS servers and cause chaos by bringing them up and down.
 
 [![README](https://img.shields.io/badge/README-blue?style=flat&link=chaos-runner/README.md)](chaos-runner/README.md)
-![Artifact](https://img.shields.io/badge/Artifact-io.synadia:direct--batch-00BC8E?labelColor=grey&style=flat)
+![Artifact](https://img.shields.io/badge/Artifact-io.synadia:chaos--runner-00BC8E?labelColor=grey&style=flat)
 [![javadoc](https://javadoc.io/badge2/io.synadia/chaos-runner/javadoc.svg)](https://javadoc.io/doc/io.synadia/chaos-runner)
 [![Maven Central](https://maven-badges.herokuapp.com/maven-central/io.synadia/chaos-runner/badge.svg)](https://maven-badges.herokuapp.com/maven-central/io.synadia/chaos-runner)
+
+### Batch Publish
+
+Utility to publish an atomic batch, a group of up to 1000 messages
+
+[![README](https://img.shields.io/badge/README-blue?style=flat&link=batch-publish/README.md)](batch-publish/README.md)
+![Artifact](https://img.shields.io/badge/Artifact-io.synadia:batch--publish-00BC8E?labelColor=grey&style=flat)
+[![javadoc](https://javadoc.io/badge2/io.synadia/batch-publish/javadoc.svg)](https://javadoc.io/doc/io.synadia/batch-publish)
+[![Maven Central](https://maven-badges.herokuapp.com/maven-central/io.synadia/batch-publish/badge.svg)](https://maven-badges.herokuapp.com/maven-central/io.synadia/batch-publish)
+
+### JetStream Distributed Counters CRDT
+
+Utility to take advantage of the distributed counter functionality.
+
+[![README](https://img.shields.io/badge/README-blue?style=flat&link=counter/README.md)](counter/README.md)
+![Artifact](https://img.shields.io/badge/Artifact-io.synadia:counter-00BC8E?labelColor=grey&style=flat)
+[![javadoc](https://javadoc.io/badge2/io.synadia/counter/javadoc.svg)](https://javadoc.io/doc/io.synadia/counter)
+[![Maven Central](https://maven-badges.herokuapp.com/maven-central/io.synadia/counter/badge.svg)](https://maven-badges.herokuapp.com/maven-central/io.synadia/counter)
+
+### JetStream Scheduled Message
+
+Utility to leverage the ability to schedule a message to be published at a later time.
+Eventually the ability to schedule a message to publish based on a cron or schedule.
+
+[![README](https://img.shields.io/badge/README-blue?style=flat&link=scheduled-message/README.md)](scheduled-message/README.md)
+![Artifact](https://img.shields.io/badge/Artifact-io.synadia:scheduled--message-00BC8E?labelColor=grey&style=flat)
+[![javadoc](https://javadoc.io/badge2/io.synadia/scheduled-message/javadoc.svg)](https://javadoc.io/doc/io.synadia/scheduled-message)
+[![Maven Central](https://maven-badges.herokuapp.com/maven-central/io.synadia/scheduled-message/badge.svg)](https://maven-badges.herokuapp.com/maven-central/io.synadia/scheduled-message)
 
 # Dependencies
 ### Gradle

@@ -2,11 +2,13 @@
 
 # JetStream Distributed Counters CRDT
 
+Utility to take advantage of the distributed counter functionality.
+
 https://github.com/nats-io/nats-architecture-and-design/blob/main/adr/ADR-49.md
 
 
-**Current Release**: N/A
-&nbsp; **Current Snapshot**: 0.1.0-SNAPSHOT
+**Current Release**: 0.1.0
+&nbsp; **Current Snapshot**: 0.1.1-SNAPSHOT
 &nbsp; **Gradle and Maven** `io.synadia:counter`
 [Dependencies Help](https://github.com/synadia-io/orbit.java?tab=readme-ov-file#dependencies)
 

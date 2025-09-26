@@ -2,8 +2,13 @@
 
 # JetStream Scheduled Message
 
-**Current Release**: N/A
-&nbsp; **Current Snapshot**: 0.1.0-SNAPSHOT
+Utility to leverage the ability to schedule a message to be published at a later time.
+Eventually the ability to schedule a message to publish based on a cron or schedule. 
+
+https://github.com/nats-io/nats-architecture-and-design/blob/main/adr/ADR-51.md
+
+**Current Release**: 0.1.0
+&nbsp; **Current Snapshot**: 0.1.1-SNAPSHOT
 &nbsp; **Gradle and Maven** `io.synadia:scheduled-message`
 [Dependencies Help](https://github.com/synadia-io/orbit.java?tab=readme-ov-file#dependencies)
 
