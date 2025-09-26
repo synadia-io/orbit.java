@@ -13,14 +13,20 @@ not made until the specific project has a v1.0.0 version.
 
 Extension for retrying anything. 
 
+**Current Release**: 0.2.1
+&nbsp; **Current Snapshot**: 0.2.2-SNAPSHOT
+
 [![README](https://img.shields.io/badge/README-blue?style=flat&link=retrier/README.md)](retrier/README.md)
 ![Artifact](https://img.shields.io/badge/Artifact-io.synadia:retrier-00BC8E?labelColor=grey&style=flat)
 [![javadoc](https://javadoc.io/badge2/io.synadia/retrier/javadoc.svg)](https://javadoc.io/doc/io.synadia/retrier)
 [![Maven Central](https://maven-badges.herokuapp.com/maven-central/io.synadia/retrier/badge.svg)](https://maven-badges.herokuapp.com/maven-central/io.synadia/retrier)                                         
 
-## JS Publish Extensions
+## Jetstream Publish Extensions
 
 General extensions for Jetstream Publishing
+
+**Current Release**: 0.4.3
+&nbsp; **Current Snapshot**: 0.4.3-SNAPSHOT
 
 [![README](https://img.shields.io/badge/README-blue?style=flat&link=js-publish-extensions/README.md)](js-publish-extensions/README.md)
 ![Artifact](https://img.shields.io/badge/Artifact-io.synadia:jnats--js--publish--extensions-00BC8E?labelColor=grey&style=flat)
@@ -31,6 +37,9 @@ General extensions for Jetstream Publishing
 
 Extension to get many responses for a single core request.
 
+**Current Release**: 0.1.0
+&nbsp; **Current Snapshot**: 0.1.1-SNAPSHOT
+
 [![README](https://img.shields.io/badge/README-blue?style=flat&link=request-many/README.md)](request-many/README.md)
 ![Artifact](https://img.shields.io/badge/Artifact-io.synadia:request--many-00BC8E?labelColor=grey&style=flat)
 [![javadoc](https://javadoc.io/badge2/io.synadia/request-many/javadoc.svg)](https://javadoc.io/doc/io.synadia/request-many)
@@ -39,6 +48,9 @@ Extension to get many responses for a single core request.
 ## Encoded KeyValue
 
 Extension over Key Value to allow custom encoding of keys and values.
+
+**Current Release**: 0.0.1
+&nbsp; **Current Snapshot**: 0.0.2-SNAPSHOT
 
 [![README](https://img.shields.io/badge/README-blue?style=flat&link=encoded-kv/README.md)](encoded-kv/README.md)
 ![Artifact](https://img.shields.io/badge/Artifact-io.synadia:encoded--kv-00BC8E?labelColor=grey&style=flat)
@@ -50,6 +62,9 @@ Extension over Key Value to allow custom encoding of keys and values.
 The direct batch functionality leverages the direct message capabilities introduced in NATS Server v2.11.
 The functionality is described in [ADR-31](https://github.com/nats-io/nats-architecture-and-design/blob/main/adr/ADR-31.md)
 
+**Current Release**: 0.1.3
+&nbsp;**Current Snapshot**: 0.1.4-SNAPSHOT
+
 [![README](https://img.shields.io/badge/README-blue?style=flat&link=direct-batch/README.md)](direct-batch/README.md)
 ![Artifact](https://img.shields.io/badge/Artifact-io.synadia:direct--batch-00BC8E?labelColor=grey&style=flat)
 [![javadoc](https://javadoc.io/badge2/io.synadia/direct-batch/javadoc.svg)](https://javadoc.io/doc/io.synadia/direct-batch)
@@ -58,6 +73,9 @@ The functionality is described in [ADR-31](https://github.com/nats-io/nats-archi
 ## Chaos Runner
 
 Run some NATS servers and cause chaos by bringing them up and down.
+
+**Current Release**: 0.0.3
+&nbsp; **Current Snapshot**: 0.0.4-SNAPSHOT
 
 [![README](https://img.shields.io/badge/README-blue?style=flat&link=chaos-runner/README.md)](chaos-runner/README.md)
 ![Artifact](https://img.shields.io/badge/Artifact-io.synadia:chaos--runner-00BC8E?labelColor=grey&style=flat)
@@ -68,6 +86,9 @@ Run some NATS servers and cause chaos by bringing them up and down.
 
 Utility to publish an atomic batch, a group of up to 1000 messages
 
+**Current Release**: 0.2.0
+&nbsp;**Current Snapshot**: 0.2.1-SNAPSHOT
+
 [![README](https://img.shields.io/badge/README-blue?style=flat&link=batch-publish/README.md)](batch-publish/README.md)
 ![Artifact](https://img.shields.io/badge/Artifact-io.synadia:batch--publish-00BC8E?labelColor=grey&style=flat)
 [![javadoc](https://javadoc.io/badge2/io.synadia/batch-publish/javadoc.svg)](https://javadoc.io/doc/io.synadia/batch-publish)
@@ -76,6 +97,9 @@ Utility to publish an atomic batch, a group of up to 1000 messages
 ### JetStream Distributed Counters CRDT
 
 Utility to take advantage of the distributed counter functionality.
+
+**Current Release**: 0.1.0
+&nbsp; **Current Snapshot**: 0.1.1-SNAPSHOT
 
 [![README](https://img.shields.io/badge/README-blue?style=flat&link=counter/README.md)](counter/README.md)
 ![Artifact](https://img.shields.io/badge/Artifact-io.synadia:counter-00BC8E?labelColor=grey&style=flat)
@@ -86,6 +110,9 @@ Utility to take advantage of the distributed counter functionality.
 
 Utility to leverage the ability to schedule a message to be published at a later time.
 Eventually the ability to schedule a message to publish based on a cron or schedule.
+
+**Current Release**: 0.0.1
+&nbsp; **Current Snapshot**: 0.0.2-SNAPSHOT
 
 [![README](https://img.shields.io/badge/README-blue?style=flat&link=scheduled-message/README.md)](scheduled-message/README.md)
 ![Artifact](https://img.shields.io/badge/Artifact-io.synadia:scheduled--message-00BC8E?labelColor=grey&style=flat)

@@ -14,8 +14,8 @@ It requires a _codec_, which
 * decodes the encoded key back to the key object
 * decodes the encoded data bytes back into the value object.
 
-**Current Release**: N/A
-&nbsp; **Current Snapshot**: 0.1.0-SNAPSHOT
+**Current Release**: 0.0.1
+&nbsp; **Current Snapshot**: 0.0.2-SNAPSHOT
 &nbsp; **Gradle and Maven** `io.synadia:encoded-kv`
 [Dependencies Help](https://github.com/synadia-io/orbit.java?tab=readme-ov-file#dependencies)
 
