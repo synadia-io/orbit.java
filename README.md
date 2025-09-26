@@ -4,8 +4,7 @@
 
 Orbit.java is a set of independent utilities or extensions around the [JNATS](https://github.com/nats-io/nats.java) ecosystem that aims to
 boost productivity and provide a higher abstraction layer for the [JNATS](https://github.com/nats-io/nats.java)
-client. Note that these libraries will evolve rapidly and API guarantees are
-not made until the specific project has a v1.0.0 version.
+client. Note that these libraries will evolve rapidly and API guarantees are general not made until the specific project has a v1.0.0 version.
 
 # Utilities
 
