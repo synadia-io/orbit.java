@@ -18,6 +18,7 @@ public class ChaosArguments {
     long delay = 5_000;
     long downTime = 5_000;
     boolean random = false;
+    int specificPort = -1;
     int port = 4222;
     int listen = 4232;
     int monitor = 4282;
@@ -92,6 +93,11 @@ public class ChaosArguments {
         return this;
     }
 
+    public ChaosArguments specificPort(int port) {
+        this.specificPort = port;
+        return this;
+    }
+
     public ChaosArguments listen(int listen) {
         this.listen = listen;
         return this;
@@ -137,6 +143,9 @@ public class ChaosArguments {
                             break;
                         case "--port":
                             port(Integer.parseInt(args[++x]));
+                            break;
+                        case "--sport":
+                            specificPort(Integer.parseInt(args[++x]));
                             break;
                         case "--listen":
                             listen(Integer.parseInt(args[++x]));
