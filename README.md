@@ -113,7 +113,7 @@ Eventually the ability to schedule a message to publish based on a cron or sched
 **Current Release**: 0.0.1
 &nbsp; **Current Snapshot**: 0.0.2-SNAPSHOT
 
-[![README](https://img.shields.io/badge/README-blue?style=flat&link=scheduled-message/README.md)](scheduled-message/README.md)
+[![README](https://img.shields.io/badge/README-blue?style=flat&link=schedule-message/README.md)](schedule-message/README.md)
 ![Artifact](https://img.shields.io/badge/Artifact-io.synadia:scheduled--message-00BC8E?labelColor=grey&style=flat)
 [![javadoc](https://javadoc.io/badge2/io.synadia/scheduled-message/javadoc.svg)](https://javadoc.io/doc/io.synadia/scheduled-message)
 [![Maven Central](https://maven-badges.herokuapp.com/maven-central/io.synadia/scheduled-message/badge.svg)](https://maven-badges.herokuapp.com/maven-central/io.synadia/scheduled-message)
