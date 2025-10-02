@@ -37,6 +37,7 @@ public class ChaosRunner {
     public final long delay;
     public final long downTime;
     public final boolean random;
+    public final int specificPort;
     public final int port;
     public final int listen;
     public final int monitor;
@@ -101,15 +102,23 @@ public class ChaosRunner {
 
     private void downTask() {
         try {
-            if (random) {
+            if (specificPort != -1) {
+                for (int i = 0; i < natsServerRunners.size(); i++) {
+                    NatsServerRunner nsr = natsServerRunners.get(i);
+                    if (nsr.getPort() == specificPort) {
+                        downIx = i;
+                        break;
+                    }
+                }
+            }
+            else if (random) {
                 downIx = ThreadLocalRandom.current().nextInt(servers);
             }
 
             NatsServerRunner runner = natsServerRunners.remove(downIx);
-                printer.out(CR_LABEL, "DOWN", runner.getPort());
+            printer.out(CR_LABEL, "DOWN", runner.getPort());
             clusterInserts.add(clusterInserts.remove(downIx));
             runner.close();
-
             scheduleUp();
         }
         catch (Throwable e) {
@@ -179,12 +188,16 @@ public class ChaosRunner {
         this.delay = a.delay;
         this.downTime = a.downTime;
         this.random = a.random;
+        this.specificPort = a.specificPort;
         this.port = a.port;
         this.listen = a.listen;
         this.monitor = a.monitor;
 
         natsServerRunners = new ArrayList<>();
         if (servers == 1) {
+            if (specificPort != -1 && specificPort != port) {
+                throw new IllegalArgumentException("Invalid specific port");
+            }
             List<String> inserts = new ArrayList<>();
             ClusterNode cn;
             Path jsStorePath = Paths.get(jsStoreDirBase.toString(), "" + port);
@@ -217,6 +230,19 @@ public class ChaosRunner {
         }
         else {
             List<ClusterNode> cns = createNodes(servers, clusterName, serverNamePrefix, jsStoreDirBase, DEFAULT_HOST, port, listen, monitor < 1 ? null : monitor);
+            if (specificPort != -1) {
+                boolean found = false;
+                for (ClusterNode cn : cns) {
+                    if (cn.port == specificPort) {
+                        found = true;
+                        break;
+                    }
+                }
+                if (!found) {
+                    throw new IllegalArgumentException("Invalid specific port");
+                }
+            }
+
             clusterInserts = createClusterInserts(cns);
         }
 
