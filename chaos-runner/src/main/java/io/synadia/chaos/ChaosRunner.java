@@ -16,6 +16,7 @@ import java.util.List;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.Level;
 
 import static io.nats.NatsRunnerUtils.*;
@@ -25,6 +26,8 @@ public class ChaosRunner {
 
     private static final String CR_LABEL = "ChaosRunner";
 
+    private static final ReentrantLock INSTANCE_LOCK = new ReentrantLock();
+    private static Thread APP_SHUTDOWN_HOOK_THREAD;
     private static ChaosRunner INSTANCE;
 
     public final ChaosPrinter printer;
@@ -282,6 +285,7 @@ public class ChaosRunner {
         NatsServerRunner.setDefaultOutputLevel(Level.SEVERE);
         final ChaosPrinter finalPrinter = printer == null ? getDefaultPrinter() : printer;
 
+        INSTANCE_LOCK.lock();
         try {
             INSTANCE = new ChaosRunner(a, finalPrinter);
         }
@@ -289,28 +293,81 @@ public class ChaosRunner {
             finalPrinter.err(CR_LABEL, "Failed to start ChaosRunner", e);
             System.exit(-1);
         }
+        finally {
+            INSTANCE_LOCK.unlock();
+        }
 
-        Runtime.getRuntime().addShutdownHook(
-            new Thread("app-shutdown-hook") {
-                @Override
-                public void run() {
-                    INSTANCE.shutdown();
-                    finalPrinter.out(CR_LABEL, "EXIT");
-                }
-            });
+        APP_SHUTDOWN_HOOK_THREAD = new Thread("app-shutdown-hook") {
+            @Override
+            public void run() {
+                shutdownServers();
+                shutdownExecutor();
+                finalPrinter.out(CR_LABEL, "EXIT");
+            }
+        };
+
+        Runtime.getRuntime().addShutdownHook(APP_SHUTDOWN_HOOK_THREAD);
 
         return INSTANCE;
     }
 
-    private void shutdown() {
+    public static boolean isRunning() {
+        INSTANCE_LOCK.lock();
         try {
-            for (NatsServerRunner runner : natsServerRunners ) {
-                try {
-                    runner.close();
-                }
-                catch (Exception ignore) {}
+            return INSTANCE != null;
+        }
+        finally {
+            INSTANCE_LOCK.unlock();
+        }
+    }
+
+    public static void shutdown() {
+        INSTANCE_LOCK.lock();
+        try {
+            removeShutdownHook();
+            shutdownExecutor();
+            shutdownServers();
+        }
+        finally {
+            INSTANCE_LOCK.unlock();
+        }
+    }
+
+    public static void shutdownExecutor() {
+        INSTANCE_LOCK.lock();
+        try {
+            INSTANCE.executor.shutdown();
+        }
+        finally {
+            INSTANCE_LOCK.unlock();
+        }
+    }
+
+    private static void removeShutdownHook() {
+        INSTANCE_LOCK.lock();
+        try {
+            if (APP_SHUTDOWN_HOOK_THREAD != null) {
+                Runtime.getRuntime().removeShutdownHook(APP_SHUTDOWN_HOOK_THREAD);
+                APP_SHUTDOWN_HOOK_THREAD = null;
             }
         }
-        catch (Exception ignore) {}
+        finally {
+            INSTANCE_LOCK.unlock();
+        }
+    }
+
+    private static void shutdownServers() {
+        INSTANCE_LOCK.lock();
+        try {
+            if (INSTANCE != null) {
+                for (NatsServerRunner runner : INSTANCE.natsServerRunners) {
+                    try { runner.close(); } catch (Exception ignore) {}
+                }
+                INSTANCE = null;
+            }
+        }
+        finally {
+            INSTANCE_LOCK.unlock();
+        }
     }
 }
