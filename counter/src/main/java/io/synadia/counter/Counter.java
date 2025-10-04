@@ -13,6 +13,7 @@ import org.jspecify.annotations.Nullable;
 
 import java.io.IOException;
 import java.math.BigInteger;
+import java.time.Duration;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -46,6 +47,8 @@ public class Counter {
     }
 
     private final String streamName;
+    private final Connection conn;
+    private final Duration timeout;
     private final JetStreamManagement jsm;
     private final JetStream js;
     private final DirectBatchContext dbCtx;
@@ -65,6 +68,17 @@ public class Counter {
                     @Nullable StreamInfo si
     ) throws IOException, JetStreamApiException
     {
+        this.conn = conn;
+
+        Duration tempTimeout = null;
+        if (jso != null) {
+            tempTimeout = jso.getRequestTimeout();
+        }
+        if (tempTimeout == null) {
+            tempTimeout = conn.getOptions().getConnectionTimeout();
+        }
+        timeout = tempTimeout;
+
         this.jsm = jsm == null ? conn.jetStreamManagement(jso) : jsm;
         js = this.jsm.jetStream();
 
@@ -168,8 +182,21 @@ public class Counter {
     public LinkedBlockingQueue<CounterEntryResponse> getEntries(List<String> subjects) {
         LinkedBlockingQueue<CounterEntryResponse> queue = new LinkedBlockingQueue<>();
         MessageBatchGetRequest mbgr = MessageBatchGetRequest.multiLastForSubjects(subjects);
-        dbCtx.requestMessageBatch(mbgr, mi -> queue.add(new CounterEntryResponse(mi)));
+        conn.getOptions().getExecutor().submit(
+            () -> dbCtx.requestMessageBatch(mbgr, mi -> queue.add(new CounterEntryResponse(mi))));
         return queue;
+    }
+
+    public CounterIterator iterateEntries(String... subjects) {
+        return new CounterIterator(getEntries(Arrays.asList(subjects)), timeout);
+    }
+
+    public CounterIterator iterateEntries(List<String> subjects) {
+        return new CounterIterator(getEntries(subjects), timeout);
+    }
+
+    public CounterIterator iterateEntries(List<String> subjects, Duration timeoutFirst, Duration timeoutSubsequent) {
+        return new CounterIterator(getEntries(subjects), timeoutFirst, timeoutSubsequent);
     }
 
     private static void validateSingleSubject(String subject) {

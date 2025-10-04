@@ -9,10 +9,14 @@ import io.nats.client.JetStreamManagement;
 import io.nats.client.Nats;
 import io.nats.client.api.StorageType;
 import io.nats.client.api.StreamConfiguration;
+import io.nats.client.support.Debug;
 import io.synadia.counter.Counter;
 import io.synadia.counter.CounterEntryResponse;
+import io.synadia.counter.CounterIterator;
 
 import java.math.BigInteger;
+import java.time.Duration;
+import java.util.Collections;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 
@@ -163,6 +167,27 @@ public class CounterExample {
                 er = eResponses.poll(10, TimeUnit.MILLISECONDS);
             }
             System.out.println(" " + er + " -> No more entries.");
+
+            // ----------------------------------------------------------------------------------------------------
+            System.out.println("\n8.1: iterateEntries(\"cs.A\", \"cs.B\", \"cs.C\") - Get via CounterIterator for multiple subjects.");
+            CounterIterator iterator = counter.iterateEntries("cs.A", "cs.B", "cs.C");
+            while (iterator.hasNext()) {
+                Debug.info("  ", iterator.next());
+            }
+
+            System.out.println("\n8.2: iterateEntries(\"cs.*\") - Get via CounterIterator for wildcard subject(s).");
+            iterator = counter.iterateEntries("cs.*");
+            while (iterator.hasNext()) {
+                Debug.info("  ", iterator.next());
+            }
+
+            System.out.println("\n8.3: iterateEntries(\"cs.*\", timeoutFirst, timeoutSubsequent) - Get via CounterIterator with custom timeouts.");
+            Duration timeoutFirst = Duration.ofMillis(1000);
+            Duration timeoutSubsequent = Duration.ofMillis(200);
+            iterator = counter.iterateEntries(Collections.singletonList("cs.*"), timeoutFirst, timeoutSubsequent);
+            while (iterator.hasNext()) {
+                Debug.info("  ", iterator.next());
+            }
         }
     }
 }
