@@ -4,6 +4,11 @@
 
 Utility to publish an atomic batch, a group of up to 1000 messages
 
+### Important
+
+* Messages are stored in memory on the server until the commit.
+* Batch currently is not about speed, it's about transaction, meaning all the messages must be added to the stream or none of them do.
+
 https://github.com/nats-io/nats-architecture-and-design/blob/main/adr/ADR-50.md
 
 **Current Release**: 0.2.0
