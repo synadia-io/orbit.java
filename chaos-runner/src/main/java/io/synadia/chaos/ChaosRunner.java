@@ -27,8 +27,9 @@ public class ChaosRunner {
     private static final String CR_LABEL = "ChaosRunner";
 
     private static final ReentrantLock INSTANCE_LOCK = new ReentrantLock();
-    private static Thread APP_SHUTDOWN_HOOK_THREAD;
     private static ChaosRunner INSTANCE;
+    private static ChaosArguments INSTANCE_ARGUMENTS;
+    private static Thread APP_SHUTDOWN_HOOK_THREAD;
 
     public final ChaosPrinter printer;
     public final int servers;
@@ -273,40 +274,46 @@ public class ChaosRunner {
         scheduleDown(initialDelay);
     }
 
-    public static void main(String[] args) {
-        start(new ChaosArguments().args(args));
-    }
-
-    public static ChaosRunner start(ChaosArguments a) {
+    public static ChaosRunner start(ChaosArguments a) throws Exception {
         return start(a, null);
     }
 
-    public static ChaosRunner start(ChaosArguments a, ChaosPrinter printer) {
+    public static ChaosRunner start(ChaosArguments a, ChaosPrinter printer) throws Exception {
         NatsServerRunner.setDefaultOutputLevel(Level.SEVERE);
         final ChaosPrinter finalPrinter = printer == null ? getDefaultPrinter() : printer;
 
         INSTANCE_LOCK.lock();
         try {
+            if (INSTANCE != null) {
+                if (INSTANCE_ARGUMENTS.equals(a)) {
+                    // same arguments, just return the instance
+                    return INSTANCE;
+                }
+
+                throw new Exception("Instance already started with different arguments.");
+            }
+
             INSTANCE = new ChaosRunner(a, finalPrinter);
+
+            APP_SHUTDOWN_HOOK_THREAD = new Thread("app-shutdown-hook") {
+                @Override
+                public void run() {
+                    shutdownServers();
+                    shutdownExecutor();
+                    finalPrinter.out(CR_LABEL, "EXIT");
+                }
+            };
+
+            Runtime.getRuntime().addShutdownHook(APP_SHUTDOWN_HOOK_THREAD);
+
         }
         catch (IOException e) {
             finalPrinter.err(CR_LABEL, "Failed to start ChaosRunner", e);
-            System.exit(-1);
+            throw e;
         }
         finally {
             INSTANCE_LOCK.unlock();
         }
-
-        APP_SHUTDOWN_HOOK_THREAD = new Thread("app-shutdown-hook") {
-            @Override
-            public void run() {
-                shutdownServers();
-                shutdownExecutor();
-                finalPrinter.out(CR_LABEL, "EXIT");
-            }
-        };
-
-        Runtime.getRuntime().addShutdownHook(APP_SHUTDOWN_HOOK_THREAD);
 
         return INSTANCE;
     }

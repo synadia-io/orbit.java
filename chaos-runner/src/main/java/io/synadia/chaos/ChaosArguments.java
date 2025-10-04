@@ -3,6 +3,7 @@ package io.synadia.chaos;
 import java.io.File;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Objects;
 
 import static io.nats.NatsRunnerUtils.DEFAULT_CLUSTER_NAME;
 import static io.nats.NatsRunnerUtils.DEFAULT_SERVER_NAME_PREFIX;
@@ -219,5 +220,46 @@ public class ChaosArguments {
 
     public int getMonitor() {
         return monitor;
+    }
+
+    @Override
+    public final boolean equals(Object o) {
+        if (!(o instanceof ChaosArguments)) return false;
+        if (this == o) {
+            return true;
+        }
+
+        ChaosArguments that = (ChaosArguments) o;
+        return servers == that.servers
+            && js == that.js
+            && initialDelay == that.initialDelay
+            && delay == that.delay
+            && downTime == that.downTime
+            && random == that.random
+            && specificPort == that.specificPort
+            && port == that.port
+            && listen == that.listen
+            && monitor == that.monitor
+            && Objects.equals(clusterName, that.clusterName)
+            && Objects.equals(serverNamePrefix, that.serverNamePrefix)
+            && Objects.equals(workDirectory, that.workDirectory);
+    }
+
+    @Override
+    public int hashCode() {
+        int result = servers;
+        result = 31 * result + Objects.hashCode(clusterName);
+        result = 31 * result + Objects.hashCode(serverNamePrefix);
+        result = 31 * result + Boolean.hashCode(js);
+        result = 31 * result + Objects.hashCode(workDirectory);
+        result = 31 * result + Long.hashCode(initialDelay);
+        result = 31 * result + Long.hashCode(delay);
+        result = 31 * result + Long.hashCode(downTime);
+        result = 31 * result + Boolean.hashCode(random);
+        result = 31 * result + specificPort;
+        result = 31 * result + port;
+        result = 31 * result + listen;
+        result = 31 * result + monitor;
+        return result;
     }
 }
