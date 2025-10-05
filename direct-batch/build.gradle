@@ -71,7 +71,7 @@ tasks.register('bundle', Bundle) {
 
 jar {
     manifest {
-        attributes('Automatic-Module-Name': 'io.synadia.direct-batch')
+        attributes('Automatic-Module-Name': 'io.synadia.direct.batch')
     }
     bnd (['Implementation-Title': 'Direct Batch',
           'Implementation-Version': jarVersion,

@@ -69,7 +69,7 @@ tasks.register('bundle', Bundle) {
 
 jar {
     manifest {
-        attributes('Automatic-Module-Name': 'io.synadia.chaos-runner')
+        attributes('Automatic-Module-Name': 'io.synadia.chaos.runner')
     }
     bnd (['Implementation-Title': 'Chaos Runner',
           'Implementation-Version': jarVersion,

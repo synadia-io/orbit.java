@@ -74,7 +74,7 @@ tasks.register('bundle', Bundle) {
 
 jar {
     manifest {
-        attributes('Automatic-Module-Name': 'io.synadia.jnats-js-publish-extensions')
+        attributes('Automatic-Module-Name': 'io.synadia.jnats.js.publish.extensions')
     }
     bnd (['Implementation-Title': 'JNATS JetStream Publish Extensions',
           'Implementation-Version': jarVersion,

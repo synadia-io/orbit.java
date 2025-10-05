@@ -72,7 +72,7 @@ tasks.register('bundle', Bundle) {
 
 jar {
     manifest {
-        attributes('Automatic-Module-Name': 'io.synadia.schedule-message')
+        attributes('Automatic-Module-Name': 'io.synadia.schedule.message')
     }
     bnd (['Implementation-Title': 'JetStream Scheduled Messages',
           'Implementation-Version': jarVersion,

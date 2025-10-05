@@ -71,7 +71,7 @@ tasks.register('bundle', Bundle) {
 
 jar {
     manifest {
-        attributes('Automatic-Module-Name': 'io.synadia.batch-publish')
+        attributes('Automatic-Module-Name': 'io.synadia.batch.publish')
     }
     bnd (['Implementation-Title': 'Batch Publish',
           'Implementation-Version': jarVersion,

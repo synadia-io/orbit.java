@@ -67,7 +67,7 @@ tasks.register('bundle', Bundle) {
 
 jar {
     manifest {
-        attributes('Automatic-Module-Name': 'io.synadia.encoded-kv')
+        attributes('Automatic-Module-Name': 'io.synadia.encoded.kv')
     }
     bnd (['Implementation-Title': 'KV Encoding',
           'Implementation-Version': jarVersion,
