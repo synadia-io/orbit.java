@@ -4,24 +4,39 @@
 package io.synadia.bp;
 
 import io.nats.client.JetStreamApiException;
+import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
 public class BatchPublishException extends Exception {
     private final JetStreamApiException jsApiException;
+    private final String batchId;
 
-    public BatchPublishException(String message) {
+    public BatchPublishException(@NonNull String batchId, @NonNull String message) {
         super(message);
+        this.batchId = batchId;
         jsApiException = null;
     }
 
-    public BatchPublishException(JetStreamApiException cause) {
+    public BatchPublishException(@NonNull String batchId, @NonNull JetStreamApiException cause) {
         super(cause);
+        this.batchId = batchId;
         jsApiException = cause;
     }
 
-    public BatchPublishException(Throwable cause) {
+    public BatchPublishException(@NonNull String batchId, @NonNull Throwable cause) {
         super(cause);
+        this.batchId = batchId;
         jsApiException = null;
+    }
+
+    @Override
+    public String getMessage() {
+        return "[" + batchId + "] " + super.getMessage();
+    }
+
+    @NonNull
+    public String getBatchId() {
+        return batchId;
     }
 
     @Nullable

@@ -6,12 +6,15 @@ package io.synadia.examples;
 import io.nats.client.*;
 import io.nats.client.api.*;
 import io.nats.client.impl.Headers;
+import io.synadia.bp.BatchPublishException;
+import io.synadia.bp.BatchPublishOptions;
 import io.synadia.bp.BatchPublisher;
 
 public class BasicBatchPublishExample {
     static final String NATS_URL = "nats://localhost:4222";
     static final String STREAM = "bp-stream";
     static final String SUBJECT = "bp-subject";
+    static final String BATCH_ID = "bp-batch-id";
     static final int BATCH_SIZE = 1000; // !!! MAX IS 1000
     static final boolean ACK_FIRST = true; // default is true usually never change this.
     static final int AUTO_ACK_EVERY = 100; // 0 or less means no auto ack
@@ -33,7 +36,7 @@ public class BasicBatchPublishExample {
 
             BatchPublisher publisher = BatchPublisher.builder()
                 .connection(nc)
-                .batchId(NUID.nextGlobal())
+                .batchId(BATCH_ID)
                 .ackFirst(ACK_FIRST)
                 .ackEvery(AUTO_ACK_EVERY)
                 .build();
@@ -70,6 +73,21 @@ public class BasicBatchPublishExample {
                 m = sub.nextMessage(50);
             }
             System.out.println("Consumed " + count + " messages from '" + SUBJECT + "'");
+
+            publisher = BatchPublisher.builder()
+                .connection(nc)
+                .batchId(BATCH_ID + "-demonstrate-error")
+                .ackFirst(false) // otherwise error will happen on first publish
+                .build();
+            publisher.add(SUBJECT, null, BatchPublishOptions.builder().expectedLastSequence(1).build());
+            try {
+                // this will exception
+                publisher.commit(SUBJECT, null);
+            }
+            catch (BatchPublishException e) {
+                //noinspection ThrowablePrintedToSystemOut
+                System.out.println(e.getMessage());
+            }
         }
     }
 

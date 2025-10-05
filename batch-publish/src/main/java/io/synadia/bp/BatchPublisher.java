@@ -112,7 +112,7 @@ public class BatchPublisher {
 
     public void add(String subject, Headers userHeaders, byte[] data, BatchPublishOptions opts) throws BatchPublishException {
         if (state != State.Open) {
-            throw new BatchPublishException("Batch not open: " + state);
+            throw new BatchPublishException(batchId, "Batch not open: " + state);
         }
         if (   (++lastSeq == 1 && ackFirst)               // first publish
             || (ackEvery > 0 && lastSeq % ackEvery == 0)) // or every publish
@@ -139,7 +139,7 @@ public class BatchPublisher {
 
     public void addAcked(String subject, Headers userHeaders, byte[] data, BatchPublishOptions opts) throws BatchPublishException {
         if (state != State.Open) {
-            throw new BatchPublishException("Batch not open: " + state);
+            throw new BatchPublishException(batchId, "Batch not open: " + state);
         }
         ++lastSeq;
         _addAcked(subject, userHeaders, data, opts);
@@ -148,7 +148,7 @@ public class BatchPublisher {
     private void _addAcked(String subject, Headers userHeaders, byte[] data, BatchPublishOptions opts) throws BatchPublishException {
         Message m = request(subject, userHeaders, data, false, opts);
         if (m.getData().length != 0) {
-            throw new BatchPublishException("Invalid ack returned from add with confirm");
+            throw new BatchPublishException(batchId, "Invalid ack returned from add with confirm");
         }
     }
 
@@ -166,7 +166,7 @@ public class BatchPublisher {
 
     public PublishAck commit(String subject, Headers userHeaders, byte[] data, BatchPublishOptions opts) throws BatchPublishException {
         if (state != State.Open) {
-            throw new BatchPublishException("Batch not open: " + state);
+            throw new BatchPublishException(batchId, "Batch not open: " + state);
         }
         try {
             ++lastSeq;
@@ -177,14 +177,37 @@ public class BatchPublisher {
             // done this way because PublishAck makes an IOException if the ack is invalid.
             // it was done that way because of api backward compatibility
             // just no need of the extra layer
-            throw new BatchPublishException(e.getMessage());
+            throw new BatchPublishException(batchId, e.getMessage());
         }
         catch (JetStreamApiException e) {
-            throw new BatchPublishException(e);
+            throw new BatchPublishException(batchId, e);
         }
         finally {
             state = State.Closed;
         }
+    }
+
+    public CompletableFuture<PublishAck> commitAsync(String subject, byte[] data) throws BatchPublishException {
+        return commitAsync(subject, null, data, null);
+    }
+
+    public CompletableFuture<PublishAck> commitAsync(String subject, byte[] data, BatchPublishOptions opts) throws BatchPublishException {
+        return commitAsync(subject, null, data, opts);
+    }
+
+    public CompletableFuture<PublishAck> commitAsync(String subject, Headers userHeaders, byte[] data) throws BatchPublishException {
+        return commitAsync(subject, userHeaders, data, null);
+    }
+
+    public CompletableFuture<PublishAck> commitAsync(String subject, Headers userHeaders, byte[] data, BatchPublishOptions opts) throws BatchPublishException {
+        return CompletableFuture.supplyAsync(() -> {
+            try {
+                return commit(subject, userHeaders, data, opts);
+            }
+            catch (BatchPublishException e) {
+                throw new RuntimeException(e);
+            }
+        }, conn.getOptions().getExecutor());
     }
 
     private Message request(String subject, Headers userHeaders, byte[] data, boolean commit, BatchPublishOptions opts) throws BatchPublishException {
@@ -194,11 +217,11 @@ public class BatchPublisher {
             return f.get(ackTimeout.toNanos(), TimeUnit.NANOSECONDS);
         }
         catch (ExecutionException | TimeoutException e) {
-            throw new BatchPublishException(e);
+            throw new BatchPublishException(batchId, e);
         }
         catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-            throw new BatchPublishException(e);
+            throw new BatchPublishException(batchId, e);
         }
     }
 
