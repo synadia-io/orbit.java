@@ -17,7 +17,6 @@ https://github.com/nats-io/nats-architecture-and-design/blob/main/adr/ADR-51.md
 [![Maven Central](https://maven-badges.herokuapp.com/maven-central/io.synadia/scheduled-message/badge.svg)](https://maven-badges.herokuapp.com/maven-central/io.synadia/scheduled-message)
 [![javadoc](https://javadoc.io/badge2/io.synadia/scheduled-message/javadoc.svg)](https://javadoc.io/doc/io.synadia/scheduled-message)
 
-
 ### Building a Scheduled Message
 
 A scheduled message is just a normal message with some extra headers. 

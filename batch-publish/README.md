@@ -11,8 +11,8 @@ Utility to publish an atomic batch, a group of up to 1000 messages
 
 https://github.com/nats-io/nats-architecture-and-design/blob/main/adr/ADR-50.md
 
-**Current Release**: 0.2.0
-&nbsp;**Current Snapshot**: 0.2.1-SNAPSHOT
+**Current Release**: 0.2.1
+&nbsp;**Current Snapshot**: 0.2.2-SNAPSHOT
 &nbsp; **Gradle and Maven** `io.synadia:batch-publish`
 [Dependencies Help](https://github.com/synadia-io/orbit.java?tab=readme-ov-file#dependencies) 
 

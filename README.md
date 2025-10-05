@@ -24,8 +24,8 @@ Extension for retrying anything.
 
 General extensions for Jetstream Publishing
 
-**Current Release**: 0.4.3
-&nbsp; **Current Snapshot**: 0.4.3-SNAPSHOT
+**Current Release**: 0.4.4
+&nbsp; **Current Snapshot**: 0.4.5-SNAPSHOT
 
 [![README](https://img.shields.io/badge/README-blue?style=flat&link=js-publish-extensions/README.md)](js-publish-extensions/README.md)
 ![Artifact](https://img.shields.io/badge/Artifact-io.synadia:jnats--js--publish--extensions-00BC8E?labelColor=grey&style=flat)
@@ -36,8 +36,8 @@ General extensions for Jetstream Publishing
 
 Extension to get many responses for a single core request.
 
-**Current Release**: 0.1.0
-&nbsp; **Current Snapshot**: 0.1.1-SNAPSHOT
+**Current Release**: 0.1.1
+&nbsp; **Current Snapshot**: 0.1.2-SNAPSHOT
 
 [![README](https://img.shields.io/badge/README-blue?style=flat&link=request-many/README.md)](request-many/README.md)
 ![Artifact](https://img.shields.io/badge/Artifact-io.synadia:request--many-00BC8E?labelColor=grey&style=flat)
@@ -48,8 +48,8 @@ Extension to get many responses for a single core request.
 
 Extension over Key Value to allow custom encoding of keys and values.
 
-**Current Release**: 0.0.3
-&nbsp; **Current Snapshot**: 0.0.4-SNAPSHOT
+**Current Release**: 0.0.4
+&nbsp; **Current Snapshot**: 0.0.5-SNAPSHOT
 
 [![README](https://img.shields.io/badge/README-blue?style=flat&link=encoded-kv/README.md)](encoded-kv/README.md)
 ![Artifact](https://img.shields.io/badge/Artifact-io.synadia:encoded--kv-00BC8E?labelColor=grey&style=flat)
@@ -61,8 +61,8 @@ Extension over Key Value to allow custom encoding of keys and values.
 The direct batch functionality leverages the direct message capabilities introduced in NATS Server v2.11.
 The functionality is described in [ADR-31](https://github.com/nats-io/nats-architecture-and-design/blob/main/adr/ADR-31.md)
 
-**Current Release**: 0.1.3
-&nbsp;**Current Snapshot**: 0.1.4-SNAPSHOT
+**Current Release**: 0.1.4
+&nbsp;**Current Snapshot**: 0.1.5-SNAPSHOT
 
 [![README](https://img.shields.io/badge/README-blue?style=flat&link=direct-batch/README.md)](direct-batch/README.md)
 ![Artifact](https://img.shields.io/badge/Artifact-io.synadia:direct--batch-00BC8E?labelColor=grey&style=flat)
@@ -73,8 +73,8 @@ The functionality is described in [ADR-31](https://github.com/nats-io/nats-archi
 
 Run some NATS servers and cause chaos by bringing them up and down.
 
-**Current Release**: 0.0.3
-&nbsp; **Current Snapshot**: 0.0.4-SNAPSHOT
+**Current Release**: 0.0.8
+&nbsp; **Current Snapshot**: 0.0.9-SNAPSHOT
 
 [![README](https://img.shields.io/badge/README-blue?style=flat&link=chaos-runner/README.md)](chaos-runner/README.md)
 ![Artifact](https://img.shields.io/badge/Artifact-io.synadia:chaos--runner-00BC8E?labelColor=grey&style=flat)
@@ -85,8 +85,8 @@ Run some NATS servers and cause chaos by bringing them up and down.
 
 Utility to publish an atomic batch, a group of up to 1000 messages
 
-**Current Release**: 0.2.0
-&nbsp;**Current Snapshot**: 0.2.1-SNAPSHOT
+**Current Release**: 0.2.1
+&nbsp;**Current Snapshot**: 0.2.2-SNAPSHOT
 
 [![README](https://img.shields.io/badge/README-blue?style=flat&link=batch-publish/README.md)](batch-publish/README.md)
 ![Artifact](https://img.shields.io/badge/Artifact-io.synadia:batch--publish-00BC8E?labelColor=grey&style=flat)
@@ -97,8 +97,8 @@ Utility to publish an atomic batch, a group of up to 1000 messages
 
 Utility to take advantage of the distributed counter functionality.
 
-**Current Release**: 0.1.0
-&nbsp; **Current Snapshot**: 0.1.1-SNAPSHOT
+**Current Release**: 0.1.1
+&nbsp; **Current Snapshot**: 0.1.2-SNAPSHOT
 
 [![README](https://img.shields.io/badge/README-blue?style=flat&link=counter/README.md)](counter/README.md)
 ![Artifact](https://img.shields.io/badge/Artifact-io.synadia:counter-00BC8E?labelColor=grey&style=flat)

@@ -5,8 +5,8 @@
 A simple java program that can start 1 or more NATS Servers and then add chaos,
 by taking one of them down on a delay and bringing it back up after a downtime.
 
-**Current Release**: 0.0.3
-&nbsp; **Current Snapshot**: 0.0.4-SNAPSHOT
+**Current Release**: 0.0.8
+&nbsp; **Current Snapshot**: 0.0.9-SNAPSHOT
 &nbsp; **Gradle and Maven** `io.synadia:chaos-runner`
 
 [Dependencies Help](https://github.com/synadia-io/orbit.java?tab=readme-ov-file#dependencies)

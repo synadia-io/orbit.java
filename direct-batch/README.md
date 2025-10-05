@@ -8,8 +8,8 @@ It only works with the 2.11.x NATS Server and the JNats 2.20.5.main-2-11-SNAPSHO
 The direct batch functionality leverages the direct message capabilities introduced in NATS Server 2.11
 The functionality is described in [ADR-31](https://github.com/nats-io/nats-architecture-and-design/blob/main/adr/ADR-31.md) 
 
-**Current Release**: 0.1.3
-&nbsp;**Current Snapshot**: 0.1.4-SNAPSHOT
+**Current Release**: 0.1.4
+&nbsp;**Current Snapshot**: 0.1.5-SNAPSHOT
 &nbsp; **Gradle and Maven** `io.synadia:direct-batch`
 [Dependencies Help](https://github.com/synadia-io/orbit.java?tab=readme-ov-file#dependencies) 
 

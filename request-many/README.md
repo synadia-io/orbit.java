@@ -9,8 +9,8 @@ instead of the usual first response for a request. This allows you to implement 
 * Scatter-gather pattern, getting responses from many workers.
 * Many responses, for instance, a multipart payload, from a single worker.  
 
-**Current Release**: 0.1.0
-&nbsp; **Current Snapshot**: 0.1.1-SNAPSHOT
+**Current Release**: 0.1.1
+&nbsp; **Current Snapshot**: 0.1.2-SNAPSHOT
 &nbsp; **Gradle and Maven** `io.synadia:request-many`
 [Dependencies Help](https://github.com/synadia-io/orbit.java?tab=readme-ov-file#dependencies)
 
