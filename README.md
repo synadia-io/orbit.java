@@ -48,8 +48,8 @@ Extension to get many responses for a single core request.
 
 Extension over Key Value to allow custom encoding of keys and values.
 
-**Current Release**: 0.0.2
-&nbsp; **Current Snapshot**: 0.0.3-SNAPSHOT
+**Current Release**: 0.0.3
+&nbsp; **Current Snapshot**: 0.0.4-SNAPSHOT
 
 [![README](https://img.shields.io/badge/README-blue?style=flat&link=encoded-kv/README.md)](encoded-kv/README.md)
 ![Artifact](https://img.shields.io/badge/Artifact-io.synadia:encoded--kv-00BC8E?labelColor=grey&style=flat)
@@ -110,8 +110,8 @@ Utility to take advantage of the distributed counter functionality.
 Utility to leverage the ability to schedule a message to be published at a later time.
 Eventually the ability to schedule a message to publish based on a cron or schedule.
 
-**Current Release**: 0.0.1
-&nbsp; **Current Snapshot**: 0.0.2-SNAPSHOT
+**Current Release**: 0.0.2
+&nbsp; **Current Snapshot**: 0.0.3-SNAPSHOT
 
 [![README](https://img.shields.io/badge/README-blue?style=flat&link=schedule-message/README.md)](schedule-message/README.md)
 ![Artifact](https://img.shields.io/badge/Artifact-io.synadia:scheduled--message-00BC8E?labelColor=grey&style=flat)

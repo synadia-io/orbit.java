@@ -1,4 +1,4 @@
-name: Publish Extensions Release
+name: Encoded KV Release
 
 on:
   push:
