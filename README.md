@@ -48,8 +48,8 @@ Extension to get many responses for a single core request.
 
 Extension over Key Value to allow custom encoding of keys and values.
 
-**Current Release**: 0.0.1
-&nbsp; **Current Snapshot**: 0.0.2-SNAPSHOT
+**Current Release**: 0.0.2
+&nbsp; **Current Snapshot**: 0.0.3-SNAPSHOT
 
 [![README](https://img.shields.io/badge/README-blue?style=flat&link=encoded-kv/README.md)](encoded-kv/README.md)
 ![Artifact](https://img.shields.io/badge/Artifact-io.synadia:encoded--kv-00BC8E?labelColor=grey&style=flat)
