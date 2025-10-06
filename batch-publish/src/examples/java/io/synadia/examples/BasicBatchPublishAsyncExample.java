@@ -47,7 +47,7 @@ public class BasicBatchPublishAsyncExample {
 
             publisher = BatchPublisher.builder()
                 .connection(nc)
-                .batchId(BATCH_ID + "-demonstrate-error")
+                .batchId(BATCH_ID + "-batch-error")
                 .ackFirst(false) // otherwise error will happen on first publish
                 .build();
 
