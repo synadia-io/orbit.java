@@ -187,19 +187,19 @@ public class BatchPublisher {
         }
     }
 
-    public CompletableFuture<PublishAck> commitAsync(String subject, byte[] data) throws BatchPublishException {
+    public CompletableFuture<PublishAck> commitAsync(String subject, byte[] data) {
         return commitAsync(subject, null, data, null);
     }
 
-    public CompletableFuture<PublishAck> commitAsync(String subject, byte[] data, BatchPublishOptions opts) throws BatchPublishException {
+    public CompletableFuture<PublishAck> commitAsync(String subject, byte[] data, BatchPublishOptions opts) {
         return commitAsync(subject, null, data, opts);
     }
 
-    public CompletableFuture<PublishAck> commitAsync(String subject, Headers userHeaders, byte[] data) throws BatchPublishException {
+    public CompletableFuture<PublishAck> commitAsync(String subject, Headers userHeaders, byte[] data) {
         return commitAsync(subject, userHeaders, data, null);
     }
 
-    public CompletableFuture<PublishAck> commitAsync(String subject, Headers userHeaders, byte[] data, BatchPublishOptions opts) throws BatchPublishException {
+    public CompletableFuture<PublishAck> commitAsync(String subject, Headers userHeaders, byte[] data, BatchPublishOptions opts) {
         return CompletableFuture.supplyAsync(() -> {
             try {
                 return commit(subject, userHeaders, data, opts);

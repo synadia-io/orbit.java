@@ -85,8 +85,8 @@ Run some NATS servers and cause chaos by bringing them up and down.
 
 Utility to publish an atomic batch, a group of up to 1000 messages
 
-**Current Release**: 0.2.1
-&nbsp;**Current Snapshot**: 0.2.2-SNAPSHOT
+**Current Release**: 0.2.2
+&nbsp;**Current Snapshot**: 0.2.3-SNAPSHOT
 
 [![README](https://img.shields.io/badge/README-blue?style=flat&link=batch-publish/README.md)](batch-publish/README.md)
 ![Artifact](https://img.shields.io/badge/Artifact-io.synadia:batch--publish-00BC8E?labelColor=grey&style=flat)
