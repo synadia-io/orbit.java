@@ -7,6 +7,17 @@ boost productivity and provide a higher abstraction layer for the [JNATS](https:
 client. Note that these libraries will evolve rapidly and API guarantees are general not made until the specific project has a v1.0.0 version.
 
 # Utilities
+| Module                               | Description                                          | Docs                                          | Release Version | Snapshot       |
+|--------------------------------------|------------------------------------------------------|-----------------------------------------------|-----------------|----------------|
+| Retrier                              | Extension for retrying anything                      | [README.md](retrier/README.md)                | 0.2.1           | 0.2.2-SNAPSHOT |
+| Jetstream Publish Extensions         | General extensions for Jetstream Publishing          | [README.md](js-publish-extensions/README.md)  | 0.4.4           | 0.4.5-SNAPSHOT |
+| Request Many                         | Get many responses for a single core request.        | [README.md](request-many/README.md)           | 0.1.1           | 0.1.2-SNAPSHOT |
+| Encoded KeyValue                     | Allow custom encoding of keys and values.            | [README.md](encoded-kv/README.md)             | 0.1.1           | 0.1.2-SNAPSHOT |
+| Direct Batch                         | Leverages direct message capabilities in NATS Server | [README.md](direct-batch/README.md)           | 0.0.4           | 0.0.5-SNAPSHOT |
+| Batch Publish                        | Publish an atomic batch                              | [README.md](dirrrrrrr/README.md)              | 0.0.0           | 0.0.0-SNAPSHOT |
+| JetStream Distributed Counters CRDT  | Leverage distributed counter functionality           | [README.md](counter/README.md)                | 0.1.1           | 0.1.2-SNAPSHOT |
+| JetStream Scheduled Message          | Leverage ability to schedule a message               | [README.md](schedule-message/README.md)       | 0.0.2           | 0.0.3-SNAPSHOT |
+| Chaos Runner                         | Run some NATS servers and cause chaos                | [README.md](chaos-runner/README.md)           | 0.0.8           | 0.0.9-SNAPSHOT |
 
 ## Retrier
 
@@ -69,18 +80,6 @@ The functionality is described in [ADR-31](https://github.com/nats-io/nats-archi
 [![javadoc](https://javadoc.io/badge2/io.synadia/direct-batch/javadoc.svg)](https://javadoc.io/doc/io.synadia/direct-batch)
 [![Maven Central](https://maven-badges.herokuapp.com/maven-central/io.synadia/direct-batch/badge.svg)](https://maven-badges.herokuapp.com/maven-central/io.synadia/direct-batch)
 
-## Chaos Runner
-
-Run some NATS servers and cause chaos by bringing them up and down.
-
-**Current Release**: 0.0.8
-&nbsp; **Current Snapshot**: 0.0.9-SNAPSHOT
-
-[![README](https://img.shields.io/badge/README-blue?style=flat&link=chaos-runner/README.md)](chaos-runner/README.md)
-![Artifact](https://img.shields.io/badge/Artifact-io.synadia:chaos--runner-00BC8E?labelColor=grey&style=flat)
-[![javadoc](https://javadoc.io/badge2/io.synadia/chaos-runner/javadoc.svg)](https://javadoc.io/doc/io.synadia/chaos-runner)
-[![Maven Central](https://maven-badges.herokuapp.com/maven-central/io.synadia/chaos-runner/badge.svg)](https://maven-badges.herokuapp.com/maven-central/io.synadia/chaos-runner)
-
 ### Batch Publish
 
 Utility to publish an atomic batch, a group of up to 1000 messages
@@ -95,7 +94,7 @@ Utility to publish an atomic batch, a group of up to 1000 messages
 
 ### JetStream Distributed Counters CRDT
 
-Utility to take advantage of the distributed counter functionality.
+Utility to take leverage the distributed counter functionality.
 
 **Current Release**: 0.1.1
 &nbsp; **Current Snapshot**: 0.1.2-SNAPSHOT
@@ -117,6 +116,18 @@ Eventually the ability to schedule a message to publish based on a cron or sched
 ![Artifact](https://img.shields.io/badge/Artifact-io.synadia:scheduled--message-00BC8E?labelColor=grey&style=flat)
 [![javadoc](https://javadoc.io/badge2/io.synadia/scheduled-message/javadoc.svg)](https://javadoc.io/doc/io.synadia/scheduled-message)
 [![Maven Central](https://maven-badges.herokuapp.com/maven-central/io.synadia/scheduled-message/badge.svg)](https://maven-badges.herokuapp.com/maven-central/io.synadia/scheduled-message)
+
+## Chaos Runner
+
+Run some NATS servers and cause chaos by bringing them up and down.
+
+**Current Release**: 0.0.8
+&nbsp; **Current Snapshot**: 0.0.9-SNAPSHOT
+
+[![README](https://img.shields.io/badge/README-blue?style=flat&link=chaos-runner/README.md)](chaos-runner/README.md)
+![Artifact](https://img.shields.io/badge/Artifact-io.synadia:chaos--runner-00BC8E?labelColor=grey&style=flat)
+[![javadoc](https://javadoc.io/badge2/io.synadia/chaos-runner/javadoc.svg)](https://javadoc.io/doc/io.synadia/chaos-runner)
+[![Maven Central](https://maven-badges.herokuapp.com/maven-central/io.synadia/chaos-runner/badge.svg)](https://maven-badges.herokuapp.com/maven-central/io.synadia/chaos-runner)
 
 # Dependencies
 ### Gradle
