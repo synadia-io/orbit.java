@@ -1,7 +1,7 @@
 // Copyright (c) 2025 Synadia Communications Inc. All Rights Reserved.
 // See LICENSE and NOTICE file for details.
 
-package io.synadia.counter;
+package io.synadia.counters;
 
 import io.nats.client.api.MessageInfo;
 import io.nats.client.support.Status;

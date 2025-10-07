@@ -1,14 +1,14 @@
 // Copyright (c) 2025 Synadia Communications Inc. All Rights Reserved.
 // See LICENSE and NOTICE file for details.
 
-package io.synadia.counter;
+package io.synadia.counters;
 
 import io.nats.client.api.MessageInfo;
 import org.jspecify.annotations.Nullable;
 
 import java.math.BigInteger;
 
-import static io.synadia.counter.CounterUtils.extractVal;
+import static io.synadia.counters.CountersUtils.extractVal;
 
 public class CounterEntryResponse extends CounterResponse {
 

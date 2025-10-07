@@ -1,7 +1,7 @@
 // Copyright (c) 2025 Synadia Communications Inc. All Rights Reserved.
 // See LICENSE and NOTICE file for details.
 
-package io.synadia.counter;
+package io.synadia.counters;
 
 import io.nats.client.support.JsonParseException;
 import io.nats.client.support.JsonParser;
@@ -13,10 +13,10 @@ import java.math.BigInteger;
 import java.util.HashMap;
 import java.util.Map;
 
-public final class CounterUtils {
+public final class CountersUtils {
 
     public static final String INCREMENT_HEADER = "Nats-Incr";
-    public static final String SOURCES_HEADER = "Nats-Counter-Sources";
+    public static final String SOURCES_HEADER = "Nats-Counters-Sources";
 
     public static BigInteger extractVal(byte @NonNull [] valBytes) {
         String s = new String(valBytes);

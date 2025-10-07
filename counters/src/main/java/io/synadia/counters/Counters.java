@@ -1,7 +1,7 @@
 // Copyright (c) 2025 Synadia Communications Inc. All Rights Reserved.
 // See LICENSE and NOTICE file for details.
 
-package io.synadia.counter;
+package io.synadia.counters;
 
 import io.nats.client.*;
 import io.nats.client.api.*;
@@ -19,16 +19,16 @@ import java.util.List;
 import java.util.concurrent.LinkedBlockingQueue;
 
 import static io.nats.client.support.Validator.required;
-import static io.synadia.counter.CounterUtils.INCREMENT_HEADER;
-import static io.synadia.counter.CounterUtils.extractVal;
+import static io.synadia.counters.CountersUtils.INCREMENT_HEADER;
+import static io.synadia.counters.CountersUtils.extractVal;
 
-public class Counter {
+public class Counters {
 
-    public static Counter createCounterStream(Connection conn, StreamConfiguration userConfig) throws JetStreamApiException, IOException {
-        return createCounterStream(conn, null, userConfig);
+    public static Counters createCountersStream(Connection conn, StreamConfiguration userConfig) throws JetStreamApiException, IOException {
+        return createCountersStream(conn, null, userConfig);
     }
 
-    public static Counter createCounterStream(Connection conn, JetStreamOptions jso, StreamConfiguration userConfig) throws JetStreamApiException, IOException {
+    public static Counters createCountersStream(Connection conn, JetStreamOptions jso, StreamConfiguration userConfig) throws JetStreamApiException, IOException {
         if (userConfig.getRetentionPolicy() != RetentionPolicy.Limits) {
             throw new IllegalArgumentException("Retention Policy - Limits is the only allowed limit for counter streams.");
         }
@@ -43,7 +43,7 @@ public class Counter {
         JetStreamManagement jsm = conn.jetStreamManagement(jso);
         StreamInfo si = jsm.addStream(config);
 
-        return new Counter(config.getName(), conn, jso, jsm, si);
+        return new Counters(config.getName(), conn, jso, jsm, si);
     }
 
     private final String streamName;
@@ -53,19 +53,19 @@ public class Counter {
     private final JetStream js;
     private final DirectBatchContext dbCtx;
 
-    public Counter(String streamName, Connection conn) throws IOException, JetStreamApiException {
+    public Counters(String streamName, Connection conn) throws IOException, JetStreamApiException {
         this(streamName, conn, null, null, null);
     }
 
-    public Counter(String streamName, Connection conn, JetStreamOptions jso) throws IOException, JetStreamApiException {
+    public Counters(String streamName, Connection conn, JetStreamOptions jso) throws IOException, JetStreamApiException {
         this(streamName, conn, jso, null, null);
     }
 
-    private Counter(@NonNull String streamName,
-                    @NonNull Connection conn,
-                    @Nullable JetStreamOptions jso,
-                    @Nullable JetStreamManagement jsm,
-                    @Nullable StreamInfo si
+    private Counters(@NonNull String streamName,
+                     @NonNull Connection conn,
+                     @Nullable JetStreamOptions jso,
+                     @Nullable JetStreamManagement jsm,
+                     @Nullable StreamInfo si
     ) throws IOException, JetStreamApiException
     {
         this.conn = conn;
