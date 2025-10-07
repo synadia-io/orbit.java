@@ -1,11 +1,10 @@
-name: Counter Main Snapshot
+name: Counter Pull Request
 
 on:
-  push:
-    branches:
-      - main
+  pull_request:
+    types: [opened, synchronize, reopened]
     paths:
-      - 'counter/**'
+      - 'counters/**'
 
 jobs:
   build:
@@ -32,16 +31,11 @@ jobs:
         uses: actions/checkout@v3
       - name: Compile and Test
         run: |
-          pushd counter
+          pushd counters
           chmod +x gradlew && ./gradlew clean test
           popd
       - name: Verify Javadoc
         run: |
-          pushd counter
+          pushd counters
           ./gradlew javadoc
-          popd
-      - name: Publish Snapshot
-        run: |
-          pushd counter
-          ./gradlew -i publishToSonatype
           popd

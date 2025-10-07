@@ -15,7 +15,7 @@ client. Note that these libraries will evolve rapidly and API guarantees are gen
 | Encoded KeyValue                     | Allow custom encoding of keys and values.            | [README.md](encoded-kv/README.md)             | 0.1.1           | 0.1.2-SNAPSHOT |
 | Direct Batch                         | Leverages direct message capabilities in NATS Server | [README.md](direct-batch/README.md)           | 0.0.4           | 0.0.5-SNAPSHOT |
 | Batch Publish                        | Publish an atomic batch                              | [README.md](dirrrrrrr/README.md)              | 0.0.0           | 0.0.0-SNAPSHOT |
-| JetStream Distributed Counters CRDT  | Leverage distributed counter functionality           | [README.md](counter/README.md)                | 0.1.1           | 0.1.2-SNAPSHOT |
+| JetStream Distributed Counters CRDT  | Leverage distributed counters functionality          | [README.md](counters/README.md)               | 0.1.1           | 0.1.2-SNAPSHOT |
 | JetStream Scheduled Message          | Leverage ability to schedule a message               | [README.md](schedule-message/README.md)       | 0.0.2           | 0.0.3-SNAPSHOT |
 | Chaos Runner                         | Run some NATS servers and cause chaos                | [README.md](chaos-runner/README.md)           | 0.0.8           | 0.0.9-SNAPSHOT |
 
@@ -94,15 +94,15 @@ Utility to publish an atomic batch, a group of up to 1000 messages
 
 ### JetStream Distributed Counters CRDT
 
-Utility to take leverage the distributed counter functionality.
+Utility to take leverage the distributed counters functionality.
 
 **Current Release**: 0.1.1
 &nbsp; **Current Snapshot**: 0.1.2-SNAPSHOT
 
-[![README](https://img.shields.io/badge/README-blue?style=flat&link=counter/README.md)](counter/README.md)
-![Artifact](https://img.shields.io/badge/Artifact-io.synadia:counter-00BC8E?labelColor=grey&style=flat)
-[![javadoc](https://javadoc.io/badge2/io.synadia/counter/javadoc.svg)](https://javadoc.io/doc/io.synadia/counter)
-[![Maven Central](https://maven-badges.herokuapp.com/maven-central/io.synadia/counter/badge.svg)](https://maven-badges.herokuapp.com/maven-central/io.synadia/counter)
+[![README](https://img.shields.io/badge/README-blue?style=flat&link=counters/README.md)](counters/README.md)
+![Artifact](https://img.shields.io/badge/Artifact-io.synadia:counters-00BC8E?labelColor=grey&style=flat)
+[![javadoc](https://javadoc.io/badge2/io.synadia/counters/javadoc.svg)](https://javadoc.io/doc/io.synadia/counters)
+[![Maven Central](https://maven-badges.herokuapp.com/maven-central/io.synadia/counters/badge.svg)](https://maven-badges.herokuapp.com/maven-central/io.synadia/counters)
 
 ### JetStream Scheduled Message
 

@@ -13,7 +13,7 @@ plugins {
     id 'signing'
 }
 
-def jarVersion = "0.1.2"
+def jarVersion = "0.2.0"
 group = 'io.synadia'
 
 def isMerge = System.getenv("BUILD_EVENT") == "push"
@@ -73,7 +73,7 @@ tasks.register('bundle', Bundle) {
 
 jar {
     manifest {
-        attributes('Automatic-Module-Name': 'io.synadia.counter')
+        attributes('Automatic-Module-Name': 'io.synadia.counters')
     }
     bnd (['Implementation-Title': 'JetStream Distributed Counters',
           'Implementation-Version': jarVersion,
@@ -171,7 +171,7 @@ publishing {
             artifact examplesJar
             artifact javadocJar
             pom {
-                name = 'counter'
+                name = 'counters'
                 packaging = 'jar'
                 groupId = group
                 artifactId = archivesBaseName

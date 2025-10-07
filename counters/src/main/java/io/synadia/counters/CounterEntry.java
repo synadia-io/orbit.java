@@ -1,7 +1,7 @@
 // Copyright (c) 2025 Synadia Communications Inc. All Rights Reserved.
 // See LICENSE and NOTICE file for details.
 
-package io.synadia.counter;
+package io.synadia.counters;
 
 import io.nats.client.api.MessageInfo;
 import io.nats.client.impl.Headers;
@@ -10,7 +10,7 @@ import org.jspecify.annotations.NonNull;
 import java.math.BigInteger;
 import java.util.Map;
 
-import static io.synadia.counter.CounterUtils.*;
+import static io.synadia.counters.CountersUtils.*;
 
 public class CounterEntry {
     private final String subject;
@@ -36,13 +36,13 @@ public class CounterEntry {
             throw invalidCounterMessage(null);
         }
 
-        String temp = h.getFirst(CounterUtils.INCREMENT_HEADER);
+        String temp = h.getFirst(CountersUtils.INCREMENT_HEADER);
         if (temp == null) {
             throw invalidCounterMessage(null);
         }
         lastIncrement = extractLastIncrement(temp);
 
-        sources = extractSources(h.getFirst(CounterUtils.SOURCES_HEADER));
+        sources = extractSources(h.getFirst(CountersUtils.SOURCES_HEADER));
     }
 
     private static RuntimeException invalidCounterMessage(Exception e) {
