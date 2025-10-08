@@ -1,6 +1,6 @@
-![Synadia](src/main/javadoc/images/synadia-logo.png) &nbsp;&nbsp;&nbsp;&nbsp; ![NATS](src/main/javadoc/images/large-logo.png)
+<img src="../orbit_shorter.png" alt="Orbit">
 
-# JetStream Scheduled Message
+# Scheduled Message
 
 Utility to leverage the ability to schedule a message to be published at a later time.
 Eventually the ability to schedule a message to publish based on a cron or schedule. 

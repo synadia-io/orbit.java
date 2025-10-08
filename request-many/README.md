@@ -1,4 +1,4 @@
-![Synadia](src/main/javadoc/images/synadia-logo.png) &nbsp;&nbsp;&nbsp;&nbsp; ![NATS](src/main/javadoc/images/large-logo.png)
+<img src="../orbit_shorter.png" alt="Orbit">
 
 # Request-Many Utility
 

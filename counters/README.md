@@ -1,6 +1,6 @@
 <img src="../orbit_shorter.png" alt="Orbit">
 
-# JetStream Distributed Counters CRDT
+# Distributed Counters
 
 Utility to take advantage of the distributed counter functionality.
 

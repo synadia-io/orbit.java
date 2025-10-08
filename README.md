@@ -92,7 +92,7 @@ Utility to publish an atomic batch, a group of up to 1000 messages
 [![javadoc](https://javadoc.io/badge2/io.synadia/batch-publish/javadoc.svg)](https://javadoc.io/doc/io.synadia/batch-publish)
 [![Maven Central](https://maven-badges.herokuapp.com/maven-central/io.synadia/batch-publish/badge.svg)](https://maven-badges.herokuapp.com/maven-central/io.synadia/batch-publish)
 
-### Distributed Counters CRDT
+### Distributed Counters
 
 Utility to take leverage the distributed counter functionality.
 
