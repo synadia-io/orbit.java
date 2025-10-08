@@ -7,17 +7,17 @@ boost productivity and provide a higher abstraction layer for the [JNATS](https:
 client. Note that these libraries will evolve rapidly and API guarantees are general not made until the specific project has a v1.0.0 version.
 
 # Utilities
-| Module                               | Description                                          | Docs                                          | Release Version | Snapshot       |
-|--------------------------------------|------------------------------------------------------|-----------------------------------------------|-----------------|----------------|
-| Retrier                              | Extension for retrying anything                      | [README.md](retrier/README.md)                | 0.2.1           | 0.2.2-SNAPSHOT |
-| Jetstream Publish Extensions         | General extensions for Jetstream Publishing          | [README.md](js-publish-extensions/README.md)  | 0.4.4           | 0.4.5-SNAPSHOT |
-| Request Many                         | Get many responses for a single core request.        | [README.md](request-many/README.md)           | 0.1.1           | 0.1.2-SNAPSHOT |
-| Encoded KeyValue                     | Allow custom encoding of keys and values.            | [README.md](encoded-kv/README.md)             | 0.1.1           | 0.1.2-SNAPSHOT |
-| Direct Batch                         | Leverages direct message capabilities in NATS Server | [README.md](direct-batch/README.md)           | 0.0.4           | 0.0.5-SNAPSHOT |
-| Batch Publish                        | Publish an atomic batch                              | [README.md](dirrrrrrr/README.md)              | 0.0.0           | 0.0.0-SNAPSHOT |
-| JetStream Distributed Counters CRDT  | Leverage distributed counters functionality          | [README.md](counters/README.md)               | 0.1.1           | 0.1.2-SNAPSHOT |
-| JetStream Scheduled Message          | Leverage ability to schedule a message               | [README.md](schedule-message/README.md)       | 0.0.2           | 0.0.3-SNAPSHOT |
-| Chaos Runner                         | Run some NATS servers and cause chaos                | [README.md](chaos-runner/README.md)           | 0.0.8           | 0.0.9-SNAPSHOT |
+| Module                       | Description                                          | Docs                                          | Release Version | Snapshot       |
+|------------------------------|------------------------------------------------------|-----------------------------------------------|-----------------|----------------|
+| Retrier                      | Extension for retrying anything                      | [README.md](retrier/README.md)                | 0.2.1           | 0.2.2-SNAPSHOT |
+| Jetstream Publish Extensions | General extensions for Jetstream Publishing          | [README.md](js-publish-extensions/README.md)  | 0.4.4           | 0.4.5-SNAPSHOT |
+| Request Many                 | Get many responses for a single core request.        | [README.md](request-many/README.md)           | 0.1.1           | 0.1.2-SNAPSHOT |
+| Encoded KeyValue             | Allow custom encoding of keys and values.            | [README.md](encoded-kv/README.md)             | 0.1.1           | 0.1.2-SNAPSHOT |
+| Direct Batch                 | Leverages direct message capabilities in NATS Server | [README.md](direct-batch/README.md)           | 0.0.4           | 0.0.5-SNAPSHOT |
+| Batch Publish                | Publish an atomic batch                              | [README.md](dirrrrrrr/README.md)              | 0.0.0           | 0.0.0-SNAPSHOT |
+| Distributed Counters         | Leverage distributed counters functionality          | [README.md](counters/README.md)               | 0.2.0           | 0.2.1-SNAPSHOT |
+| Scheduled Message            | Leverage ability to schedule a message               | [README.md](schedule-message/README.md)       | 0.0.2           | 0.0.3-SNAPSHOT |
+| Chaos Runner                 | Run some NATS servers and cause chaos                | [README.md](chaos-runner/README.md)           | 0.0.8           | 0.0.9-SNAPSHOT |
 
 ## Retrier
 
@@ -92,19 +92,19 @@ Utility to publish an atomic batch, a group of up to 1000 messages
 [![javadoc](https://javadoc.io/badge2/io.synadia/batch-publish/javadoc.svg)](https://javadoc.io/doc/io.synadia/batch-publish)
 [![Maven Central](https://maven-badges.herokuapp.com/maven-central/io.synadia/batch-publish/badge.svg)](https://maven-badges.herokuapp.com/maven-central/io.synadia/batch-publish)
 
-### JetStream Distributed Counters CRDT
+### Distributed Counters CRDT
 
-Utility to take leverage the distributed counters functionality.
+Utility to take leverage the distributed counter functionality.
 
-**Current Release**: 0.1.1
-&nbsp; **Current Snapshot**: 0.1.2-SNAPSHOT
+**Current Release**: 0.2.0
+&nbsp; **Current Snapshot**: 0.2.1-SNAPSHOT
 
 [![README](https://img.shields.io/badge/README-blue?style=flat&link=counters/README.md)](counters/README.md)
 ![Artifact](https://img.shields.io/badge/Artifact-io.synadia:counters-00BC8E?labelColor=grey&style=flat)
 [![javadoc](https://javadoc.io/badge2/io.synadia/counters/javadoc.svg)](https://javadoc.io/doc/io.synadia/counters)
 [![Maven Central](https://maven-badges.herokuapp.com/maven-central/io.synadia/counters/badge.svg)](https://maven-badges.herokuapp.com/maven-central/io.synadia/counters)
 
-### JetStream Scheduled Message
+### Scheduled Message
 
 Utility to leverage the ability to schedule a message to be published at a later time.
 Eventually the ability to schedule a message to publish based on a cron or schedule.
