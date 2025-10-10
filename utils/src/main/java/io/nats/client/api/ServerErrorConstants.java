@@ -1,3 +1,8 @@
+// Copyright (c) 2025 Synadia Communications Inc. All Rights Reserved.
+// See LICENSE and NOTICE file for details.
+
+// GENERATED 10/10/2025
+
 package io.nats.client.api;
 
 import java.util.Collections;
