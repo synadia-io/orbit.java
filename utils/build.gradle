@@ -1,0 +1,26 @@
+plugins {
+    id 'java'
+    id 'java-library'
+}
+
+group = 'io.synadia'
+version = "0.0.0"
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_1_8
+    targetCompatibility = JavaVersion.VERSION_1_8
+}
+
+repositories {
+    mavenCentral()
+    maven {
+        url "https://repo1.maven.org/maven2/"
+    }
+    maven {
+        url "https://central.sonatype.com/repository/maven-snapshots/"
+    }
+}
+
+dependencies {
+    implementation 'io.nats:jnats:2.23.0'
+}
