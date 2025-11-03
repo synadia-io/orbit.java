@@ -1,0 +1,32 @@
+:set BUILD_EVENT=release
+set BUILD_EVENT=not_release
+set OSSRH_USERNAME=YgqQY2UK
+set OSSRH_PASSWORD=1QoJSn6n/vt9dp34vt4GMp1sIJ+4Ed2htekS/KAB15dD
+set SIGNING_KEY_ID=01684F29
+set SIGNING_PASSWORD=Zc7+u^Gt8Xumvx3%LyUHX4-p
+: set JAVA_HOME=C:\Program Files\Java\jdk-17
+: set PATH=C:\Program Files\Java\jdk-17\bin;%PATH%
+
+
+export BUILD_EVENT=release
+export BUILD_EVENT=not_release
+export OSSRH_USERNAME=YgqQY2UK
+export OSSRH_PASSWORD=1QoJSn6n/vt9dp34vt4GMp1sIJ+4Ed2htekS/KAB15dD
+export SIGNING_KEY_ID=01684F29
+export SIGNING_PASSWORD=Zc7+u^Gt8Xumvx3%LyUHX4-p
+export SIGNING_KEY="$(cat key.txt)"
+
+
+printenv BUILD_EVENT
+printenv OSSRH_USERNAME
+printenv OSSRH_PASSWORD
+printenv SIGNING_KEY_ID
+printenv SIGNING_PASSWORD
+printenv SIGNING_KEY
+
+sudo update-alternatives --config java
+
+gradle clean test
+gradle -i publishToSonatype
+gradle -i signArchives signMavenJavaPublication publishToSonatype closeAndReleaseSonatypeStagingRepository
+gradle -i publishToSonatype closeAndReleaseSonatypeStagingRepository

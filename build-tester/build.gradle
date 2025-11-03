@@ -1,0 +1,235 @@
+import aQute.bnd.gradle.Bundle
+import org.gradle.internal.os.OperatingSystem
+
+plugins {
+    id("java")
+    id("java-library")
+    id("maven-publish")
+    id("jacoco")
+//    id("biz.aQute.bnd.builder") version "7.1.0"
+    id("biz.aQute.bnd.builder") version "5.1.2"
+    id("org.gradle.test-retry") version "1.6.4"
+    id("io.github.gradle-nexus.publish-plugin") version "1.1.0"
+    id("signing")
+}
+
+def jarVersion = "0.0.4"
+group = 'io.synadia'
+
+def isRelease = System.getenv("BUILD_EVENT") == "release"
+
+// version is the variable the build actually uses.
+version = isRelease ? jarVersion : jarVersion + "-SNAPSHOT"
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_1_8
+    targetCompatibility = JavaVersion.VERSION_1_8
+}
+
+// java {
+//     sourceCompatibility = JavaVersion.VERSION_17
+//     targetCompatibility = JavaVersion.VERSION_17
+// }
+
+repositories {
+    gradlePluginPortal()
+    mavenCentral()
+    maven { url="https://repo1.maven.org/maven2/" }
+    maven { url="https://central.sonatype.com/repository/maven-snapshots/" }
+    maven { url="https://oss.sonatype.org/content/repositories/releases/" }
+}
+
+dependencies {
+    implementation 'io.nats:jnats:2.21.5'
+    implementation 'org.jspecify:jspecify:1.0.0'
+    implementation 'org.apache.commons:commons-lang3:3.18.0'
+
+    testImplementation 'io.nats:jnats-server-runner:1.2.8'
+    testImplementation 'org.junit.jupiter:junit-jupiter:5.9.0'
+}
+
+sourceSets {
+    main {
+        java {
+            srcDirs = ['src/main/java','src/examples/java']
+        }
+        resources {
+            srcDirs = ['src/examples/resources']
+        }
+    }
+    test {
+        java {
+            srcDirs = ['src/test/java']
+        }
+    }
+}
+
+tasks.register('bundle', Bundle) {
+    from sourceSets.main.output
+    exclude("io/synadia/examples/**")
+}
+
+jar {
+    manifest {
+        attributes(
+                'Automatic-Module-Name': 'io.synadia.build.tester',
+                'Implementation-Title': 'Build Tester',
+                'Implementation-Version': jarVersion,
+                'Implementation-Vendor': 'synadia.io'
+        )
+    }
+    bnd (['Implementation-Title': 'Java Nats',
+          'Implementation-Version': jarVersion,
+          'Implementation-Vendor': 'nats.io']
+    )
+    exclude("io/synadia/examples/**")
+}
+
+test {
+    // Use junit platform for unit tests
+    useJUnitPlatform()
+    testLogging {
+        exceptionFormat = 'full'
+        events "started", "passed", "skipped", "failed"
+        showStandardStreams = true
+    }
+    retry {
+        failOnPassedAfterRetry = false
+        maxFailures = 3
+        maxRetries = 3
+    }
+    systemProperty 'junit.jupiter.execution.timeout.default', '3m'
+}
+
+javadoc {
+    options.overview = 'src/main/javadoc/overview.html' // relative to source root
+    source = sourceSets.main.allJava
+    title = "Synadia Communications Inc. Build Tester"
+    excludes ['**/examples/**']
+    classpath = sourceSets.main.runtimeClasspath
+    doLast {
+        if (!OperatingSystem.current().isWindows()) {
+            exec {
+                println "Updating favicon on all html files"
+                workingDir 'build/docs/javadoc'
+                // Only on linux, mac at this point
+                commandLine 'find', '.', '-name', '*.html', '-exec', 'sed', '-i', '-e', 's#<head>#<head><link rel="icon" type="image/ico" href="favicon.ico">#', '{}', ';'
+            }
+            copy {
+                println "Copying images to javadoc folder"
+                from 'src/main/javadoc/images'
+                into 'build/docs/javadoc'
+            }
+        }
+    }
+}
+
+tasks.register('examplesJar', Jar) {
+    archiveClassifier.set('examples')
+    manifest {
+        attributes('Implementation-Title': 'Build Tester Examples',
+                'Implementation-Version': jarVersion,
+                'Implementation-Vendor': 'synadia.io')
+    }
+    from(sourceSets.main.output) {
+        include "io/synadia/flink/examples/**"
+    }
+}
+
+tasks.register('javadocJar', Jar) {
+    archiveClassifier.set('javadoc')
+    from javadoc
+}
+
+tasks.register('sourcesJar', Jar) {
+    archiveClassifier.set('sources')
+    from sourceSets.main.allSource
+}
+
+tasks.register('testsJar', Jar) {
+    archiveClassifier.set('tests')
+    from sourceSets.test.allSource
+}
+
+jacoco {
+    toolVersion = "0.8.12"
+}
+
+jacocoTestReport {
+    reports {
+        xml.required = true // coveralls plugin depends on xml format report
+        html.required = true
+    }
+    afterEvaluate { // only report on main library not examples
+        classDirectories.setFrom(files(classDirectories.files.collect {
+            fileTree(dir: it,
+                    exclude: ['**/examples**','**/Debug**'])
+        }))
+    }
+}
+
+artifacts {
+    archives javadocJar, sourcesJar, examplesJar, testsJar
+}
+
+nexusPublishing {
+    repositories {
+        sonatype {
+            nexusUrl.set(uri("https://ossrh-staging-api.central.sonatype.com/service/local/"))
+            snapshotRepositoryUrl.set(uri("https://central.sonatype.com/repository/maven-snapshots/"))
+            username = System.getenv('OSSRH_USERNAME')
+            password = System.getenv('OSSRH_PASSWORD')
+        }
+    }
+}
+
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            from components.java
+            artifact sourcesJar
+            artifact examplesJar
+            artifact javadocJar
+            artifact testsJar
+            pom {
+                name = 'build-tester'
+                packaging = 'jar'
+                groupId = group
+                artifactId = archivesBaseName
+                description = 'Synadia Communications Inc. Build Tester'
+                licenses {
+                    license {
+                        name = 'The Apache License, Version 2.0'
+                        url = 'http://www.apache.org/licenses/LICENSE-2.0.txt'
+                    }
+                }
+                developers {
+                    developer {
+                        id = "synadia"
+                        name = "Synadia"
+                        email = "info@synadia.com"
+                        url = "https://synadia.io"
+                    }
+                }
+            }
+        }
+    }
+}
+
+if (isRelease) {
+    signing {
+        def signingKeyId = System.getenv('SIGNING_KEY_ID')
+        def signingKey = System.getenv('SIGNING_KEY')
+        def signingPassword = System.getenv('SIGNING_PASSWORD')
+        useInMemoryPgpKeys(signingKeyId, signingKey, signingPassword)
+        sign configurations.archives
+        sign publishing.publications.mavenJava
+    }
+}
+
+if (hasProperty('buildScan')) {
+    buildScan {
+        termsOfServiceUrl = 'https://gradle.com/help/legal-terms-of-use'
+        termsOfServiceAgree = 'yes'
+    }
+}
