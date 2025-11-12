@@ -57,7 +57,7 @@ public Counters(String streamName, Connection conn) throws IOException, JetStrea
 public Counters(String streamName, Connection conn, JetStreamOptions jso) throws IOException, JetStreamApiException
 ```
 
-### Use Counter
+### Counters instance API
 ```java
 public BigInteger add(String subject, int value) throws JetStreamApiException, IOException
 public BigInteger add(String subject, long value) throws JetStreamApiException, IOException
