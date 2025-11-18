@@ -1,62 +1,66 @@
 import aQute.bnd.gradle.Bundle
-import org.gradle.internal.os.OperatingSystem
 
 plugins {
-    id 'java'
-    id 'java-library'
-    id 'maven-publish'
-    id 'jacoco'
-    id 'com.github.kt3k.coveralls' version '2.12.0'
-    id 'biz.aQute.bnd.builder' version '5.1.2'
-    id "org.gradle.test-retry" version "1.1.9"
-    id 'io.github.gradle-nexus.publish-plugin' version '1.1.0'
-    id 'signing'
+    id("java")
+    id("java-library")
+    id("maven-publish")
+    id("jacoco")
+    id("biz.aQute.bnd.builder") version "7.1.0"
+    id("org.gradle.test-retry") version "1.6.4"
+    id("io.github.gradle-nexus.publish-plugin") version "2.0.0"
+    id("signing")
 }
 
 def jarVersion = "0.2.1"
 group = 'io.synadia'
 
-def isMerge = System.getenv("BUILD_EVENT") == "push"
 def isRelease = System.getenv("BUILD_EVENT") == "release"
 
-// version is the variable the build actually uses.
-version = isRelease ? jarVersion : jarVersion + "-SNAPSHOT"
+def tc = System.getenv("TARGET_COMPATIBILITY");
+def targetCompat = tc == "21" ? JavaVersion.VERSION_21 : (tc == "17" ? JavaVersion.VERSION_17 : JavaVersion.VERSION_1_8)
+def jarEnd =       tc == "21" ?  "-jdk21"              : (tc == "17" ? "-jdk17"               : "")
+def jarAndArtifactName = "counters" + jarEnd
+
+version = isRelease ? jarVersion : jarVersion + "-SNAPSHOT" // version is the variable the build actually uses.
+
+
+System.out.println("Java: " + System.getProperty("java.version"))
+System.out.println("Target Compatibility: " + targetCompat)
+System.out.println(group + ":" + jarAndArtifactName + ":" + version)
 
 java {
     sourceCompatibility = JavaVersion.VERSION_1_8
-    targetCompatibility = JavaVersion.VERSION_1_8
+    targetCompatibility = targetCompat
 }
 
 repositories {
     mavenCentral()
-    maven {
-        url "https://repo1.maven.org/maven2/"
-    }
-    maven {
-        url "https://central.sonatype.com/repository/maven-snapshots/"
-    }
+    maven { url="https://repo1.maven.org/maven2/" }
+    maven { url="https://central.sonatype.com/repository/maven-snapshots/" }
 }
 
 dependencies {
-    implementation 'io.nats:jnats:2.23.0'
+    implementation 'io.nats:jnats:2.24.0'
     implementation 'io.synadia:direct-batch:0.1.4'
     implementation 'org.jspecify:jspecify:1.0.0'
 
-    testImplementation 'commons-codec:commons-codec:1.18.0'
     testImplementation 'io.nats:jnats-server-runner:1.2.8'
-    testImplementation 'org.junit.jupiter:junit-jupiter:5.9.0'
-    testImplementation 'com.github.stefanbirkner:system-lambda:1.2.1'
-    testImplementation 'nl.jqno.equalsverifier:equalsverifier:3.12.3'
-}
 
-configurations.configureEach {
-    resolutionStrategy.cacheChangingModulesFor 0, 'seconds'
+    testImplementation 'commons-codec:commons-codec:1.20.0'
+    testImplementation 'com.github.stefanbirkner:system-lambda:1.2.1'
+    testImplementation 'nl.jqno.equalsverifier:equalsverifier:4.2.3'
+
+    testImplementation 'org.junit.jupiter:junit-jupiter:5.14.1'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 }
 
 sourceSets {
     main {
         java {
             srcDirs = ['src/main/java','src/examples/java']
+        }
+        resources {
+            srcDirs = ['src/examples/resources']
         }
     }
     test {
@@ -72,18 +76,17 @@ tasks.register('bundle', Bundle) {
 }
 
 jar {
-    manifest {
-        attributes('Automatic-Module-Name': 'io.synadia.counters')
+    bundle {
+        bnd("Bundle-Name": "io.synadia.counters",
+                "Bundle-Vendor": "synadia.io",
+                "Bundle-Description": "JetStream Distributed Counters",
+                "Bundle-DocURL": "https://github.com/synadia-io/orbit.java/tree/main/counters",
+                "Target-Compatibility": "Java " + targetCompat
+        )
     }
-    bnd (['Implementation-Title': 'JetStream Distributed Counters',
-          'Implementation-Version': jarVersion,
-          'Implementation-Vendor': 'synadia.io']
-    )
-    exclude("io/synadia/examples/**")
 }
 
 test {
-    // Use junit platform for unit tests
     useJUnitPlatform()
 }
 
@@ -92,21 +95,6 @@ javadoc {
     source = sourceSets.main.allJava
     title = "Synadia Communications Inc. JetStream Distributed Counters"
     classpath = sourceSets.main.runtimeClasspath
-    doLast {
-        if (!OperatingSystem.current().isWindows()) {
-            exec {
-                println "Updating favicon on all html files"
-                workingDir 'build/docs/javadoc'
-                // Only on linux, mac at this point
-                commandLine 'find', '.', '-name', '*.html', '-exec', 'sed', '-i', '-e', 's#<head>#<head><link rel="icon" type="image/ico" href="favicon.ico">#', '{}', ';'
-            }
-            copy {
-                println "Copying images to javadoc folder"
-                from 'src/main/javadoc/images'
-                into 'build/docs/javadoc'
-            }
-        }
-    }
 }
 
 tasks.register('examplesJar', Jar) {
@@ -131,14 +119,18 @@ tasks.register('sourcesJar', Jar) {
     from sourceSets.main.allSource
 }
 
+artifacts {
+    archives javadocJar, sourcesJar, examplesJar
+}
+
 jacoco {
-    toolVersion = "0.8.6"
+    toolVersion = "0.8.12"
 }
 
 jacocoTestReport {
     reports {
-        xml.enabled = true // coveralls plugin depends on xml format report
-        html.enabled = true
+        xml.required = true // coveralls plugin depends on xml format report
+        html.required = true
     }
     afterEvaluate { // only report on main library not examples
         classDirectories.setFrom(files(classDirectories.files.collect {
@@ -146,10 +138,6 @@ jacocoTestReport {
                     exclude: ['**/examples**'])
         }))
     }
-}
-
-artifacts {
-    archives javadocJar, sourcesJar, examplesJar
 }
 
 nexusPublishing {
@@ -171,10 +159,10 @@ publishing {
             artifact examplesJar
             artifact javadocJar
             pom {
-                name = 'counters'
+                name = jarAndArtifactName
                 packaging = 'jar'
                 groupId = group
-                artifactId = archivesBaseName
+                artifactId = jarAndArtifactName
                 description = 'Synadia Communications Inc. JetStream Distributed Counters'
                 url = 'https://github.com/synadia-io/orbit.java'
                 licenses {
