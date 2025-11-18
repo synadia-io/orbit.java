@@ -11,7 +11,7 @@ plugins {
     id("signing")
 }
 
-def jarVersion = "0.2.1"
+def jarVersion = "0.2.2"
 group = 'io.synadia'
 
 def isRelease = System.getenv("BUILD_EVENT") == "release"
@@ -22,7 +22,6 @@ def jarEnd =       tc == "21" ?  "-jdk21"              : (tc == "17" ? "-jdk17" 
 def jarAndArtifactName = "counters" + jarEnd
 
 version = isRelease ? jarVersion : jarVersion + "-SNAPSHOT" // version is the variable the build actually uses.
-
 
 System.out.println("Java: " + System.getProperty("java.version"))
 System.out.println("Target Compatibility: " + targetCompat)
@@ -45,7 +44,6 @@ dependencies {
     implementation 'org.jspecify:jspecify:1.0.0'
 
     testImplementation 'io.nats:jnats-server-runner:1.2.8'
-
     testImplementation 'commons-codec:commons-codec:1.20.0'
     testImplementation 'com.github.stefanbirkner:system-lambda:1.2.1'
     testImplementation 'nl.jqno.equalsverifier:equalsverifier:4.2.3'
