@@ -12,7 +12,7 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: ${{ inputs.project-dir }}
+        working-directory: ./${{ inputs.project-dir }}
     env:
       BUILD_EVENT: ${{ github.event_name }}
       OSSRH_USERNAME: ${{ secrets.OSSRH_USERNAME }}
@@ -26,6 +26,8 @@ jobs:
         with:
           java-version: '21'
           distribution: 'temurin'
+      - name: Check out code
+        uses: actions/checkout@v4
       - name: Install Nats Server
         run: |
           pkill -9 nats-server 2>/dev/null || true
@@ -35,8 +37,6 @@ jobs:
           cd nats-server
           go build -o ~/.local/bin/nats-server
           nats-server -v
-      - name: Check out code
-        uses: actions/checkout@v4
       - name: Build and Test
         run: |
           chmod +x gradlew && ./gradlew clean test
