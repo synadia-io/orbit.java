@@ -1,0 +1,188 @@
+import aQute.bnd.gradle.Bundle
+
+plugins {
+    id("java")
+    id("java-library")
+    id("maven-publish")
+    id("jacoco")
+    id("biz.aQute.bnd.builder") version "7.1.0"
+    id("org.gradle.test-retry") version "1.6.4"
+    id("io.github.gradle-nexus.publish-plugin") version "2.0.0"
+    id("signing")
+}
+
+def jarVersion = "0.1.0"
+group = 'io.synadia'
+
+def isRelease = System.getenv("BUILD_EVENT") == "release"
+
+def tc = System.getenv("TARGET_COMPATIBILITY");
+def targetCompat = tc == "21" ? JavaVersion.VERSION_21 : (tc == "17" ? JavaVersion.VERSION_17 : JavaVersion.VERSION_1_8)
+def jarEnd =       tc == "21" ?  "-jdk21"              : (tc == "17" ? "-jdk17"               : "")
+def jarAndArtifactName = "partitioned-consumer-groups" + jarEnd
+
+version = isRelease ? jarVersion : jarVersion + "-SNAPSHOT" // version is the variable the build actually uses.
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_1_8
+    targetCompatibility = targetCompat
+}
+
+repositories {
+    mavenCentral()
+    maven { url="https://repo1.maven.org/maven2/" }
+    maven { url="https://central.sonatype.com/repository/maven-snapshots" }
+}
+
+dependencies {
+    implementation 'io.nats:jnats:2.25.1'
+    implementation 'com.google.code.gson:gson:2.11.0'
+    implementation 'org.jspecify:jspecify:1.0.0'
+
+    testImplementation 'io.nats:jnats-server-runner:3.1.0'
+    testImplementation 'org.junit.jupiter:junit-jupiter:5.14.1'
+    testImplementation 'org.junit.platform:junit-platform-launcher:1.14.3'
+}
+
+sourceSets {
+    main {
+        java {
+            srcDirs = ['src/main/java']
+        }
+    }
+    test {
+        java {
+            srcDirs = ['src/test/java']
+        }
+    }
+}
+
+tasks.register('bundle', Bundle) {
+    from sourceSets.main.output
+}
+
+jar {
+    bundle {
+        bnd("Bundle-Name": "io.synadia.partitioned.consumer.groups",
+                "Bundle-Vendor": "synadia.io",
+                "Bundle-Description": "NATS JetStream Partitioned Consumer Groups Library for Java",
+                "Bundle-DocURL": "https://synadia.io"
+        )
+    }
+}
+
+test {
+    // Use junit platform for unit tests
+    useJUnitPlatform()
+    testLogging {
+        exceptionFormat = 'full'
+        events "started", "passed", "skipped", "failed"
+        showStandardStreams = true
+    }
+    retry {
+        failOnPassedAfterRetry = false
+        maxFailures = 3
+        maxRetries = 3
+    }
+    systemProperty 'junit.jupiter.execution.timeout.default', '3m'
+}
+
+javadoc {
+    source = sourceSets.main.allJava
+    title = "Synadia Communications Inc. NATS JetStream Partitioned Consumer Groups"
+    classpath = sourceSets.main.runtimeClasspath
+}
+
+tasks.register('javadocJar', Jar) {
+    archiveClassifier.set('javadoc')
+    from javadoc
+}
+
+tasks.register('sourcesJar', Jar) {
+    archiveClassifier.set('sources')
+    from sourceSets.main.allSource
+}
+
+tasks.register('testsJar', Jar) {
+    archiveClassifier.set('tests')
+    from sourceSets.test.allSource
+}
+
+artifacts {
+    archives javadocJar, sourcesJar, testsJar
+}
+
+jacoco {
+    toolVersion = "0.8.12"
+}
+
+jacocoTestReport {
+    reports {
+        xml.required = true // coveralls plugin depends on xml format report
+        html.required = true
+    }
+    afterEvaluate { // only report on main library not examples
+        classDirectories.setFrom(files(classDirectories.files.collect {
+            fileTree(dir: it,
+                    exclude: ['**/examples**','**/Debug**'])
+        }))
+    }
+}
+
+nexusPublishing {
+    repositories {
+        sonatype {
+            nexusUrl.set(uri("https://ossrh-staging-api.central.sonatype.com/service/local/"))
+            snapshotRepositoryUrl.set(uri("https://central.sonatype.com/repository/maven-snapshots/"))
+            username = System.getenv('OSSRH_USERNAME')
+            password = System.getenv('OSSRH_PASSWORD')
+        }
+    }
+}
+
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            from components.java
+            artifact sourcesJar
+            artifact javadocJar
+            artifact testsJar
+            pom {
+                name = jarAndArtifactName
+                packaging = "jar"
+                groupId = group
+                artifactId = jarAndArtifactName
+                description = "Synadia Communications Inc. NATS JetStream Partitioned Consumer Groups"
+                url = "https://github.com/synadia-io/orbit.java/tree/main/pcgroups"
+                licenses {
+                    license {
+                        name = 'The Apache License, Version 2.0'
+                        url = 'http://www.apache.org/licenses/LICENSE-2.0.txt'
+                    }
+                }
+                developers {
+                    developer {
+                        id = "synadia"
+                        name = "Synadia"
+                        email = "info@synadia.com"
+                        url = "https://synadia.io"
+                    }
+                }
+                scm {
+                    url = "https://github.com/synadia-io/orbit.java"
+                }
+            }
+        }
+    }
+}
+
+if (isRelease) {
+    signing {
+        def signingKeyId = System.getenv('SIGNING_KEY_ID')
+        def signingKey = System.getenv('SIGNING_KEY')
+        def signingPassword = System.getenv('SIGNING_PASSWORD')
+        useInMemoryPgpKeys(signingKeyId, signingKey, signingPassword)
+        sign configurations.archives
+        sign publishing.publications.mavenJava
+    }
+}

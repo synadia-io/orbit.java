@@ -1,0 +1,48 @@
+name: Reusable Workflow PR Build
+
+on:
+  workflow_call:
+    inputs:
+      project-dir:
+        required: true
+        type: string
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./${{ inputs.project-dir }}
+    env:
+      BUILD_EVENT: ${{ github.event_name }}
+      OSSRH_USERNAME: ${{ secrets.OSSRH_USERNAME }}
+      OSSRH_PASSWORD: ${{ secrets.OSSRH_TOKEN }}
+      SIGNING_KEY_ID: ${{ secrets.SIGNING_KEY_ID }}
+      SIGNING_KEY: ${{ secrets.SIGNING_KEY }}
+      SIGNING_PASSWORD: ${{ secrets.SIGNING_PASSWORD }}
+    steps:
+      - name: Set up JDK
+        uses: actions/setup-java@v5
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+      - name: Check out code
+        uses: actions/checkout@v4
+      - name: Install Nats Server
+        run: |
+          pkill -9 nats-server 2>/dev/null || true
+          mkdir -p ~/.local/bin
+          cd $GITHUB_WORKSPACE
+          git clone https://github.com/nats-io/nats-server.git
+          cd nats-server
+          go build -o ~/.local/bin/nats-server
+          nats-server -v
+      - name: Build and Test
+        run: |
+          chmod +x gradlew && ./gradlew clean test
+      - name: Verify Javadoc
+        run: |
+          ./gradlew javadoc
+      - name: Clean up
+        if: always()
+        run: pkill -9 nats-server 2>/dev/null || true

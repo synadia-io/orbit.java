@@ -1,0 +1,12 @@
+name: Partitioned Consumer Groups Release
+
+on:
+  push:
+    tags: [ 'pcg/*' ]
+
+jobs:
+  build:
+    uses: ./.github/workflows/workflow-release.yml
+    with:
+      project-dir: pcgroups
+    secrets: inherit

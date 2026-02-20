@@ -1,0 +1,15 @@
+name: Partitioned Consumer Groups Main Snapshot
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'pcgroups/**'
+
+jobs:
+  build:
+    uses: ./.github/workflows/workflow-main.yml
+    with:
+      project-dir: pcgroups
+    secrets: inherit
