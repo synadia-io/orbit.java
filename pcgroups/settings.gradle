@@ -10,4 +10,4 @@ pluginManagement {
         id("biz.aQute.bnd.builder") version "7.1.0"
     }
 }
-rootProject.name = 'partitioned-consumer-groups'
+rootProject.name = 'pcgroups'
