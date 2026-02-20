@@ -10,16 +10,20 @@ import io.nats.client.impl.NatsMessage;
 import io.nats.client.support.DateTimeUtils;
 import io.nats.client.support.NatsJetStreamConstants;
 import io.nats.client.support.Validator;
+import org.jspecify.annotations.NonNull;
 
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.time.ZonedDateTime;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Class to make a message that can be published to a stream that allows message scheduling
  */
 public class ScheduledMessageBuilder {
 
+    public static final long NANOS_PER_SECOND = 1_000_000_000L;
     private String scheduleString;
     private String scheduleSubject;
     private String targetSubject;
@@ -150,6 +154,34 @@ public class ScheduledMessageBuilder {
     }
 
     /**
+     * Schedule an interval
+     * @param every a duration, validated to be at least 1 second
+     * @return a ScheduledMessageBuilder object
+     */
+    public ScheduledMessageBuilder scheduleEvery(Duration every) {
+        if (every == null) {
+            scheduleString = null;
+        }
+        else {
+            if (every.toNanos() < NANOS_PER_SECOND) {
+                throw new IllegalArgumentException("Expiry cannot be less than 1 second.");
+            }
+            scheduleString = "@every " + toGoDuration(every);
+        }
+        return this;
+    }
+
+    /**
+     * Schedule an interval
+     * @param duration a duration, validated to be at least 1 second
+     * @param timeUnit the unit for the duration
+     * @return a ScheduledMessageBuilder object
+     */
+    public ScheduledMessageBuilder scheduleEvery(int duration, TimeUnit timeUnit) {
+        return scheduleEvery(Duration.ofNanos(timeUnit.toNanos(duration)));
+    }
+
+    /**
      * Schedule based on standard cron
      * @param cron A valid cron string
      * @return a ScheduledMessageBuilder object
@@ -189,5 +221,58 @@ public class ScheduledMessageBuilder {
             .headers(headers)
             .data(data)
             .build();
+    }
+
+    public static String toGoDuration(Duration duration) {
+        long left    = duration.toNanos();
+        long nanos   = left % 1_000_000L;
+        left         = (left - nanos) / 1_000_000L;
+        long millis  = left % 1_000L;
+        left         = (left - millis) / 1_000L;
+        long seconds = left % 60L;
+        left         = (left - seconds) / 60L;
+        long minutes = left % 60L;
+        long hours   = (left - minutes) / 60L;
+
+        StringBuilder sb = new StringBuilder();
+        if (hours   > 0) sb.append(hours).append('h');
+        if (minutes > 0) sb.append(minutes).append('m');
+        if (seconds > 0) sb.append(seconds).append('s');
+        if (millis > 0) sb.append(millis).append("ms");
+        if (nanos > 0) sb.append(nanos).append("ns");
+
+        return sb.toString();
+    }
+
+    public static boolean isAtLeastOneSecond(@NonNull String s) {
+        long totalNanos = 0;
+        int i = 0;
+
+        try {
+            while (i < s.length()) {
+                int start = i;
+                while (i < s.length() && Character.isDigit(s.charAt(i))) i++;
+                if (i == start) return false;
+                long value = Long.parseLong(s.substring(start, i));
+
+                int unitStart = i;
+                while (i < s.length() && Character.isLetter(s.charAt(i))) i++;
+                String unit = s.substring(unitStart, i);
+
+                switch (unit) {
+                    case "h":  totalNanos += value * 3_600_000_000_000L; break;
+                    case "m":  totalNanos += value * 60_000_000_000L;    break;
+                    case "s":  totalNanos += value * NANOS_PER_SECOND;   break;
+                    case "ms": totalNanos += value * 1_000_000L;         break;
+                    case "us": totalNanos += value * 1_000L;             break;
+                    case "ns": totalNanos += value;                      break;
+                    default:   return false;
+                }
+            }
+        } catch (Exception e) {
+            return false;
+        }
+
+        return totalNanos >= NANOS_PER_SECOND;
     }
 }

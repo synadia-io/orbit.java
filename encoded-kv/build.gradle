@@ -38,7 +38,7 @@ repositories {
 }
 
 dependencies {
-    implementation 'io.nats:jnats:2.24.0'
+    implementation 'io.nats:jnats:2.25.1'
 
     testImplementation 'commons-codec:commons-codec:1.18.0'
     testImplementation 'io.nats:jnats-server-runner:1.2.8'

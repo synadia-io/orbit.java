@@ -11,6 +11,7 @@ import io.synadia.sm.ScheduledMessageBuilder;
 import io.synadia.sm.ScheduledStreamUtil;
 
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 
 import static io.synadia.examples.ScheduleExampleUtils.report;
 
@@ -43,18 +44,18 @@ public class ScheduleBasics {
                 StreamInfo si = ScheduledStreamUtil.createSchedulableStream(jsm, STREAM, StorageType.Memory, STREAM_SUBJECTS);
                 report("Created stream", si.getConfiguration());
 
-                CountDownLatch latch = new CountDownLatch(2);
+                CountDownLatch latch = new CountDownLatch(4);
                 Dispatcher d = connection.createDispatcher();
 
                 // subscribe to the subject that receives the schedule message
                 js.subscribe(SCHEDULES, d, m -> {
-                    report("SCHEDULE", m);
+                    report("SCHEDULED", m);
                     m.ack();
                 }, false);
 
                 // subscribe to the target subject
                 js.subscribe(TARGETS, d, m -> {
-                    report("TARGET", m);
+                    report("RECEIVED", m);
                     m.ack();
                     latch.countDown();
                 }, false);
@@ -73,6 +74,15 @@ public class ScheduleBasics {
                     .targetSubject(TARGET_PREFIX + "at")
                     .scheduleAt(DateTimeUtils.gmtNow().plusSeconds(5))
                     .data("Scheduled-At")
+                    .build();
+                report("PUBLISH", m);
+                js.publish(m);
+
+                m = new ScheduledMessageBuilder()
+                    .scheduleSubject(SCHEDULE_PREFIX + "at")
+                    .targetSubject(TARGET_PREFIX + "at")
+                    .scheduleEvery(1, TimeUnit.SECONDS)
+                    .data("Every Second")
                     .build();
                 report("PUBLISH", m);
                 js.publish(m);

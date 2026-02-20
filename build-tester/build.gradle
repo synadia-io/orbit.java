@@ -5,14 +5,13 @@ plugins {
     id("java-library")
     id("maven-publish")
     id("jacoco")
-//    id("biz.aQute.bnd.builder") version "7.1.0"
-    id("biz.aQute.bnd.builder") version "5.1.2"
+    id("biz.aQute.bnd.builder") version "7.1.0"
     id("org.gradle.test-retry") version "1.6.4"
-    id("io.github.gradle-nexus.publish-plugin") version "1.1.0"
+    id("io.github.gradle-nexus.publish-plugin") version "2.0.0"
     id("signing")
 }
 
-def jarVersion = "0.0.4"
+def jarVersion = "0.0.7"
 group = 'io.synadia'
 
 def isRelease = System.getenv("BUILD_EVENT") == "release"
@@ -29,26 +28,19 @@ java {
     targetCompatibility = targetCompat
 }
 
-// java {
-//     sourceCompatibility = JavaVersion.VERSION_17
-//     targetCompatibility = JavaVersion.VERSION_17
-// }
-
 repositories {
-    gradlePluginPortal()
     mavenCentral()
     maven { url="https://repo1.maven.org/maven2/" }
-    maven { url="https://central.sonatype.com/repository/maven-snapshots/" }
-    maven { url="https://oss.sonatype.org/content/repositories/releases/" }
+    maven { url="https://central.sonatype.com/repository/maven-snapshots" }
 }
 
 dependencies {
-    implementation 'io.nats:jnats:2.24.0'
+    implementation 'io.nats:jnats:2.25.1'
     implementation 'org.jspecify:jspecify:1.0.0'
-    implementation 'org.apache.commons:commons-lang3:3.18.0'
+    implementation 'io.synadia:counters:0.2.1-SNAPSHOT'
 
-    testImplementation 'io.nats:jnats-server-runner:1.2.8'
-    testImplementation 'org.junit.jupiter:junit-jupiter:5.9.0'
+    testImplementation 'org.junit.jupiter:junit-jupiter:5.14.1'
+    testImplementation 'org.junit.platform:junit-platform-launcher:1.14.3'
 }
 
 sourceSets {
@@ -69,23 +61,17 @@ sourceSets {
 
 tasks.register('bundle', Bundle) {
     from sourceSets.main.output
-    exclude("io/synadia/examples/**")
+    exclude("io/synadia/bt/examples/**")
 }
 
 jar {
-    manifest {
-        attributes(
-                'Automatic-Module-Name': 'io.synadia.build.tester',
-                'Implementation-Title': 'Build Tester',
-                'Implementation-Version': jarVersion,
-                'Implementation-Vendor': 'synadia.io'
+    bundle {
+        bnd("Bundle-Name": "io.synadia.build.tester",
+                "Bundle-Vendor": "synadia.io",
+                "Bundle-Description": "Build Tester",
+                "Bundle-DocURL": "https://synadia.io"
         )
     }
-    bnd (['Implementation-Title': 'Java Nats',
-          'Implementation-Version': jarVersion,
-          'Implementation-Vendor': 'nats.io']
-    )
-    exclude("io/synadia/examples/**")
 }
 
 test {
@@ -120,7 +106,7 @@ tasks.register('examplesJar', Jar) {
                 'Implementation-Vendor': 'synadia.io')
     }
     from(sourceSets.main.output) {
-        include "io/synadia/flink/examples/**"
+        include "io/synadia/bt/examples/**"
     }
 }
 
@@ -180,11 +166,12 @@ publishing {
             artifact javadocJar
             artifact testsJar
             pom {
-                name = 'build-tester'
-                packaging = 'jar'
+                name = jarAndArtifactName
+                packaging = "jar"
                 groupId = group
-                artifactId = archivesBaseName
-                description = 'Synadia Communications Inc. Build Tester'
+                artifactId = jarAndArtifactName
+                description = "Synadia Communications Inc. Build Tester"
+                url = "https://github.com/synadia-io/orbit.java/tree/main/build-tester"
                 licenses {
                     license {
                         name = 'The Apache License, Version 2.0'
@@ -199,6 +186,9 @@ publishing {
                         url = "https://synadia.io"
                     }
                 }
+                scm {
+                    url = "https://github.com/synadia-io/orbit.java"
+                }
             }
         }
     }
@@ -212,12 +202,5 @@ if (isRelease) {
         useInMemoryPgpKeys(signingKeyId, signingKey, signingPassword)
         sign configurations.archives
         sign publishing.publications.mavenJava
-    }
-}
-
-if (hasProperty('buildScan')) {
-    buildScan {
-        termsOfServiceUrl = 'https://gradle.com/help/legal-terms-of-use'
-        termsOfServiceAgree = 'yes'
     }
 }

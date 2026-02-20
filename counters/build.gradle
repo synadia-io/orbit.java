@@ -39,7 +39,7 @@ repositories {
 }
 
 dependencies {
-    implementation 'io.nats:jnats:2.24.0'
+    implementation 'io.nats:jnats:2.25.1'
     implementation 'io.synadia:direct-batch:0.1.4'
     implementation 'org.jspecify:jspecify:1.0.0'
 
@@ -49,7 +49,7 @@ dependencies {
     testImplementation 'nl.jqno.equalsverifier:equalsverifier:4.2.3'
 
     testImplementation 'org.junit.jupiter:junit-jupiter:5.14.1'
-    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+    testImplementation 'org.junit.platform:junit-platform-launcher:1.14.3'
 }
 
 sourceSets {
