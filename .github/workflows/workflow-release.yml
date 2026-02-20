@@ -12,7 +12,7 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: ./${{ inputs.project-dir }}
+        working-directory: ${{ inputs.project-dir }}
     env:
       BUILD_EVENT: "release"
       OSSRH_USERNAME: ${{ secrets.OSSRH_USERNAME }}
