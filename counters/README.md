@@ -86,3 +86,5 @@ public CounterIterator iterateEntries(List<String> subjects, Duration timeoutFir
 ---
 Copyright (c) 2025 Synadia Communications Inc. All Rights Reserved.
 See [LICENSE](LICENSE) and [NOTICE](NOTICE) file for details.
+
+Updated: 2/21/2026
