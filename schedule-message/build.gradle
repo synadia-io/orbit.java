@@ -37,7 +37,7 @@ repositories {
 dependencies {
     implementation 'io.nats:jnats:2.25.1'
     implementation 'org.jspecify:jspecify:1.0.0'
-    implementation 'io.synadia:counters:0.2.1-SNAPSHOT'
+    implementation 'io.synadia:counters:0.2.2'
 
     testImplementation 'org.junit.jupiter:junit-jupiter:5.14.1'
     testImplementation 'org.junit.platform:junit-platform-launcher:1.14.3'
