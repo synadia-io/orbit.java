@@ -9,7 +9,7 @@ on:
 
 jobs:
   build:
-    uses: ./.github/workflows/workflow-main.yml
+    uses: synadia-io/workflows/.github/workflows/java-standard-main.yml@main
     with:
       project-dir: counters
     secrets: inherit
