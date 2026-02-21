@@ -14,9 +14,9 @@ client. Note that these libraries will evolve rapidly and API guarantees are gen
 | Request Many                 | Get many responses for a single core request.           | [README.md](request-many/README.md)          | 0.1.1           | 0.1.2-SNAPSHOT |
 | Encoded KeyValue             | Allow custom encoding of keys and values.               | [README.md](encoded-kv/README.md)            | 0.1.1           | 0.1.2-SNAPSHOT |
 | Direct Batch                 | Leverages direct message capabilities in NATS Server    | [README.md](direct-batch/README.md)          | 0.0.4           | 0.0.5-SNAPSHOT |
-| Batch Publish                | Publish an atomic batch                                 | [README.md](dirrrrrrr/README.md)             | 0.0.0           | 0.0.0-SNAPSHOT |
-| Distributed Counters         | Leverage distributed counters functionality             | [README.md](counters/README.md)              | 0.2.0           | 0.2.1-SNAPSHOT |
-| Scheduled Message            | Leverage ability to schedule a message                  | [README.md](schedule-message/README.md)      | 0.0.2           | 0.0.3-SNAPSHOT |
+| Batch Publish                | Publish an atomic batch                                 | [README.md](batch-publish/README.md)         | 0.0.0           | 0.0.0-SNAPSHOT |
+| Distributed Counters         | Leverage distributed counters functionality             | [README.md](counters/README.md)              | 0.2.2           | 0.2.3-SNAPSHOT |
+| Scheduled Message            | Leverage ability to schedule a message                  | [README.md](schedule-message/README.md)      | 0.0.3           | 0.0.4-SNAPSHOT |
 | Chaos Runner                 | Run some NATS servers and cause chaos                   | [README.md](chaos-runner/README.md)          | 0.0.8           | 0.0.9-SNAPSHOT |
 | Partitioned Consumer Groups  | Partitioned Consumer Group funcitionality for JetStream | [README.md](pcgroups/README.md)              | 0.0.1           | 0.0.1-SNAPSHOT |
 
@@ -97,8 +97,8 @@ Utility to publish an atomic batch, a group of up to 1000 messages
 
 Utility to take leverage the distributed counter functionality.
 
-**Current Release**: 0.2.0
-&nbsp; **Current Snapshot**: 0.2.1-SNAPSHOT
+**Current Release**: 0.2.2
+&nbsp; **Current Snapshot**: 0.2.3-SNAPSHOT
 
 [![README](https://img.shields.io/badge/README-blue?style=flat&link=counters/README.md)](counters/README.md)
 ![Artifact](https://img.shields.io/badge/Artifact-io.synadia:counters-00BC8E?labelColor=grey&style=flat)
@@ -110,8 +110,8 @@ Utility to take leverage the distributed counter functionality.
 Utility to leverage the ability to schedule a message to be published at a later time.
 Eventually the ability to schedule a message to publish based on a cron or schedule.
 
-**Current Release**: 0.0.2
-&nbsp; **Current Snapshot**: 0.0.3-SNAPSHOT
+**Current Release**: 0.0.3
+&nbsp; **Current Snapshot**: 0.0.4-SNAPSHOT
 
 [![README](https://img.shields.io/badge/README-blue?style=flat&link=schedule-message/README.md)](schedule-message/README.md)
 ![Artifact](https://img.shields.io/badge/Artifact-io.synadia:scheduled--message-00BC8E?labelColor=grey&style=flat)

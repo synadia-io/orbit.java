@@ -6,8 +6,8 @@ Utility to take advantage of the distributed counter functionality.
 
 https://github.com/nats-io/nats-architecture-and-design/blob/main/adr/ADR-49.md
 
-**Current Release**: 0.2.1
-&nbsp; **Current Snapshot**: 0.2.2-SNAPSHOT
+**Current Release**: 0.2.2
+&nbsp; **Current Snapshot**: 0.2.3-SNAPSHOT
 &nbsp; **Gradle and Maven** `io.synadia:counters`
 [Dependencies Help](https://github.com/synadia-io/orbit.java?tab=readme-ov-file#dependencies)
 

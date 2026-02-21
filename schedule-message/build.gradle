@@ -11,7 +11,7 @@ plugins {
     id("signing")
 }
 
-def jarVersion = "0.0.3"
+def jarVersion = "0.0.4"
 group = 'io.synadia'
 
 def isRelease = System.getenv("BUILD_EVENT") == "release"
