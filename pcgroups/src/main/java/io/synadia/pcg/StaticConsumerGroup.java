@@ -366,7 +366,6 @@ public class StaticConsumerGroup {
 
             // Create the durable consumer explicitly (matching Go's js.CreateConsumer)
             JetStreamManagement jsm = nc.jetStreamManagement();
-//            System.out.printf("Creating consumer %s with filters %s and priority group %s%n\n", consumerName, filters, PRIORITY_GROUP_NAME);
             jsm.createConsumer(streamName, cc);
 
             // Get consumer context and start consuming

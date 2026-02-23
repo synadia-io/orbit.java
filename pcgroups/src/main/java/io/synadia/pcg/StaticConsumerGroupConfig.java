@@ -114,7 +114,7 @@ public class StaticConsumerGroupConfig implements JsonSerializable {
     }
 
     public void setMemberMappings(List<MemberMapping> memberMappings) {
-        this.memberMappings = new ArrayList<>(memberMappings);
+        this.memberMappings = memberMappings == null ? new ArrayList<>() : new ArrayList<>(memberMappings);
     }
 
     /**

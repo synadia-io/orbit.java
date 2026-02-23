@@ -288,17 +288,17 @@ public class ElasticConsumerGroupConfig implements JsonSerializable {
     }
 
     @Override
+    @NonNull
     public String toJson() {
         StringBuilder sb = beginJson();
         addField(sb, MAX_MEMBERS, maxMembers);
         addField(sb, FILTER, filter);
-        if (partitioningWildcards != null && partitioningWildcards.length > 0) {
-            sb.append("\"").append(PARTITIONING_WILDCARDS).append("\":[");
-            for (int i = 0; i < partitioningWildcards.length; i++) {
-                if (i > 0) sb.append(",");
-                sb.append(partitioningWildcards[i]);
+        if (partitioningWildcards.length > 0) {
+            List<Integer> integers = new ArrayList<>(partitioningWildcards.length);
+            for (int i : partitioningWildcards) {
+                integers.add(i);
             }
-            sb.append("],");
+            _addList(sb, PARTITIONING_WILDCARDS, integers, StringBuilder::append);
         }
         addField(sb, MAX_BUFFERED_MSG, maxBufferedMessages);
         addField(sb, MAX_BUFFERED_BYTES, maxBufferedBytes);
@@ -334,7 +334,7 @@ public class ElasticConsumerGroupConfig implements JsonSerializable {
                 "maxMembers=" + maxMembers +
                 ", filter='" + filter + '\'' +
                 ", partitioningWildcards=" + Arrays.toString(partitioningWildcards) +
-                ", maxBufferedMsgs=" + maxBufferedMessages +
+                ", maxBufferedMessages=" + maxBufferedMessages +
                 ", maxBufferedBytes=" + maxBufferedBytes +
                 ", members=" + members +
                 ", memberMappings=" + memberMappings +

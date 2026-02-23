@@ -65,7 +65,7 @@ public class MemberMapping implements JsonSerializable {
         StringBuilder sb = beginJson();
         addField(sb, MEMBER, member);
         if (partitions.length > 0) {
-            List<Integer> integers = new ArrayList<Integer>(partitions.length);
+            List<Integer> integers = new ArrayList<>(partitions.length);
             for (int i : partitions) {
                 integers.add(i);
             }
