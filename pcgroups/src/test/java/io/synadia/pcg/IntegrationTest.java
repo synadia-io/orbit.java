@@ -13,9 +13,12 @@
 
 package io.synadia.pcg;
 
+import io.nats.NatsRunnerUtils;
 import io.nats.NatsServerRunner;
 import io.nats.client.Connection;
+import io.nats.client.ErrorListener;
 import io.nats.client.Nats;
+import io.nats.client.Options;
 import io.nats.client.api.ConsumerConfiguration;
 import io.nats.client.api.StorageType;
 import io.nats.client.api.StreamConfiguration;
@@ -27,14 +30,20 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.logging.Level;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.fail;
 
 /**
  * Integration tests for Static and Elastic consumer groups.
  * Ported from Go: golang/test/stream_consumer_group_test.go
  */
 class IntegrationTest {
+
+    static {
+        NatsRunnerUtils.setDefaultOutputLevel(Level.SEVERE);
+    }
 
     /**
      * Ported from Go TestStatic.
@@ -44,7 +53,8 @@ class IntegrationTest {
     @Test
     void testStatic() throws Exception {
         try (NatsServerRunner server = NatsServerRunner.builder().jetstream(true).build()) {
-            Connection nc = Nats.connect(server.getNatsLocalhostUri());
+            Options options = Options.builder().server(server.getNatsLocalhostUri()).errorListener(new ErrorListener() {}).build();
+            Connection nc = Nats.connect(options);
 
             String streamName = "test";
             String cgName = "group";
@@ -123,7 +133,8 @@ class IntegrationTest {
     @Test
     void testElastic() throws Exception {
         try (NatsServerRunner server = NatsServerRunner.builder().jetstream(true).build()) {
-            Connection nc = Nats.connect(server.getNatsLocalhostUri());
+            Options options = Options.builder().server(server.getNatsLocalhostUri()).errorListener(new ErrorListener() {}).build();
+            Connection nc = Nats.connect(options);
 
             String streamName = "test";
             String cgName = "group";

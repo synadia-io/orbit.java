@@ -13,15 +13,12 @@
 
 package io.synadia.pcg;
 
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
 import io.nats.client.*;
 import io.nats.client.api.*;
 import io.nats.client.impl.Headers;
 import io.synadia.pcg.exceptions.ConsumerGroupException;
 
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
@@ -41,7 +38,6 @@ import static io.synadia.pcg.PartitionUtils.*;
 public class ElasticConsumerGroup {
 
     private static final Logger LOGGER = Logger.getLogger(ElasticConsumerGroup.class.getName());
-    private static final Gson GSON = new GsonBuilder().disableHtmlEscaping().create();
 
     private ElasticConsumerGroup() {
         // Utility class
@@ -96,27 +92,22 @@ public class ElasticConsumerGroup {
         String key = composeKey(streamName, consumerGroupName);
 
         // Check if config already exists
-        KeyValueEntry entry = kv.get(key);
-        if (entry != null) {
-            String json = new String(entry.getValue(), StandardCharsets.UTF_8);
-            ElasticConsumerGroupConfig existingConfig = GSON.fromJson(json, ElasticConsumerGroupConfig.class);
-
-            // Verify the config matches
+        ElasticConsumerGroupConfig existingConfig = ElasticConsumerGroupConfig.instance(kv.get(key));
+        if (existingConfig != null) {
             if (existingConfig.getMaxMembers() != maxMembers ||
-                    !Objects.equals(existingConfig.getFilter(), filter) ||
-                    existingConfig.getMaxBufferedMsgs() != maxBufferedMsgs ||
-                    existingConfig.getMaxBufferedBytes() != maxBufferedBytes ||
-                    !Arrays.equals(existingConfig.getPartitioningWildcards(), partitioningWildcards)) {
+                !Objects.equals(existingConfig.getFilter(), filter) ||
+                existingConfig.getMaxBufferedMessages() != maxBufferedMsgs ||
+                existingConfig.getMaxBufferedBytes() != maxBufferedBytes ||
+                !Arrays.equals(existingConfig.getPartitioningWildcards(), partitioningWildcards)) {
                 throw new ConsumerGroupException(
-                        "the existing elastic consumer group config can not be updated to the requested one, " +
-                                "please delete the existing elastic consumer group and create a new one");
+                    "the existing elastic consumer group config can not be updated to the requested one, " +
+                        "please delete the existing elastic consumer group and create a new one");
             }
             return existingConfig;
         }
 
         // Create the config entry
-        String payload = GSON.toJson(config);
-        kv.put(key, payload.getBytes(StandardCharsets.UTF_8));
+        kv.put(key, config.serialize());
 
         // Create the work queue stream with subject transform
         String workQueueStreamName = composeCGSName(streamName, consumerGroupName);
@@ -305,9 +296,8 @@ public class ElasticConsumerGroup {
         List<String> newMembers = new ArrayList<>(existingMembers);
         config.setMembers(newMembers);
 
-        String payload = GSON.toJson(config);
         String key = composeKey(streamName, consumerGroupName);
-        kv.update(key, payload.getBytes(StandardCharsets.UTF_8), config.getRevision());
+        kv.update(key, config.serialize(), config.getRevision());
 
         return newMembers;
     }
@@ -350,9 +340,8 @@ public class ElasticConsumerGroup {
 
         config.setMembers(newMembers);
 
-        String payload = GSON.toJson(config);
         String key = composeKey(streamName, consumerGroupName);
-        kv.update(key, payload.getBytes(StandardCharsets.UTF_8), config.getRevision());
+        kv.update(key, config.serialize(), config.getRevision());
 
         return newMembers;
     }
@@ -382,9 +371,8 @@ public class ElasticConsumerGroup {
         config.setMemberMappings(memberMappings);
         config.validate();
 
-        String payload = GSON.toJson(config);
         String key = composeKey(streamName, consumerGroupName);
-        kv.put(key, payload.getBytes(StandardCharsets.UTF_8));
+        kv.put(key, config.serialize());
     }
 
     /**
@@ -408,9 +396,8 @@ public class ElasticConsumerGroup {
 
         config.setMemberMappings(new ArrayList<>());
 
-        String payload = GSON.toJson(config);
         String key = composeKey(streamName, consumerGroupName);
-        kv.put(key, payload.getBytes(StandardCharsets.UTF_8));
+        kv.put(key, config.serialize());
     }
 
     /**
@@ -538,17 +525,11 @@ public class ElasticConsumerGroup {
         }
 
         String key = composeKey(streamName, consumerGroupName);
-        KeyValueEntry entry = kv.get(key);
-
-        if (entry == null) {
+        ElasticConsumerGroupConfig config = ElasticConsumerGroupConfig.instance(kv.get(key));
+        if (config == null) {
             throw new ConsumerGroupException("error getting the elastic consumer group's config: not found");
         }
-
-        String json = new String(entry.getValue(), StandardCharsets.UTF_8);
-        ElasticConsumerGroupConfig config = GSON.fromJson(json, ElasticConsumerGroupConfig.class);
-        config.setRevision(entry.getRevision());
         config.validate();
-
         return config;
     }
 
@@ -730,14 +711,13 @@ public class ElasticConsumerGroup {
             }
 
             try {
-                String json = new String(entry.getValue(), StandardCharsets.UTF_8);
-                ElasticConsumerGroupConfig newConfig = GSON.fromJson(json, ElasticConsumerGroupConfig.class);
+                ElasticConsumerGroupConfig newConfig = ElasticConsumerGroupConfig.instance(entry);
                 newConfig.validate();
 
                 // Check if critical config changed (immutable fields)
                 if (newConfig.getMaxMembers() != config.getMaxMembers() ||
                         !Objects.equals(newConfig.getFilter(), config.getFilter()) ||
-                        newConfig.getMaxBufferedMsgs() != config.getMaxBufferedMsgs() ||
+                        newConfig.getMaxBufferedMessages() != config.getMaxBufferedMessages() ||
                         newConfig.getMaxBufferedBytes() != config.getMaxBufferedBytes() ||
                         !Arrays.equals(newConfig.getPartitioningWildcards(), config.getPartitioningWildcards())) {
                     stopConsuming();

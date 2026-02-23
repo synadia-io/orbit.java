@@ -13,20 +13,27 @@
 
 package io.synadia.pcg;
 
+import io.nats.NatsRunnerUtils;
 import org.junit.jupiter.api.Test;
 
 import java.time.Duration;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.logging.Level;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Unit tests for PartitionUtils.
  * These tests verify the partition distribution algorithm matches the Go implementation.
  */
 class PartitionUtilsTest {
+
+    static {
+        NatsRunnerUtils.setDefaultOutputLevel(Level.SEVERE);
+    }
 
     @Test
     void testComposeKey() {
