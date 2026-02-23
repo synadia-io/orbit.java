@@ -1,9 +1,6 @@
+<img src="../orbit_shorter.png" alt="Orbit">
+
 # Partitioned Consumer Groups
-
-[License-Url]: https://www.apache.org/licenses/LICENSE-2.0
-[License-Image]: https://img.shields.io/badge/License-Apache2-blue.svg
-
-[![License][License-Image]][License-Url]
 
 Initial implementation of a client-side partitioned consumer group feature for NATS streams leveraging some of the new features introduced in `nats-server` version 2.11.
 
@@ -101,3 +98,7 @@ You can look at the `cg` CLI tool's source code for examples of how to create an
 # Requirements
 
 Partitioned consumer groups require NATS server version 2.11 or above.
+
+---
+Copyright (c) 2025 Synadia Communications Inc. All Rights Reserved.
+See [LICENSE](LICENSE) and [NOTICE](NOTICE) file for details.
