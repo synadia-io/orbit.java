@@ -52,17 +52,17 @@ public class ElasticConsumerGroup {
      * @param maxMembers            Maximum number of members (partitions)
      * @param filter                Subject filter with wildcards
      * @param partitioningWildcards Indexes of wildcards to use for partitioning
-     * @param maxBufferedMsgs       Max messages in work queue (0 for unlimited)
+     * @param maxBufferedMessages       Max messages in work queue (0 for unlimited)
      * @param maxBufferedBytes      Max bytes in work queue (0 for unlimited)
      * @return The created configuration
      */
     public static ElasticConsumerGroupConfig create(Connection nc, String streamName, String consumerGroupName,
                                                     int maxMembers, String filter, int[] partitioningWildcards,
-                                                    long maxBufferedMsgs, long maxBufferedBytes)
+                                                    long maxBufferedMessages, long maxBufferedBytes)
             throws ConsumerGroupException, IOException, JetStreamApiException, InterruptedException {
 
         ElasticConsumerGroupConfig config = new ElasticConsumerGroupConfig(
-                maxMembers, filter, partitioningWildcards, maxBufferedMsgs, maxBufferedBytes,
+                maxMembers, filter, partitioningWildcards, maxBufferedMessages, maxBufferedBytes,
                 new ArrayList<>(), new ArrayList<>());
         config.validate();
 
@@ -96,7 +96,7 @@ public class ElasticConsumerGroup {
         if (existingConfig != null) {
             if (existingConfig.getMaxMembers() != maxMembers ||
                 !Objects.equals(existingConfig.getFilter(), filter) ||
-                existingConfig.getMaxBufferedMessages() != maxBufferedMsgs ||
+                existingConfig.getMaxBufferedMessages() != maxBufferedMessages ||
                 existingConfig.getMaxBufferedBytes() != maxBufferedBytes ||
                 !Arrays.equals(existingConfig.getPartitioningWildcards(), partitioningWildcards)) {
                 throw new ConsumerGroupException(
@@ -121,8 +121,8 @@ public class ElasticConsumerGroup {
                 .discardPolicy(DiscardPolicy.New)
                 .allowDirect(true);
 
-        if (maxBufferedMsgs > 0) {
-            scBuilder.maxMessages(maxBufferedMsgs);
+        if (maxBufferedMessages > 0) {
+            scBuilder.maxMessages(maxBufferedMessages);
         }
         if (maxBufferedBytes > 0) {
             scBuilder.maxBytes(maxBufferedBytes);
