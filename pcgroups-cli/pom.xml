@@ -34,6 +34,23 @@
         <jnats.version>2.25.1</jnats.version>
     </properties>
 
+    <repositories>
+        <repository>
+            <id>sonatype releases</id>
+            <url>https://repo1.maven.org/maven2/</url>
+            <releases>
+                <enabled>true</enabled>
+            </releases>
+        </repository>
+        <repository>
+            <id>sonatype snapshots</id>
+            <url>https://central.sonatype.com/repository/maven-snapshots</url>
+            <snapshots>
+                <enabled>true</enabled>
+            </snapshots>
+        </repository>
+    </repositories>
+
     <dependencies>
         <!-- Partitioned Consumer Groups Library -->
         <dependency>

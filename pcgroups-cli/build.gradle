@@ -12,7 +12,6 @@ plugins {
 group = 'io.synadia'
 version = "0.1.0"
 def originalUber = 'pcg-cli-' + version + '-uber.jar'
-System.out.println(originalUber)
 
 java {
     sourceCompatibility = JavaVersion.VERSION_1_8
