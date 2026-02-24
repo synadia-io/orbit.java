@@ -34,7 +34,7 @@ shadowJar {
     }
 }
 
-tasks.register('makecg', Copy) {
+tasks.register('package', Copy) {
     dependsOn shadowJar
 
     // we want the file to be called cg.jar
@@ -45,7 +45,7 @@ tasks.register('makecg', Copy) {
 }
 
 tasks.register('createZip', Zip) {
-    dependsOn makecg
+    dependsOn 'package'
 
     archiveFileName = "cg.zip"
     destinationDirectory = file('build/')
@@ -53,14 +53,14 @@ tasks.register('createZip', Zip) {
 }
 
 tasks.register('createTar', Tar) {
-    dependsOn makecg
+    dependsOn 'package'
 
     archiveFileName = "cg.tar"
     destinationDirectory = file('build/')
     from (files('build/cg.jar'))
 }
 
-tasks.register('package') {
+tasks.register('dist') {
     dependsOn createZip
     dependsOn createTar
 }

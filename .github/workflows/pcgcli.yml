@@ -1,9 +1,11 @@
-name: Partitioned Consumer Groups CLI Main Snapshot
+name: Partitioned Consumer Groups CLI Build
 
 on:
   push:
     branches:
       - main
+  pull_request:
+    types: [opened, synchronize, reopened]
     paths:
       - 'pcgroups-cli/**'
 
@@ -22,8 +24,7 @@ jobs:
       - name: Check out code
         uses: actions/checkout@v4
       - name: Build with Gradle
-        run: |
-          chmod +x gradlew && ./gradlew clean test uberJar
+        run: chmod +x gradlew && ./gradlew clean dist
       - name: Build with Maven
         run: mvn clean package
       - name: Validate artifacts were created
@@ -42,7 +43,7 @@ jobs:
             echo "Validation failed: $FILE_PATH was not found."
             exit 1 # Fails the workflow step
           fi
-          FILE_PATH="build/libs/cg.tar"
+          FILE_PATH="build/cg.tar"
           if [ -f "$FILE_PATH" ]; then
             echo "Validation successful: $FILE_PATH was created."
           else
