@@ -27,7 +27,7 @@ jobs:
         run: mvn clean package
       - name: Validate artifacts were created
         run: |
-          FILE_PATH="build/libs/cg.jar"
+          FILE_PATH="build/cg.jar"
           if [ -f "$FILE_PATH" ]; then
             echo "Validation successful: $FILE_PATH was created."
           else
