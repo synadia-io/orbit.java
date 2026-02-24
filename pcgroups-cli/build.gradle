@@ -49,7 +49,7 @@ tasks.register('createZip', Zip) {
 
     archiveFileName = "cg.zip"
     destinationDirectory = file('build/')
-    from (files('build/cg.jar'))
+    from (files('README.md', 'build/cg.jar'))
 }
 
 tasks.register('createTar', Tar) {
@@ -57,7 +57,7 @@ tasks.register('createTar', Tar) {
 
     archiveFileName = "cg.tar"
     destinationDirectory = file('build/')
-    from (files('build/cg.jar'))
+    from (files('README.md', 'build/cg.jar'))
 }
 
 tasks.register('dist') {

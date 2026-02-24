@@ -4,6 +4,16 @@
 
 The Partitioned Consumer Groups CLI is a command line tool. In the usage,
 
+[![0.1.0](https://img.shields.io/badge/Current_Release-0.1.0-27AAE0)](https://github.com/synadia-io/orbit.java/releases/tag/pcgcli%2F0.1.0)
+
+#### Downloads
+
+| tar                                                                                        | zip                                                                                        |
+|--------------------------------------------------------------------------------------------|--------------------------------------------------------------------------------------------|
+| [cg.tar](https://github.com/synadia-io/orbit.java/releases/download/pcgcli%2F0.1.0/cg.tar) | [cg.zip](https://github.com/synadia-io/orbit.java/releases/download/pcgcli%2F0.1.0/cg.zip) |
+
+## Usage
+
 `cg` stands for `java -jar <path>/cg.jar` 
 
 ```

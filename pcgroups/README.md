@@ -64,6 +64,11 @@ This `cg` CLI tool can be used by passing it commands and arguments directly, or
 
 For more details on the CLI visit the [Partitioned Consumer Groups CLI Project](https://github.com/synadia-io/orbit.java/tree/main/pcgroups-cli)
 
+### Binaries
+You can download the latest `cg.jar` archived in a tar file 
+[cg.tar](https://github.com/synadia-io/orbit.java/releases/download/pcgcli%2F0.1.0/cg.tar) 
+or zip file
+[cg.zip](https://github.com/synadia-io/orbit.java/releases/download/pcgcli%2F0.1.0/cg.zip)
 
 ## Demo walkthrough
 
