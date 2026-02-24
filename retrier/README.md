@@ -4,15 +4,12 @@
 
 The retrier is a general purpose Java utility that can execute any action (function) in a retriable manner.
 
-**Current Release**: 0.2.1
-&nbsp; **Current Snapshot**: 0.2.2-SNAPSHOT
-&nbsp; **Gradle and Maven** `io.synadia:retrier`
-[Dependencies Help](https://github.com/synadia-io/orbit.java?tab=readme-ov-file#dependencies)
-
-![Artifact](https://img.shields.io/badge/Artifact-io.synadia:retrier-00BC8E?labelColor=grey&style=flat)
-[![License Apache 2](https://img.shields.io/badge/License-Apache2-blue.svg)](https://www.apache.org/licenses/LICENSE-2.0)
-[![Maven Central](https://maven-badges.herokuapp.com/maven-central/io.synadia/retrier/badge.svg)](https://maven-badges.herokuapp.com/maven-central/io.synadia/retrier)
+![Artifact](https://img.shields.io/badge/Artifact-io.synadia:retrier-197556?labelColor=grey&style=flat)
+![0.2.1](https://img.shields.io/badge/Current_Release-0.2.1-27AAE0)
+![0.2.2](https://img.shields.io/badge/Current_Snapshot-0.2.2--SNAPSHOT-27AAE0)
+[![Dependencies Help](https://img.shields.io/badge/Dependencies%20Help-27AAE0)](https://github.com/synadia-io/orbit.java?tab=readme-ov-file#dependencies)
 [![javadoc](https://javadoc.io/badge2/io.synadia/retrier/javadoc.svg)](https://javadoc.io/doc/io.synadia/retrier)
+[![Maven Central](https://img.shields.io/maven-central/v/io.synadia/retrier)](https://img.shields.io/maven-central/v/io.synadia/retrier)
 
 ### Retrier Usage
 

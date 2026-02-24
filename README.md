@@ -22,122 +22,125 @@ client. Note that these libraries will evolve rapidly and API guarantees are gen
 
 ## Retrier
 
-Extension for retrying anything. 
+Extension for retrying anything.
 
-**Current Release**: 0.2.1
-&nbsp; **Current Snapshot**: 0.2.2-SNAPSHOT
+[Retrier README](retrier/README.md)
 
-[![README](https://img.shields.io/badge/README-blue?style=flat&link=retrier/README.md)](retrier/README.md)
-![Artifact](https://img.shields.io/badge/Artifact-io.synadia:retrier-00BC8E?labelColor=grey&style=flat)
+![Artifact](https://img.shields.io/badge/Artifact-io.synadia:retrier-197556?labelColor=grey&style=flat)
+![0.2.1](https://img.shields.io/badge/Current_Release-0.2.1-27AAE0)
+![0.2.2](https://img.shields.io/badge/Current_Snapshot-0.2.2--SNAPSHOT-27AAE0)
 [![javadoc](https://javadoc.io/badge2/io.synadia/retrier/javadoc.svg)](https://javadoc.io/doc/io.synadia/retrier)
-[![Maven Central](https://maven-badges.herokuapp.com/maven-central/io.synadia/retrier/badge.svg)](https://maven-badges.herokuapp.com/maven-central/io.synadia/retrier)                                         
+[![Maven Central](https://img.shields.io/maven-central/v/io.synadia/retrier)](https://img.shields.io/maven-central/v/io.synadia/retrier)
 
 ## Jetstream Publish Extensions
 
 General extensions for Jetstream Publishing
 
-**Current Release**: 0.4.4
-&nbsp; **Current Snapshot**: 0.4.5-SNAPSHOT
+[Jetstream Publish Extensions README](js-publish-extensions/README.md)
 
-[![README](https://img.shields.io/badge/README-blue?style=flat&link=js-publish-extensions/README.md)](js-publish-extensions/README.md)
-![Artifact](https://img.shields.io/badge/Artifact-io.synadia:jnats--js--publish--extensions-00BC8E?labelColor=grey&style=flat)
+![Artifact](https://img.shields.io/badge/Artifact-io.synadia:jnats--js--publish--extensions-197556?labelColor=grey&style=flat)
+![0.4.4](https://img.shields.io/badge/Current_Release-0.4.4-27AAE0)
+![0.4.5](https://img.shields.io/badge/Current_Snapshot-0.4.5--SNAPSHOT-27AAE0)
 [![javadoc](https://javadoc.io/badge2/io.synadia/jnats-js-publish-extensions/javadoc.svg)](https://javadoc.io/doc/io.synadia/jnats-js-publish-extensions)
-[![Maven Central](https://maven-badges.herokuapp.com/maven-central/io.synadia/jnats-js-publish-extensions/badge.svg)](https://maven-badges.herokuapp.com/maven-central/io.synadia/jnats-js-publish-extensions)
+[![Maven Central](https://img.shields.io/maven-central/v/io.synadia/jnats-js-publish-extensions)](https://img.shields.io/maven-central/v/io.synadia/jnats-js-publish-extensions)
 
 ## Request Many
 
 Extension to get many responses for a single core request.
 
-**Current Release**: 0.1.1
-&nbsp; **Current Snapshot**: 0.1.2-SNAPSHOT
+[Request Many README](request-many/README.md)
 
-[![README](https://img.shields.io/badge/README-blue?style=flat&link=request-many/README.md)](request-many/README.md)
-![Artifact](https://img.shields.io/badge/Artifact-io.synadia:request--many-00BC8E?labelColor=grey&style=flat)
+![Artifact](https://img.shields.io/badge/Artifact-io.synadia:request--many-197556?labelColor=grey&style=flat)
+![0.1.1](https://img.shields.io/badge/Current_Release-0.1.1-27AAE0)
+![0.1.2](https://img.shields.io/badge/Current_Snapshot-0.1.2--SNAPSHOT-27AAE0)
 [![javadoc](https://javadoc.io/badge2/io.synadia/request-many/javadoc.svg)](https://javadoc.io/doc/io.synadia/request-many)
-[![Maven Central](https://maven-badges.herokuapp.com/maven-central/io.synadia/request-many/badge.svg)](https://maven-badges.herokuapp.com/maven-central/io.synadia/request-many)
+[![Maven Central](https://img.shields.io/maven-central/v/io.synadia/request-many)](https://img.shields.io/maven-central/v/io.synadia/request-many)
 
 ## Encoded KeyValue
 
 Extension over Key Value to allow custom encoding of keys and values.
 
-**Current Release**: 0.0.4
-&nbsp; **Current Snapshot**: 0.0.5-SNAPSHOT
+[Encoded KeyValue README](encoded-kv/README.md)
 
-[![README](https://img.shields.io/badge/README-blue?style=flat&link=encoded-kv/README.md)](encoded-kv/README.md)
-![Artifact](https://img.shields.io/badge/Artifact-io.synadia:encoded--kv-00BC8E?labelColor=grey&style=flat)
+![Artifact](https://img.shields.io/badge/Artifact-io.synadia:encoded--kv-197556?labelColor=grey&style=flat)
+![0.0.4](https://img.shields.io/badge/Current_Release-0.0.4-27AAE0)
+![0.0.5](https://img.shields.io/badge/Current_Snapshot-0.0.5--SNAPSHOT-27AAE0)
 [![javadoc](https://javadoc.io/badge2/io.synadia/encoded-kv/javadoc.svg)](https://javadoc.io/doc/io.synadia/encoded-kv)
-[![Maven Central](https://maven-badges.herokuapp.com/maven-central/io.synadia/encoded-kv/badge.svg)](https://maven-badges.herokuapp.com/maven-central/io.synadia/encoded-kv)
+[![Maven Central](https://img.shields.io/maven-central/v/io.synadia/encoded-kv)](https://img.shields.io/maven-central/v/io.synadia/encoded-kv)
 
 ## Direct Batch
 
 The direct batch functionality leverages the direct message capabilities introduced in NATS Server v2.11.
 The functionality is described in [ADR-31](https://github.com/nats-io/nats-architecture-and-design/blob/main/adr/ADR-31.md)
 
-**Current Release**: 0.1.4
-&nbsp;**Current Snapshot**: 0.1.5-SNAPSHOT
+[Direct Batch README](direct-batch/README.md)
 
-[![README](https://img.shields.io/badge/README-blue?style=flat&link=direct-batch/README.md)](direct-batch/README.md)
-![Artifact](https://img.shields.io/badge/Artifact-io.synadia:direct--batch-00BC8E?labelColor=grey&style=flat)
+![Artifact](https://img.shields.io/badge/Artifact-io.synadia:direct--batch-197556?labelColor=grey&style=flat)
+![0.1.4](https://img.shields.io/badge/Current_Release-0.1.4-27AAE0)
+![0.1.5](https://img.shields.io/badge/Current_Snapshot-0.1.5--SNAPSHOT-27AAE0)
 [![javadoc](https://javadoc.io/badge2/io.synadia/direct-batch/javadoc.svg)](https://javadoc.io/doc/io.synadia/direct-batch)
-[![Maven Central](https://maven-badges.herokuapp.com/maven-central/io.synadia/direct-batch/badge.svg)](https://maven-badges.herokuapp.com/maven-central/io.synadia/direct-batch)
+[![Maven Central](https://img.shields.io/maven-central/v/io.synadia/direct-batch)](https://img.shields.io/maven-central/v/io.synadia/direct-batch)
 
 ### Batch Publish
 
 Utility to publish an atomic batch, a group of up to 1000 messages
 
-**Current Release**: 0.2.2
-&nbsp;**Current Snapshot**: 0.2.3-SNAPSHOT
+[Batch Publish README](batch-publish/README.md)
 
-[![README](https://img.shields.io/badge/README-blue?style=flat&link=batch-publish/README.md)](batch-publish/README.md)
-![Artifact](https://img.shields.io/badge/Artifact-io.synadia:batch--publish-00BC8E?labelColor=grey&style=flat)
+![Artifact](https://img.shields.io/badge/Artifact-io.synadia:batch--publish-197556?labelColor=grey&style=flat)
+![0.2.2](https://img.shields.io/badge/Current_Release-0.2.2-27AAE0)
+![0.2.3](https://img.shields.io/badge/Current_Snapshot-0.2.3--SNAPSHOT-27AAE0)
 [![javadoc](https://javadoc.io/badge2/io.synadia/batch-publish/javadoc.svg)](https://javadoc.io/doc/io.synadia/batch-publish)
-[![Maven Central](https://maven-badges.herokuapp.com/maven-central/io.synadia/batch-publish/badge.svg)](https://maven-badges.herokuapp.com/maven-central/io.synadia/batch-publish)
+[![Maven Central](https://img.shields.io/maven-central/v/io.synadia/batch-publish)](https://img.shields.io/maven-central/v/io.synadia/batch-publish)
 
 ### Distributed Counters
 
 Utility to take leverage the distributed counter functionality.
 
-**Current Release**: 0.2.2
-&nbsp; **Current Snapshot**: 0.2.3-SNAPSHOT
+[Distributed Counters README](counters/README.md)
 
-[![README](https://img.shields.io/badge/README-blue?style=flat&link=counters/README.md)](counters/README.md)
-![Artifact](https://img.shields.io/badge/Artifact-io.synadia:counters-00BC8E?labelColor=grey&style=flat)
+![Artifact](https://img.shields.io/badge/Artifact-io.synadia:counters-197556?labelColor=grey&style=flat)
+![0.2.2](https://img.shields.io/badge/Current_Release-0.2.2-27AAE0)
+![0.2.3](https://img.shields.io/badge/Current_Snapshot-0.2.3--SNAPSHOT-27AAE0)
 [![javadoc](https://javadoc.io/badge2/io.synadia/counters/javadoc.svg)](https://javadoc.io/doc/io.synadia/counters)
-[![Maven Central](https://maven-badges.herokuapp.com/maven-central/io.synadia/counters/badge.svg)](https://maven-badges.herokuapp.com/maven-central/io.synadia/counters)
+[![Maven Central](https://img.shields.io/maven-central/v/io.synadia/counters)](https://img.shields.io/maven-central/v/io.synadia/counters)
 
-### Scheduled Message
+### Schedule Message
 
 Utility to leverage the ability to schedule a message to be published at a later time.
 Eventually the ability to schedule a message to publish based on a cron or schedule.
 
-**Current Release**: 0.0.3
-&nbsp; **Current Snapshot**: 0.0.4-SNAPSHOT
+[Scheduled Message README](schedule-message/README.md)
 
-[![README](https://img.shields.io/badge/README-blue?style=flat&link=schedule-message/README.md)](schedule-message/README.md)
-![Artifact](https://img.shields.io/badge/Artifact-io.synadia:scheduled--message-00BC8E?labelColor=grey&style=flat)
-[![javadoc](https://javadoc.io/badge2/io.synadia/scheduled-message/javadoc.svg)](https://javadoc.io/doc/io.synadia/scheduled-message)
-[![Maven Central](https://maven-badges.herokuapp.com/maven-central/io.synadia/scheduled-message/badge.svg)](https://maven-badges.herokuapp.com/maven-central/io.synadia/scheduled-message)
+![Artifact](https://img.shields.io/badge/Artifact-io.synadia:schedule--message-197556?labelColor=grey&style=flat)
+![0.0.3](https://img.shields.io/badge/Current_Release-0.0.3-27AAE0)
+![0.0.4](https://img.shields.io/badge/Current_Snapshot-0.0.4--SNAPSHOT-27AAE0)
+[![javadoc](https://javadoc.io/badge2/io.synadia/schedule-message/javadoc.svg)](https://javadoc.io/doc/io.synadia/schedule-message)
+[![Maven Central](https://img.shields.io/maven-central/v/io.synadia/schedule-message)](https://img.shields.io/maven-central/v/io.synadia/schedule-message)
 
 ## Chaos Runner
 
 Run some NATS servers and cause chaos by bringing them up and down.
 
-**Current Release**: 0.0.8
-&nbsp; **Current Snapshot**: 0.0.9-SNAPSHOT
+[Chaos Runner README](chaos-runner/README.md)
 
-[![README](https://img.shields.io/badge/README-blue?style=flat&link=chaos-runner/README.md)](chaos-runner/README.md)
-![Artifact](https://img.shields.io/badge/Artifact-io.synadia:chaos--runner-00BC8E?labelColor=grey&style=flat)
+![Artifact](https://img.shields.io/badge/Artifact-io.synadia:chaos--runner-197556?labelColor=grey&style=flat)
+![0.0.8](https://img.shields.io/badge/Current_Release-0.0.8-27AAE0)
+![0.0.9](https://img.shields.io/badge/Current_Snapshot-0.0.9--SNAPSHOT-27AAE0)
 [![javadoc](https://javadoc.io/badge2/io.synadia/chaos-runner/javadoc.svg)](https://javadoc.io/doc/io.synadia/chaos-runner)
-[![Maven Central](https://maven-badges.herokuapp.com/maven-central/io.synadia/chaos-runner/badge.svg)](https://maven-badges.herokuapp.com/maven-central/io.synadia/chaos-runner)
+[![Maven Central](https://img.shields.io/maven-central/v/io.synadia/chaos-runner)](https://img.shields.io/maven-central/v/io.synadia/chaos-runner)
 
 ## Partitioned Consumer Groups
 
 Implementation of the partitioned Consumer Group functionality, ported from and compatible with the [Golang version](https://github.com/synadia-io/orbit.go/tree/main/pcgroups).
 
-**Current Release**: 0.0.1
-&nbsp; **Current Snapshot**: 0.0.1-SNAPSHOT
+[Partitioned Consumer Groups README](pcgroups/README.md)
 
-[![README](https://img.shields.io/badge/README-blue?style=flat&link=chaos-runner/README.md)](pcgroups/README.md)
+![Artifact](https://img.shields.io/badge/Artifact-io.synadia:pcgroups-197556?labelColor=grey&style=flat)
+![0.1.0](https://img.shields.io/badge/Current_Release-0.1.0-27AAE0)
+![0.1.1](https://img.shields.io/badge/Current_Snapshot-0.1.1--SNAPSHOT-27AAE0)
+[![javadoc](https://javadoc.io/badge2/io.synadia/pcgroups/javadoc.svg)](https://javadoc.io/doc/io.synadia/pcgroups)
+[![Maven Central](https://img.shields.io/maven-central/v/io.synadia/pcgroups)](https://img.shields.io/maven-central/v/io.synadia/pcgroups)
 
 # Dependencies
 ### Gradle
