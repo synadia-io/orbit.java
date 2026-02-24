@@ -1,17 +1,10 @@
 plugins {
     id("java")
-    id("java-library")
-    id("maven-publish")
-    id("jacoco")
-    id("biz.aQute.bnd.builder") version "7.1.0"
-    id("org.gradle.test-retry") version "1.6.4"
-    id("io.github.gradle-nexus.publish-plugin") version "2.0.0"
-    id("signing")
+    id 'com.github.johnrengelman.shadow' version '8.1.1' // Apply the shadow plugin
 }
 
-group = 'io.synadia'
 version = "0.1.0"
-def originalUber = 'pcg-cli-' + version + '-uber.jar'
+def originalShadow = 'pcg-cli-' + version + '-all.jar'
 
 java {
     sourceCompatibility = JavaVersion.VERSION_1_8
@@ -27,7 +20,7 @@ repositories {
 dependencies {
     implementation 'io.nats:jnats:2.25.1'
     implementation 'org.jspecify:jspecify:1.0.0'
-    implementation 'io.synadia:pcgroups:0.1.0-SNAPSHOT'
+    implementation 'io.synadia:pcgroups:0.1.0'
     implementation 'info.picocli:picocli:4.7.5'
 
     testImplementation 'io.nats:jnats-server-runner:3.1.0'
@@ -35,36 +28,39 @@ dependencies {
     testImplementation 'org.junit.platform:junit-platform-launcher:1.14.3'
 }
 
-tasks.register('copyToLib', Copy) {
-    into "build/libs"
-    from configurations.runtimeClasspath
-}
-
-tasks.register('packageUberJar', Jar) {
-    archiveClassifier = 'uber'
-
-    from sourceSets.main.output
-
-    dependsOn configurations.runtimeClasspath
-    from {
-        configurations.runtimeClasspath.findAll { it.name.endsWith('jar') }.collect { zipTree(it) }
+shadowJar {
+    manifest {
+        attributes 'Main-Class': 'io.synadia.pcg.cli.CgCommand'
     }
-
-    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
-    dependsOn copyToLib
 }
 
-tasks.register('uberJar', Copy) {
-    dependsOn packageUberJar
+tasks.register('makecg', Copy) {
+    dependsOn shadowJar
 
     // we want the file to be called cg.jar
     from ('build/libs')
-    include originalUber
-    destinationDir file('build/libs/')
-    rename originalUber, "cg.jar"
+    include originalShadow
+    destinationDir file('build/')
+    rename originalShadow, "cg.jar"
+}
 
-    // this task actually does a copy, so this part removes the original
-    doLast {
-        delete('build/libs/' + originalUber)
-    }
+tasks.register('createZip', Zip) {
+    dependsOn makecg
+
+    archiveFileName = "cg.zip"
+    destinationDirectory = file('build/')
+    from (files('build/cg.jar'))
+}
+
+tasks.register('createTar', Tar) {
+    dependsOn makecg
+
+    archiveFileName = "cg.tar"
+    destinationDirectory = file('build/')
+    from (files('build/cg.jar'))
+}
+
+tasks.register('package') {
+    dependsOn createZip
+    dependsOn createTar
 }

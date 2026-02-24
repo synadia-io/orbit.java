@@ -2,9 +2,17 @@
 
 # Partitioned Consumer Groups
 
+![Artifact](https://img.shields.io/badge/Artifact-io.synadia:pcgroups-197556?labelColor=grey&style=flat)
+![0.1.0](https://img.shields.io/badge/Current_Release-0.1.0-27AAE0)
+![0.1.1](https://img.shields.io/badge/Current_Snapshot-0.1.1--SNAPSHOT-27AAE0)
+[![Dependencies Help](https://img.shields.io/badge/Dependencies%20Help-27AAE0)](https://github.com/synadia-io/orbit.java?tab=readme-ov-file#dependencies)
+[![javadoc](https://javadoc.io/badge2/io.synadia/pcgroups/javadoc.svg)](https://javadoc.io/doc/io.synadia/pcgroups)
+[![Maven Central](https://img.shields.io/maven-central/v/io.synadia/pcgroups)](https://img.shields.io/maven-central/v/io.synadia/pcgroups)
+
 Initial implementation of a client-side partitioned consumer group feature for NATS streams leveraging some of the new features introduced in `nats-server` version 2.11.
 
 Note that post 2.11 versions of `nats-server` may include new features related to the consumer group use case that could render this client-side library unneeded (or make much smaller)
+
 # Overview
 
 This library enables the parallelization through partitioning of the consumption of messages from a stream while ensuring a strict order of not just delivery but also successful consumption of the messages using all or parts of the message's subject as a partitioning key.
@@ -53,6 +61,9 @@ There are also administrative functions to create and delete consumer groups, pl
 Included is a small command line interface tool, named `cg` and located in the `cli` directory, that allows you to manage consumer groups, as well as test or demonstrate the functionality.
 
 This `cg` CLI tool can be used by passing it commands and arguments directly, or with an interactive prompt using the `prompt` command (e.g. `cg static prompt`).
+
+For more details on the CLI visit the [Partitioned Consumer Groups CLI Project](https://github.com/synadia-io/orbit.java/tree/main/pcgroups-cli)
+
 
 ## Demo walkthrough
 

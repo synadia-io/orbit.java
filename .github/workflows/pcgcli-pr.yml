@@ -22,10 +22,10 @@ jobs:
         uses: actions/checkout@v4
       - name: Build with Gradle
         run: |
-          chmod +x gradlew && ./gradlew clean test uberJar
+          chmod +x gradlew && ./gradlew clean package
       - name: Build with Maven
         run: mvn clean package
-      - name: Validate Gradle Uber was created
+      - name: Validate artifacts were created
         run: |
           FILE_PATH="build/libs/cg.jar"
           if [ -f "$FILE_PATH" ]; then
@@ -34,8 +34,20 @@ jobs:
             echo "Validation failed: $FILE_PATH was not found."
             exit 1 # Fails the workflow step
           fi
-      - name: Validate Maven Uber was created
-        run: |
+          FILE_PATH="build/cg.zip"
+          if [ -f "$FILE_PATH" ]; then
+            echo "Validation successful: $FILE_PATH was created."
+          else
+            echo "Validation failed: $FILE_PATH was not found."
+            exit 1 # Fails the workflow step
+          fi
+          FILE_PATH="build/libs/cg.tar"
+          if [ -f "$FILE_PATH" ]; then
+            echo "Validation successful: $FILE_PATH was created."
+          else
+            echo "Validation failed: $FILE_PATH was not found."
+            exit 1 # Fails the workflow step
+          fi
           FILE_PATH="target/cg.jar"
           if [ -f "$FILE_PATH" ]; then
             echo "Validation successful: $FILE_PATH was created."
