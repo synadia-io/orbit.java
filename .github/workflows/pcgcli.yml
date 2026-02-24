@@ -1,9 +1,11 @@
-name: Partitioned Consumer Groups CLI Main Snapshot
+name: Partitioned Consumer Groups CLI Build
 
 on:
   push:
     branches:
       - main
+  pull_request:
+    types: [opened, synchronize, reopened]
     paths:
       - 'pcgroups-cli/**'
 
@@ -22,21 +24,32 @@ jobs:
       - name: Check out code
         uses: actions/checkout@v4
       - name: Build with Gradle
-        run: |
-          chmod +x gradlew && ./gradlew clean test uberJar
+        run: chmod +x gradlew && ./gradlew clean dist
       - name: Build with Maven
         run: mvn clean package
-      - name: Validate Gradle Uber was created
+      - name: Validate artifacts were created
         run: |
-          FILE_PATH="build/libs/cg.jar"
+          FILE_PATH="build/cg.jar"
           if [ -f "$FILE_PATH" ]; then
             echo "Validation successful: $FILE_PATH was created."
           else
             echo "Validation failed: $FILE_PATH was not found."
             exit 1 # Fails the workflow step
           fi
-      - name: Validate Maven Uber was created
-        run: |
+          FILE_PATH="build/cg.zip"
+          if [ -f "$FILE_PATH" ]; then
+            echo "Validation successful: $FILE_PATH was created."
+          else
+            echo "Validation failed: $FILE_PATH was not found."
+            exit 1 # Fails the workflow step
+          fi
+          FILE_PATH="build/cg.tar"
+          if [ -f "$FILE_PATH" ]; then
+            echo "Validation successful: $FILE_PATH was created."
+          else
+            echo "Validation failed: $FILE_PATH was not found."
+            exit 1 # Fails the workflow step
+          fi
           FILE_PATH="target/cg.jar"
           if [ -f "$FILE_PATH" ]; then
             echo "Validation successful: $FILE_PATH was created."
