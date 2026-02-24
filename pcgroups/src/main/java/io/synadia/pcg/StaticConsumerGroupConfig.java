@@ -13,28 +13,47 @@
 
 package io.synadia.pcg;
 
-import com.google.gson.annotations.SerializedName;
+import io.nats.client.api.KeyValueEntry;
+import io.nats.client.support.*;
 import io.synadia.pcg.exceptions.ConsumerGroupException;
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 import java.util.*;
+
+import static io.nats.client.support.JsonUtils.*;
+import static io.nats.client.support.JsonValueUtils.readValue;
 
 /**
  * Configuration for a static consumer group.
  * JSON structure must be compatible with the Go version.
  */
-public class StaticConsumerGroupConfig {
+public class StaticConsumerGroupConfig implements JsonSerializable {
+    static final String MAX_MEMBERS = "max_members";
+    static final String FILTER = "filter";
+    static final String MEMBERS = "members";
+    static final String MEMBER_MAPPINGS = "member_mappings";
 
-    @SerializedName("max_members")
     private int maxMembers;
-
-    @SerializedName("filter")
     private String filter;
-
-    @SerializedName("members")
     private List<String> members;
-
-    @SerializedName("member_mappings")
     private List<MemberMapping> memberMappings;
+
+    @Nullable
+    public static StaticConsumerGroupConfig instance(KeyValueEntry entry) throws JsonParseException {
+        if (entry != null) {
+            byte[] json = entry.getValue();
+            if (json != null) {
+                return instance(json);
+            }
+        }
+        return null;
+    }
+
+    @NonNull
+    public static StaticConsumerGroupConfig instance(byte @NonNull[] json) throws JsonParseException {
+        return new StaticConsumerGroupConfig(JsonParser.parse(json));
+    }
 
     public StaticConsumerGroupConfig() {
         this.members = new ArrayList<>();
@@ -44,8 +63,26 @@ public class StaticConsumerGroupConfig {
     public StaticConsumerGroupConfig(int maxMembers, String filter, List<String> members, List<MemberMapping> memberMappings) {
         this.maxMembers = maxMembers;
         this.filter = filter;
-        this.members = members != null ? new ArrayList<>(members) : new ArrayList<>();
-        this.memberMappings = memberMappings != null ? new ArrayList<>(memberMappings) : new ArrayList<>();
+        this.members = members == null ? new ArrayList<>() : new ArrayList<>(members);
+        this.memberMappings = memberMappings == null ? new ArrayList<>() : new ArrayList<>(memberMappings);
+    }
+
+    public StaticConsumerGroupConfig(JsonValue jv) {
+        this.maxMembers = JsonValueUtils.readInteger(jv, MAX_MEMBERS, 0);
+        this.filter = JsonValueUtils.readString(jv, FILTER);
+        this.members = JsonValueUtils.readStringList(jv, MEMBERS);
+        this.memberMappings = MemberMapping.listOfOrEmptyList(readValue(jv, MEMBER_MAPPINGS));
+    }
+
+    @Override
+    @NonNull
+    public String toJson() {
+        StringBuilder sb = beginJson();
+        addField(sb, MAX_MEMBERS, maxMembers);
+        addField(sb, FILTER, filter);
+        addStrings(sb, MEMBERS, members);
+        addJsons(sb, MEMBER_MAPPINGS, memberMappings);
+        return endJson(sb).toString();
     }
 
     public int getMaxMembers() {
@@ -65,36 +102,33 @@ public class StaticConsumerGroupConfig {
     }
 
     public List<String> getMembers() {
-        return members != null ? new ArrayList<>(members) : new ArrayList<>();
+        return new ArrayList<>(members);
     }
 
     public void setMembers(List<String> members) {
-        this.members = members != null ? new ArrayList<>(members) : new ArrayList<>();
+        this.members = members == null ? new ArrayList<>() : new ArrayList<>(members);
     }
 
     public List<MemberMapping> getMemberMappings() {
-        return memberMappings != null ? new ArrayList<>(memberMappings) : new ArrayList<>();
+        return new ArrayList<>(memberMappings);
     }
 
     public void setMemberMappings(List<MemberMapping> memberMappings) {
-        this.memberMappings = memberMappings != null ? new ArrayList<>(memberMappings) : new ArrayList<>();
+        this.memberMappings = memberMappings == null ? new ArrayList<>() : new ArrayList<>(memberMappings);
     }
 
     /**
      * Checks if the given member name is in the current membership.
      */
     public boolean isInMembership(String name) {
-        if (memberMappings != null && !memberMappings.isEmpty()) {
+        if (!memberMappings.isEmpty()) {
             for (MemberMapping mapping : memberMappings) {
                 if (mapping.getMember().equals(name)) {
                     return true;
                 }
             }
         }
-        if (members != null && !members.isEmpty()) {
-            return members.contains(name);
-        }
-        return false;
+        return members.contains(name);
     }
 
     /**
@@ -109,8 +143,8 @@ public class StaticConsumerGroupConfig {
         }
 
         // Validate that only one of members or member mappings is provided
-        boolean hasMembers = members != null && !members.isEmpty();
-        boolean hasMemberMappings = memberMappings != null && !memberMappings.isEmpty();
+        boolean hasMembers = !members.isEmpty();
+        boolean hasMemberMappings = !memberMappings.isEmpty();
 
         if (hasMembers && hasMemberMappings) {
             throw new ConsumerGroupException("either members or member mappings must be provided, not both");
@@ -118,7 +152,7 @@ public class StaticConsumerGroupConfig {
 
         // Validate member mappings
         if (hasMemberMappings) {
-            if (memberMappings.size() < 1 || memberMappings.size() > maxMembers) {
+            if (memberMappings.size() > maxMembers) {
                 throw new ConsumerGroupException("the number of member mappings must be between 1 and the max number of members");
             }
 

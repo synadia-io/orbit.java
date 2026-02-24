@@ -13,40 +13,58 @@
 
 package io.synadia.pcg;
 
-import com.google.gson.annotations.SerializedName;
+import io.nats.client.api.KeyValueEntry;
+import io.nats.client.support.*;
 import io.synadia.pcg.exceptions.ConsumerGroupException;
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 import java.util.*;
+
+import static io.nats.client.support.JsonUtils.*;
+import static io.nats.client.support.JsonValueUtils.*;
 
 /**
  * Configuration for an elastic consumer group.
  * JSON structure must be compatible with the Go version.
  */
-public class ElasticConsumerGroupConfig {
+public class ElasticConsumerGroupConfig implements JsonSerializable {
+    static final String MAX_MEMBERS = "max_members";
+    static final String FILTER = "filter";
+    static final String PARTITIONING_WILDCARDS = "partitioning_wildcards";
+    static final String MAX_BUFFERED_MSG = "max_buffered_msg";
+    static final String MAX_BUFFERED_BYTES = "max_buffered_bytes";
+    static final String MEMBERS = "members";
+    static final String MEMBER_MAPPINGS = "member_mappings";
 
-    @SerializedName("max_members")
     private int maxMembers;
-
-    @SerializedName("filter")
     private String filter;
-
-    @SerializedName("partitioning_wildcards")
     private int[] partitioningWildcards;
-
-    @SerializedName("max_buffered_msg")
-    private long maxBufferedMsgs;
-
-    @SerializedName("max_buffered_bytes")
+    private long maxBufferedMessages;
     private long maxBufferedBytes;
-
-    @SerializedName("members")
     private List<String> members;
-
-    @SerializedName("member_mappings")
     private List<MemberMapping> memberMappings;
 
     // Internal revision number, not serialized
     private transient long revision;
+
+    @Nullable
+    public static ElasticConsumerGroupConfig instance(KeyValueEntry entry) throws JsonParseException {
+        if (entry != null) {
+            byte[] json = entry.getValue();
+            if (json != null) {
+                ElasticConsumerGroupConfig config = instance(json);
+                config.setRevision(entry.getRevision());
+                return config;
+            }
+        }
+        return null;
+    }
+
+    @NonNull
+    public static ElasticConsumerGroupConfig instance(byte @NonNull[] json) throws JsonParseException {
+        return new ElasticConsumerGroupConfig(JsonParser.parse(json));
+    }
 
     public ElasticConsumerGroupConfig() {
         this.partitioningWildcards = new int[0];
@@ -55,15 +73,30 @@ public class ElasticConsumerGroupConfig {
     }
 
     public ElasticConsumerGroupConfig(int maxMembers, String filter, int[] partitioningWildcards,
-                                      long maxBufferedMsgs, long maxBufferedBytes,
+                                      long maxBufferedMessages, long maxBufferedBytes,
                                       List<String> members, List<MemberMapping> memberMappings) {
         this.maxMembers = maxMembers;
         this.filter = filter;
         this.partitioningWildcards = partitioningWildcards != null ? partitioningWildcards.clone() : new int[0];
-        this.maxBufferedMsgs = maxBufferedMsgs;
+        this.maxBufferedMessages = maxBufferedMessages;
         this.maxBufferedBytes = maxBufferedBytes;
-        this.members = members != null ? new ArrayList<>(members) : new ArrayList<>();
-        this.memberMappings = memberMappings != null ? new ArrayList<>(memberMappings) : new ArrayList<>();
+        this.members = members == null ? new ArrayList<>() : new ArrayList<>(members);
+        this.memberMappings = memberMappings == null ? new ArrayList<>() : new ArrayList<>(memberMappings);
+    }
+
+    public ElasticConsumerGroupConfig(JsonValue jv) {
+        this.maxMembers = JsonValueUtils.readInteger(jv, MAX_MEMBERS, 0);
+        this.filter = JsonValueUtils.readString(jv, FILTER);
+        List<Integer> integers = read(jv, PARTITIONING_WILDCARDS, v -> listOf(v, JsonValueUtils::getInteger));
+        this.partitioningWildcards = new int[integers.size()];
+        for (int x = 0; x < integers.size(); x++) {
+            Integer i = integers.get(x);
+            this.partitioningWildcards[x] = i == null ? 0 : i;
+        }
+        this.maxBufferedMessages = JsonValueUtils.readLong(jv, MAX_BUFFERED_MSG, 0);
+        this.maxBufferedBytes = JsonValueUtils.readLong(jv, MAX_BUFFERED_BYTES, 0);
+        this.members = JsonValueUtils.readStringList(jv, MEMBERS);
+        this.memberMappings = MemberMapping.listOfOrEmptyList(readValue(jv, MEMBER_MAPPINGS));
     }
 
     public int getMaxMembers() {
@@ -83,19 +116,19 @@ public class ElasticConsumerGroupConfig {
     }
 
     public int[] getPartitioningWildcards() {
-        return partitioningWildcards != null ? partitioningWildcards.clone() : new int[0];
+        return partitioningWildcards.clone();
     }
 
     public void setPartitioningWildcards(int[] partitioningWildcards) {
-        this.partitioningWildcards = partitioningWildcards != null ? partitioningWildcards.clone() : new int[0];
+        this.partitioningWildcards = partitioningWildcards == null ? new int[0] : partitioningWildcards.clone();
     }
 
-    public long getMaxBufferedMsgs() {
-        return maxBufferedMsgs;
+    public long getMaxBufferedMessages() {
+        return maxBufferedMessages;
     }
 
-    public void setMaxBufferedMsgs(long maxBufferedMsgs) {
-        this.maxBufferedMsgs = maxBufferedMsgs;
+    public void setMaxBufferedMessages(long maxBufferedMessages) {
+        this.maxBufferedMessages = maxBufferedMessages;
     }
 
     public long getMaxBufferedBytes() {
@@ -111,15 +144,15 @@ public class ElasticConsumerGroupConfig {
     }
 
     public void setMembers(List<String> members) {
-        this.members = members != null ? new ArrayList<>(members) : new ArrayList<>();
+        this.members = members == null ? new ArrayList<>() : new ArrayList<>(members);
     }
 
     public List<MemberMapping> getMemberMappings() {
-        return memberMappings != null ? new ArrayList<>(memberMappings) : new ArrayList<>();
+        return new ArrayList<>(memberMappings);
     }
 
     public void setMemberMappings(List<MemberMapping> memberMappings) {
-        this.memberMappings = memberMappings != null ? new ArrayList<>(memberMappings) : new ArrayList<>();
+        this.memberMappings = memberMappings == null ? new ArrayList<>() : new ArrayList<>(memberMappings);
     }
 
     public long getRevision() {
@@ -134,17 +167,14 @@ public class ElasticConsumerGroupConfig {
      * Checks if the given member name is in the current membership.
      */
     public boolean isInMembership(String name) {
-        if (memberMappings != null && !memberMappings.isEmpty()) {
+        if (!memberMappings.isEmpty()) {
             for (MemberMapping mapping : memberMappings) {
                 if (mapping.getMember().equals(name)) {
                     return true;
                 }
             }
         }
-        if (members != null && !members.isEmpty()) {
-            return members.contains(name);
-        }
-        return false;
+        return members.contains(name);
     }
 
     /**
@@ -192,8 +222,8 @@ public class ElasticConsumerGroupConfig {
         }
 
         // Validate that only one of members or member mappings is provided
-        boolean hasMembers = members != null && !members.isEmpty();
-        boolean hasMemberMappings = memberMappings != null && !memberMappings.isEmpty();
+        boolean hasMembers = !members.isEmpty();
+        boolean hasMemberMappings = !memberMappings.isEmpty();
 
         if (hasMembers && hasMemberMappings) {
             throw new ConsumerGroupException("either members or member mappings must be provided, not both");
@@ -201,7 +231,7 @@ public class ElasticConsumerGroupConfig {
 
         // Validate member mappings
         if (hasMemberMappings) {
-            if (memberMappings.size() < 1 || memberMappings.size() > maxMembers) {
+            if (memberMappings.size() > maxMembers) {
                 throw new ConsumerGroupException("the number of member mappings must be between 1 and the max number of members");
             }
 
@@ -258,12 +288,32 @@ public class ElasticConsumerGroupConfig {
     }
 
     @Override
+    @NonNull
+    public String toJson() {
+        StringBuilder sb = beginJson();
+        addField(sb, MAX_MEMBERS, maxMembers);
+        addField(sb, FILTER, filter);
+        if (partitioningWildcards.length > 0) {
+            List<Integer> integers = new ArrayList<>(partitioningWildcards.length);
+            for (int i : partitioningWildcards) {
+                integers.add(i);
+            }
+            _addList(sb, PARTITIONING_WILDCARDS, integers, StringBuilder::append);
+        }
+        addField(sb, MAX_BUFFERED_MSG, maxBufferedMessages);
+        addField(sb, MAX_BUFFERED_BYTES, maxBufferedBytes);
+        addStrings(sb, MEMBERS, members);
+        addJsons(sb, MEMBER_MAPPINGS, memberMappings);
+        return endJson(sb).toString();
+    }
+
+    @Override
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         ElasticConsumerGroupConfig that = (ElasticConsumerGroupConfig) o;
         return maxMembers == that.maxMembers &&
-                maxBufferedMsgs == that.maxBufferedMsgs &&
+                maxBufferedMessages == that.maxBufferedMessages &&
                 maxBufferedBytes == that.maxBufferedBytes &&
                 Objects.equals(filter, that.filter) &&
                 Arrays.equals(partitioningWildcards, that.partitioningWildcards) &&
@@ -273,7 +323,7 @@ public class ElasticConsumerGroupConfig {
 
     @Override
     public int hashCode() {
-        int result = Objects.hash(maxMembers, filter, maxBufferedMsgs, maxBufferedBytes, members, memberMappings);
+        int result = Objects.hash(maxMembers, filter, maxBufferedMessages, maxBufferedBytes, members, memberMappings);
         result = 31 * result + Arrays.hashCode(partitioningWildcards);
         return result;
     }
@@ -284,7 +334,7 @@ public class ElasticConsumerGroupConfig {
                 "maxMembers=" + maxMembers +
                 ", filter='" + filter + '\'' +
                 ", partitioningWildcards=" + Arrays.toString(partitioningWildcards) +
-                ", maxBufferedMsgs=" + maxBufferedMsgs +
+                ", maxBufferedMessages=" + maxBufferedMessages +
                 ", maxBufferedBytes=" + maxBufferedBytes +
                 ", members=" + members +
                 ", memberMappings=" + memberMappings +

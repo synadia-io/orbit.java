@@ -13,15 +13,17 @@
 
 package io.synadia.pcg;
 
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
+import io.nats.NatsRunnerUtils;
+import io.nats.client.support.JsonParseException;
 import io.synadia.pcg.exceptions.ConsumerGroupException;
 import org.junit.jupiter.api.Test;
 
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.logging.Level;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -31,7 +33,9 @@ import static org.junit.jupiter.api.Assertions.*;
  */
 class StaticConsumerGroupTest {
 
-    private static final Gson GSON = new GsonBuilder().disableHtmlEscaping().create();
+    static {
+        NatsRunnerUtils.setDefaultOutputLevel(Level.SEVERE);
+    }
 
     @Test
     void testConfigWithMembers() {
@@ -185,14 +189,14 @@ class StaticConsumerGroupTest {
     }
 
     @Test
-    void testJsonSerializationWithMembers() {
+    void testJsonSerializationWithMembers() throws JsonParseException {
         StaticConsumerGroupConfig config = new StaticConsumerGroupConfig(
                 4, "foo.>",
                 Arrays.asList("m1", "m2"),
                 new ArrayList<>()
         );
 
-        String json = GSON.toJson(config);
+        String json = config.toJson();
 
         // Verify JSON structure matches Go format
         assertTrue(json.contains("\"max_members\":4"));
@@ -200,14 +204,14 @@ class StaticConsumerGroupTest {
         assertTrue(json.contains("\"members\":[\"m1\",\"m2\"]"));
 
         // Deserialize and verify
-        StaticConsumerGroupConfig deserialized = GSON.fromJson(json, StaticConsumerGroupConfig.class);
+        StaticConsumerGroupConfig deserialized = StaticConsumerGroupConfig.instance(json.getBytes(StandardCharsets.UTF_8));
         assertEquals(config.getMaxMembers(), deserialized.getMaxMembers());
         assertEquals(config.getFilter(), deserialized.getFilter());
         assertEquals(config.getMembers(), deserialized.getMembers());
     }
 
     @Test
-    void testJsonSerializationWithMappings() {
+    void testJsonSerializationWithMappings() throws JsonParseException {
         List<MemberMapping> mappings = Arrays.asList(
                 new MemberMapping("alice", new int[]{0, 1}),
                 new MemberMapping("bob", new int[]{2, 3})
@@ -217,7 +221,7 @@ class StaticConsumerGroupTest {
                 4, "foo.>", new ArrayList<>(), mappings
         );
 
-        String json = GSON.toJson(config);
+        String json = config.toJson();
 
         // Verify JSON structure matches Go format
         assertTrue(json.contains("\"max_members\":4"));
@@ -226,7 +230,7 @@ class StaticConsumerGroupTest {
         assertTrue(json.contains("\"partitions\":[0,1]"));
 
         // Deserialize and verify
-        StaticConsumerGroupConfig deserialized = GSON.fromJson(json, StaticConsumerGroupConfig.class);
+        StaticConsumerGroupConfig deserialized = StaticConsumerGroupConfig.instance(json.getBytes(StandardCharsets.UTF_8));
         assertEquals(config.getMaxMembers(), deserialized.getMaxMembers());
         assertEquals(2, deserialized.getMemberMappings().size());
         assertEquals("alice", deserialized.getMemberMappings().get(0).getMember());
@@ -234,11 +238,11 @@ class StaticConsumerGroupTest {
     }
 
     @Test
-    void testJsonDeserializationFromGo() {
+    void testJsonDeserializationFromGo() throws JsonParseException {
         // This JSON is in the format produced by the Go implementation
         String goJson = "{\"max_members\":4,\"filter\":\"foo.>\",\"members\":[\"m1\",\"m2\",\"m3\",\"m4\"]}";
 
-        StaticConsumerGroupConfig config = GSON.fromJson(goJson, StaticConsumerGroupConfig.class);
+        StaticConsumerGroupConfig config = StaticConsumerGroupConfig.instance(goJson.getBytes(StandardCharsets.UTF_8));
 
         assertEquals(4, config.getMaxMembers());
         assertEquals("foo.>", config.getFilter());
@@ -247,11 +251,11 @@ class StaticConsumerGroupTest {
     }
 
     @Test
-    void testJsonDeserializationWithMappingsFromGo() {
+    void testJsonDeserializationWithMappingsFromGo() throws JsonParseException {
         // This JSON is in the format produced by the Go implementation
         String goJson = "{\"max_members\":4,\"filter\":\"bar.>\",\"member_mappings\":[{\"member\":\"alice\",\"partitions\":[0,1]},{\"member\":\"bob\",\"partitions\":[2,3]}]}";
 
-        StaticConsumerGroupConfig config = GSON.fromJson(goJson, StaticConsumerGroupConfig.class);
+        StaticConsumerGroupConfig config = StaticConsumerGroupConfig.instance(goJson.getBytes(StandardCharsets.UTF_8));
 
         assertEquals(4, config.getMaxMembers());
         assertEquals("bar.>", config.getFilter());

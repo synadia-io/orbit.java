@@ -19,7 +19,7 @@ def isRelease = System.getenv("BUILD_EVENT") == "release"
 def tc = System.getenv("TARGET_COMPATIBILITY");
 def targetCompat = tc == "21" ? JavaVersion.VERSION_21 : (tc == "17" ? JavaVersion.VERSION_17 : JavaVersion.VERSION_1_8)
 def jarEnd =       tc == "21" ?  "-jdk21"              : (tc == "17" ? "-jdk17"               : "")
-def jarAndArtifactName = "partitioned-consumer-groups" + jarEnd
+def jarAndArtifactName = "pcgroups" + jarEnd
 
 version = isRelease ? jarVersion : jarVersion + "-SNAPSHOT" // version is the variable the build actually uses.
 
@@ -35,26 +35,12 @@ repositories {
 }
 
 dependencies {
-    implementation 'io.nats:jnats:2.25.1'
-    implementation 'com.google.code.gson:gson:2.11.0'
-    implementation 'org.jspecify:jspecify:1.0.0'
+    api 'io.nats:jnats:2.25.1'
+    api 'org.jspecify:jspecify:1.0.0'
 
     testImplementation 'io.nats:jnats-server-runner:3.1.0'
     testImplementation 'org.junit.jupiter:junit-jupiter:5.14.1'
     testImplementation 'org.junit.platform:junit-platform-launcher:1.14.3'
-}
-
-sourceSets {
-    main {
-        java {
-            srcDirs = ['src/main/java']
-        }
-    }
-    test {
-        java {
-            srcDirs = ['src/test/java']
-        }
-    }
 }
 
 tasks.register('bundle', Bundle) {
@@ -66,28 +52,18 @@ jar {
         bnd("Bundle-Name": "io.synadia.partitioned.consumer.groups",
                 "Bundle-Vendor": "synadia.io",
                 "Bundle-Description": "NATS JetStream Partitioned Consumer Groups Library for Java",
-                "Bundle-DocURL": "https://synadia.io"
+                "Bundle-DocURL": "https://github.com/synadia-io/orbit.java/tree/main/pcgroups",
+                "Target-Compatibility": "Java " + targetCompat
         )
     }
 }
 
 test {
-    // Use junit platform for unit tests
     useJUnitPlatform()
-    testLogging {
-        exceptionFormat = 'full'
-        events "started", "passed", "skipped", "failed"
-        showStandardStreams = true
-    }
-    retry {
-        failOnPassedAfterRetry = false
-        maxFailures = 3
-        maxRetries = 3
-    }
-    systemProperty 'junit.jupiter.execution.timeout.default', '3m'
 }
 
 javadoc {
+    options.overview = 'src/main/javadoc/overview.html' // relative to source root
     source = sourceSets.main.allJava
     title = "Synadia Communications Inc. NATS JetStream Partitioned Consumer Groups"
     classpath = sourceSets.main.runtimeClasspath
@@ -103,13 +79,8 @@ tasks.register('sourcesJar', Jar) {
     from sourceSets.main.allSource
 }
 
-tasks.register('testsJar', Jar) {
-    archiveClassifier.set('tests')
-    from sourceSets.test.allSource
-}
-
 artifacts {
-    archives javadocJar, sourcesJar, testsJar
+    archives javadocJar, sourcesJar
 }
 
 jacoco {
@@ -146,10 +117,9 @@ publishing {
             from components.java
             artifact sourcesJar
             artifact javadocJar
-            artifact testsJar
             pom {
                 name = jarAndArtifactName
-                packaging = "jar"
+                packaging = 'jar'
                 groupId = group
                 artifactId = jarAndArtifactName
                 description = "Synadia Communications Inc. NATS JetStream Partitioned Consumer Groups"

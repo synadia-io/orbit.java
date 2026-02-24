@@ -13,15 +13,12 @@
 
 package io.synadia.pcg;
 
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
 import io.nats.client.*;
 import io.nats.client.api.*;
 import io.nats.client.impl.Headers;
 import io.synadia.pcg.exceptions.ConsumerGroupException;
 
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
@@ -40,7 +37,6 @@ import static io.synadia.pcg.PartitionUtils.*;
 public class StaticConsumerGroup {
 
     private static final Logger LOGGER = Logger.getLogger(StaticConsumerGroup.class.getName());
-    private static final Gson GSON = new GsonBuilder().disableHtmlEscaping().create();
 
     private StaticConsumerGroup() {
         // Utility class
@@ -89,10 +85,8 @@ public class StaticConsumerGroup {
         String key = composeKey(streamName, consumerGroupName);
 
         // Check if config already exists
-        KeyValueEntry entry = kv.get(key);
-        if (entry != null) {
-            String json = new String(entry.getValue(), StandardCharsets.UTF_8);
-            StaticConsumerGroupConfig existingConfig = GSON.fromJson(json, StaticConsumerGroupConfig.class);
+        StaticConsumerGroupConfig existingConfig = StaticConsumerGroupConfig.instance(kv.get(key));
+        if (existingConfig != null) {
 
             // Verify the config matches
             if (!configsMatch(existingConfig, config)) {
@@ -102,8 +96,7 @@ public class StaticConsumerGroup {
         }
 
         // Create the config entry
-        String payload = GSON.toJson(config);
-        kv.put(key, payload.getBytes(StandardCharsets.UTF_8));
+        kv.put(key, config.serialize());
 
         return config;
     }
@@ -299,8 +292,7 @@ public class StaticConsumerGroup {
             throw new ConsumerGroupException("error getting the static consumer group's config: not found");
         }
 
-        String json = new String(entry.getValue(), StandardCharsets.UTF_8);
-        StaticConsumerGroupConfig config = GSON.fromJson(json, StaticConsumerGroupConfig.class);
+        StaticConsumerGroupConfig config = StaticConsumerGroupConfig.instance(entry);
         config.validate();
 
         return config;
@@ -374,7 +366,6 @@ public class StaticConsumerGroup {
 
             // Create the durable consumer explicitly (matching Go's js.CreateConsumer)
             JetStreamManagement jsm = nc.jetStreamManagement();
-            System.out.printf("Creating consumer %s with filters %s and priority group %s%n\n", consumerName, filters, PRIORITY_GROUP_NAME);
             jsm.createConsumer(streamName, cc);
 
             // Get consumer context and start consuming
@@ -425,8 +416,7 @@ public class StaticConsumerGroup {
                             }
 
                             try {
-                                String json = new String(entry.getValue(), StandardCharsets.UTF_8);
-                                StaticConsumerGroupConfig newConfig = GSON.fromJson(json, StaticConsumerGroupConfig.class);
+                                StaticConsumerGroupConfig newConfig = StaticConsumerGroupConfig.instance(entry);
                                 newConfig.validate();
 
                                 // Check if critical config changed

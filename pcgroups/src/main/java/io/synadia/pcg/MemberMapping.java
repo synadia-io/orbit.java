@@ -13,28 +13,65 @@
 
 package io.synadia.pcg;
 
-import com.google.gson.annotations.SerializedName;
+import io.nats.client.support.JsonSerializable;
+import io.nats.client.support.JsonValue;
+import io.nats.client.support.JsonValueUtils;
+import org.jspecify.annotations.NonNull;
+
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Objects;
+
+import static io.nats.client.support.JsonUtils.*;
+import static io.nats.client.support.JsonValueUtils.*;
+import static io.nats.client.support.JsonValueUtils.readString;
 
 /**
  * Represents a mapping between a member name and its assigned partitions.
  * JSON structure must be compatible with the Go version.
  */
-public class MemberMapping {
+public class MemberMapping implements JsonSerializable {
+    static final String MEMBER = "member";
+    static final String PARTITIONS = "partitions";
 
-    @SerializedName("member")
     private String member;
-
-    @SerializedName("partitions")
     private int[] partitions;
 
-    public MemberMapping() {
+    static List<MemberMapping> listOfOrEmptyList(JsonValue jv) {
+        return JsonValueUtils.listOf(jv, MemberMapping::new);
     }
+
+    public MemberMapping() {}
 
     public MemberMapping(String member, int[] partitions) {
         this.member = member;
         this.partitions = partitions != null ? partitions.clone() : new int[0];
+    }
+
+    public MemberMapping(JsonValue jv) {
+        this.member = readString(jv, MEMBER);
+        List<Integer> integers = read(jv, PARTITIONS, v -> listOf(v, JsonValueUtils::getInteger));
+        this.partitions = new int[integers.size()];
+        for (int x = 0; x < integers.size(); x++) {
+            Integer i = integers.get(x);
+            this.partitions[x] = i == null ? 0 : i;
+        }
+    }
+
+    @Override
+    @NonNull
+    public String toJson() {
+        StringBuilder sb = beginJson();
+        addField(sb, MEMBER, member);
+        if (partitions.length > 0) {
+            List<Integer> integers = new ArrayList<>(partitions.length);
+            for (int i : partitions) {
+                integers.add(i);
+            }
+            _addList(sb, PARTITIONS, integers, StringBuilder::append);
+        }
+        return endJson(sb).toString();
     }
 
     public String getMember() {
