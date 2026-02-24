@@ -1,4 +1,4 @@
-name: Partitioned Consumer Groups Main Snapshot
+name: Partitioned Consumer Groups CLI Main Snapshot
 
 on:
   push:

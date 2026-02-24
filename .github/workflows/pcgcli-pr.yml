@@ -1,4 +1,4 @@
-name: Partitioned Consumer Groups Pull Request
+name: Partitioned Consumer Groups CLI Pull Request
 
 on:
   pull_request:
