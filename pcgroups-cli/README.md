@@ -8,9 +8,12 @@ The Partitioned Consumer Groups CLI is a command line tool. In the usage,
 
 #### Downloads
 
-| tar                                                                                        | zip                                                                                        |
-|--------------------------------------------------------------------------------------------|--------------------------------------------------------------------------------------------|
-| [cg.tar](https://github.com/synadia-io/orbit.java/releases/download/pcgcli%2F0.1.0/cg.tar) | [cg.zip](https://github.com/synadia-io/orbit.java/releases/download/pcgcli%2F0.1.0/cg.zip) |
+Archives containing executable jar file (from the [Release Page](https://github.com/synadia-io/orbit.java/releases/tag/pcgcli%2F0.1.0))
+
+| Asset                                                                                          | Size    | SHA                                                                       |
+|------------------------------------------------------------------------------------------------|---------|---------------------------------------------------------------------------|
+| **[cg.tar](https://github.com/synadia-io/orbit.java/releases/download/pcgcli%2F0.1.0/cg.tar)** | 6.56 MB | `sha256:7d02bfb4246872929613a029ade1ac1f2edc25abdd60140a9fd8a36452977f1e` |
+| **[cg.zip](https://github.com/synadia-io/orbit.java/releases/download/pcgcli%2F0.1.0/cg.zip)** | 5.65 MB | `sha256:dff6e5b85377cac79635e6d77ecd65de35fe4031687ecefd0c2302b6fd520be2` |
 
 ## Usage
 

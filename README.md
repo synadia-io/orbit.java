@@ -7,18 +7,19 @@ boost productivity and provide a higher abstraction layer for the [JNATS](https:
 client. Note that these libraries will evolve rapidly and API guarantees are general not made until the specific project has a v1.0.0 version.
 
 # Utilities
-| Module                       | Description                                             | Docs                                         | Release Version | Snapshot       |
-|------------------------------|---------------------------------------------------------|----------------------------------------------|-----------------|----------------|
-| Retrier                      | Extension for retrying anything                         | [README.md](retrier/README.md)               | 0.2.1           | 0.2.2-SNAPSHOT |
-| Jetstream Publish Extensions | General extensions for Jetstream Publishing             | [README.md](js-publish-extensions/README.md) | 0.4.4           | 0.4.5-SNAPSHOT |
-| Request Many                 | Get many responses for a single core request.           | [README.md](request-many/README.md)          | 0.1.1           | 0.1.2-SNAPSHOT |
-| Encoded KeyValue             | Allow custom encoding of keys and values.               | [README.md](encoded-kv/README.md)            | 0.1.1           | 0.1.2-SNAPSHOT |
-| Direct Batch                 | Leverages direct message capabilities in NATS Server    | [README.md](direct-batch/README.md)          | 0.0.4           | 0.0.5-SNAPSHOT |
-| Batch Publish                | Publish an atomic batch                                 | [README.md](batch-publish/README.md)         | 0.2.2           | 0.2.3-SNAPSHOT |
-| Distributed Counters         | Leverage distributed counters functionality             | [README.md](counters/README.md)              | 0.2.2           | 0.2.3-SNAPSHOT |
-| Scheduled Message            | Leverage ability to schedule a message                  | [README.md](schedule-message/README.md)      | 0.0.3           | 0.0.4-SNAPSHOT |
-| Chaos Runner                 | Run some NATS servers and cause chaos                   | [README.md](chaos-runner/README.md)          | 0.0.8           | 0.0.9-SNAPSHOT |
-| Partitioned Consumer Groups  | Partitioned Consumer Group funcitionality for JetStream | [README.md](pcgroups/README.md)              | 0.1.1           | 0.1.1-SNAPSHOT |
+| Project                                               | Description                                             | Release Version | Snapshot       |
+|-------------------------------------------------------|---------------------------------------------------------|-----------------|----------------|
+| [Retrier](retrier)                                    | Extension for retrying anything                         | 0.2.1           | 0.2.2-SNAPSHOT |
+| [Jetstream Publish Extensions](js-publish-extensions) | General extensions for Jetstream Publishing             | 0.4.4           | 0.4.5-SNAPSHOT |
+| [Request Many](request-many)                          | Get many responses for a single core request.           | 0.1.1           | 0.1.2-SNAPSHOT |
+| [Encoded KeyValue](encoded-kv)                        | Allow custom encoding of keys and values.               | 0.1.1           | 0.1.2-SNAPSHOT |
+| [Direct Batch](direct-batch)                          | Leverages direct message capabilities in NATS Server    | 0.0.4           | 0.0.5-SNAPSHOT |
+| [Batch Publish](batch-publish)                        | Publish an atomic batch                                 | 0.2.2           | 0.2.3-SNAPSHOT |
+| [Distributed Counters](counters)                      | Leverage distributed counters functionality             | 0.2.2           | 0.2.3-SNAPSHOT |
+| [Scheduled Message](schedule-message)                 | Leverage ability to schedule a message                  | 0.0.3           | 0.0.4-SNAPSHOT |
+| [Chaos Runner](chaos-runner)                          | Run some NATS servers and cause chaos                   | 0.0.8           | 0.0.9-SNAPSHOT |
+| [Partitioned Consumer Groups](pcgroups)               | Partitioned Consumer Group funcitionality for JetStream | 0.1.1           | 0.1.1-SNAPSHOT |
+| [Partitioned Consumer Groups CLI](pcgroups-cli)       | Partitioned Consumer Group CLI                          | 0.1.0           | N/A            |
 
 ## Retrier
 
