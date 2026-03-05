@@ -13,10 +13,10 @@ import io.synadia.sm.ScheduledStreamUtil;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
-import static io.synadia.examples.ScheduleExampleUtils.report;
+import static io.synadia.examples.ScheduleUtils.report;
 
 public class ScheduleBasics {
-    public static final String STREAM = "scheduler";
+    public static final String STREAM = "schedules-enabled";
 
     public static final String SCHEDULE_PREFIX = "schedule.";
     public static final String TARGET_PREFIX = "target.";
@@ -33,7 +33,7 @@ public class ScheduleBasics {
                 .errorListener(new ErrorListener() {})
                 .build();
 
-            try (Connection connection = Nats.connectReconnectOnConnect(options)) {
+            try (Connection connection = Nats.connect(options)) {
                 JetStreamManagement jsm = connection.jetStreamManagement();;
                 JetStream js = connection.jetStream();
 
@@ -49,13 +49,13 @@ public class ScheduleBasics {
 
                 // subscribe to the subject that receives the schedule message
                 js.subscribe(SCHEDULES, d, m -> {
-                    report("SCHEDULED", m);
+                    report("SCHEDULED (received)", m);
                     m.ack();
                 }, false);
 
                 // subscribe to the target subject
                 js.subscribe(TARGETS, d, m -> {
-                    report("RECEIVED", m);
+                    report("TARGETED (received)", m);
                     m.ack();
                     latch.countDown();
                 }, false);
@@ -66,7 +66,7 @@ public class ScheduleBasics {
                     .scheduleImmediate()
                     .data("Schedule-Now")
                     .build();
-                report("PUBLISH", m);
+                report("SCHEDULE-NOW (sending)", m);
                 js.publish(m);
 
                 m = new ScheduledMessageBuilder()
@@ -75,7 +75,7 @@ public class ScheduleBasics {
                     .scheduleAt(DateTimeUtils.gmtNow().plusSeconds(5))
                     .data("Scheduled-At")
                     .build();
-                report("PUBLISH", m);
+                report("SCHEDULE-AT (sending)", m);
                 js.publish(m);
 
                 m = new ScheduledMessageBuilder()
@@ -84,7 +84,7 @@ public class ScheduleBasics {
                     .scheduleEvery(1, TimeUnit.SECONDS)
                     .data("Every Second")
                     .build();
-                report("PUBLISH", m);
+                report("SCHEDULE-EVERY (sending)", m);
                 js.publish(m);
 
                 latch.await();

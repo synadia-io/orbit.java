@@ -6,7 +6,7 @@ package io.synadia.examples;
 import io.nats.client.Message;
 import io.nats.client.impl.Headers;
 
-public class ScheduleExampleUtils {
+public class ScheduleUtils {
 
     public static void report(Object... objects) {
         StringBuilder sb = new StringBuilder();

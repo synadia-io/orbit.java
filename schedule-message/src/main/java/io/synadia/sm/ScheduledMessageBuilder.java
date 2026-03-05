@@ -16,6 +16,9 @@ import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.ZonedDateTime;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -25,11 +28,13 @@ public class ScheduledMessageBuilder {
 
     public static final long NANOS_PER_SECOND = 1_000_000_000L;
     private String scheduleString;
+    private String timezone;
     private String scheduleSubject;
     private String targetSubject;
     private Headers headers;
     private byte[] data;
     private MessageTtl messageTtl;
+    private final List<String> sources = new ArrayList<>();
 
     public ScheduledMessageBuilder() {}
 
@@ -88,7 +93,7 @@ public class ScheduledMessageBuilder {
     }
 
     /**
-     * Set the headers
+     * Set message headers
      * @param headers the headers
      * @return the builder
      */
@@ -108,7 +113,27 @@ public class ScheduledMessageBuilder {
     }
 
     /**
-     * Schedule for at a specific time
+     * Schedule for an amount of time from now.
+     * This is not absolute since it takes time to build and send the message.
+     * @param fromNow how long from now to schedule
+     * @return a ScheduledMessageBuilder object
+     */
+    public ScheduledMessageBuilder scheduleIn(Duration fromNow) {
+        return scheduleAt(ZonedDateTime.now().plus(fromNow));
+    }
+
+    /**
+     * Schedule for an amount of time from now.
+     * This is not absolute since it takes time to build and send the message.
+     * @param fromNow how long from now to schedule
+     * @return a ScheduledMessageBuilder object
+     */
+    public ScheduledMessageBuilder scheduleIn(long fromNow, TimeUnit timeUnit) {
+        return scheduleAt(ZonedDateTime.now().plusNanos(timeUnit.toNanos(fromNow)));
+    }
+
+    /**
+     * Schedule for a specific time
      * @param zdt the time to schedule
      * @return a ScheduledMessageBuilder object
      */
@@ -191,8 +216,36 @@ public class ScheduledMessageBuilder {
         return this;
     }
 
+    /**
+     * Schedule based on standard cron
+     * @param cron A valid cron string
+     * @param timezone a valid IANA time zone
+     * @return a ScheduledMessageBuilder object
+     */
+    public ScheduledMessageBuilder scheduleCron(String cron, String timezone) {
+        scheduleString = Validator.emptyAsNull(cron);
+        this.timezone = timezone;
+        return this;
+    }
+
     public ScheduledMessageBuilder messageTtl(MessageTtl messageTtl) {
         this.messageTtl = messageTtl;
+        return this;
+    }
+
+    public ScheduledMessageBuilder sources(List<String> sources) {
+        this.sources.clear();
+        if (sources != null) {
+            this.sources.addAll(sources);
+        }
+        return this;
+    }
+
+    public ScheduledMessageBuilder sources(String... sources) {
+        this.sources.clear();
+        if (sources != null) {
+            Collections.addAll(this.sources, sources);
+        }
         return this;
     }
 
@@ -214,6 +267,12 @@ public class ScheduledMessageBuilder {
         headers.put(NatsJetStreamConstants.NATS_SCHEDULE_HDR, scheduleString);
         if (messageTtl != null) {
             headers.put(NatsJetStreamConstants.NATS_SCHEDULE_TTL_HDR, messageTtl.getTtlString());
+        }
+        if (timezone != null) {
+            headers.put(NatsJetStreamConstants.NATS_SCHEDULE_TIME_ZONE_HDR, timezone);
+        }
+        if (sources.size() > 0) {
+            headers.put(NatsJetStreamConstants.NATS_SCHEDULE_SOURCE_HDR, sources);
         }
 
         return NatsMessage.builder()
