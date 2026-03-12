@@ -198,6 +198,10 @@ public class ElasticConsumerGroupConfig implements JsonSerializable {
                 }
             }
 
+            if (numWildcards == 0 && !">".equals(filterTokens[filterTokens.length - 1])) {
+                throw new ConsumerGroupException("partitioning filters must have at least one * wildcard or end with > wildcard");
+            }
+
             if (partitioningWildcards != null && partitioningWildcards.length > numWildcards) {
                 throw new ConsumerGroupException("the number of partitioning wildcards must not be larger than the total number of * wildcards in the filter");
             }
@@ -210,8 +214,8 @@ public class ElasticConsumerGroupConfig implements JsonSerializable {
                     }
                     seenWildcards.add(pwc);
 
-                    if (pwc > numWildcards) {
-                        throw new ConsumerGroupException("partitioning wildcard indexes must be less than or equal to the number of * wildcards in the filter");
+                    if (pwc > numWildcards || pwc < 1) {
+                        throw new ConsumerGroupException("partitioning wildcard indexes must be between 1 and the number of * wildcards in the filter");
                     }
                 }
             }

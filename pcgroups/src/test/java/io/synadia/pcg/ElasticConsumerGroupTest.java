@@ -95,6 +95,27 @@ class ElasticConsumerGroupTest {
     }
 
     @Test
+    void testValidationFilterNoWildcardNoGt() {
+        ElasticConsumerGroupConfig config = new ElasticConsumerGroupConfig(
+                4, "foo.bar", new int[]{}, 0, 0,
+                Arrays.asList("m1", "m2"), new ArrayList<>()
+        );
+
+        ConsumerGroupException exception = assertThrows(ConsumerGroupException.class, config::validate);
+        assertTrue(exception.getMessage().contains("partitioning filters must have at least one * wildcard or end with > wildcard"));
+    }
+
+    @Test
+    void testValidationFilterEndingWithGtIsValid() {
+        ElasticConsumerGroupConfig config = new ElasticConsumerGroupConfig(
+                4, "foo.>", new int[]{}, 0, 0,
+                Arrays.asList("m1", "m2"), new ArrayList<>()
+        );
+
+        assertDoesNotThrow(config::validate);
+    }
+
+    @Test
     void testValidationFilterNoWildcardWithWildcardsSpecified() {
         ElasticConsumerGroupConfig config = new ElasticConsumerGroupConfig(
                 4, "foo.bar", new int[]{1}, 0, 0,
@@ -102,7 +123,7 @@ class ElasticConsumerGroupTest {
         );
 
         ConsumerGroupException exception = assertThrows(ConsumerGroupException.class, config::validate);
-        assertTrue(exception.getMessage().contains("number of partitioning wildcards must not be larger than"));
+        assertTrue(exception.getMessage().contains("partitioning filters must have at least one * wildcard or end with > wildcard"));
     }
 
     @Test
@@ -154,7 +175,18 @@ class ElasticConsumerGroupTest {
         );
 
         ConsumerGroupException exception = assertThrows(ConsumerGroupException.class, config::validate);
-        assertTrue(exception.getMessage().contains("partitioning wildcard indexes must be less than or equal to"));
+        assertTrue(exception.getMessage().contains("partitioning wildcard indexes must be between 1 and"));
+    }
+
+    @Test
+    void testValidationPartitioningWildcardsZeroIndex() {
+        ElasticConsumerGroupConfig config = new ElasticConsumerGroupConfig(
+                4, "foo.*", new int[]{0}, 0, 0,
+                Arrays.asList("m1", "m2"), new ArrayList<>()
+        );
+
+        ConsumerGroupException exception = assertThrows(ConsumerGroupException.class, config::validate);
+        assertTrue(exception.getMessage().contains("partitioning wildcard indexes must be between 1 and"));
     }
 
     @Test

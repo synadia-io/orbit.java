@@ -650,7 +650,7 @@ public class ElasticConsumerGroup {
                         }
                     };
 
-                    watchSubscription = kv.watch(key, watcher, KeyValueWatchOption.UPDATES_ONLY);
+                    watchSubscription = kv.watch(key, watcher);
 
                 } catch (Exception e) {
                     if (!stopped.get()) {
