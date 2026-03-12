@@ -95,25 +95,44 @@ class ElasticConsumerGroupTest {
     }
 
     @Test
-    void testValidationFilterNoWildcard() {
+    void testValidationFilterNoWildcardWithWildcardsSpecified() {
         ElasticConsumerGroupConfig config = new ElasticConsumerGroupConfig(
                 4, "foo.bar", new int[]{1}, 0, 0,
                 Arrays.asList("m1", "m2"), new ArrayList<>()
         );
 
         ConsumerGroupException exception = assertThrows(ConsumerGroupException.class, config::validate);
-        assertTrue(exception.getMessage().contains("filter must contain at least one * wildcard"));
+        assertTrue(exception.getMessage().contains("number of partitioning wildcards must not be larger than"));
     }
 
     @Test
-    void testValidationPartitioningWildcardsEmpty() {
+    void testValidationPartitioningWildcardsEmptyIsValid() {
         ElasticConsumerGroupConfig config = new ElasticConsumerGroupConfig(
                 4, "foo.*", new int[]{}, 0, 0,
                 Arrays.asList("m1", "m2"), new ArrayList<>()
         );
 
-        ConsumerGroupException exception = assertThrows(ConsumerGroupException.class, config::validate);
-        assertTrue(exception.getMessage().contains("number of partitioning wildcards must be between"));
+        assertDoesNotThrow(config::validate);
+    }
+
+    @Test
+    void testValidationNoFilterIsValid() {
+        ElasticConsumerGroupConfig config = new ElasticConsumerGroupConfig(
+                4, null, new int[]{}, 0, 0,
+                Arrays.asList("m1", "m2"), new ArrayList<>()
+        );
+
+        assertDoesNotThrow(config::validate);
+    }
+
+    @Test
+    void testValidationEmptyFilterIsValid() {
+        ElasticConsumerGroupConfig config = new ElasticConsumerGroupConfig(
+                4, "", new int[]{}, 0, 0,
+                Arrays.asList("m1", "m2"), new ArrayList<>()
+        );
+
+        assertDoesNotThrow(config::validate);
     }
 
     @Test
@@ -124,7 +143,7 @@ class ElasticConsumerGroupTest {
         );
 
         ConsumerGroupException exception = assertThrows(ConsumerGroupException.class, config::validate);
-        assertTrue(exception.getMessage().contains("number of partitioning wildcards must be between"));
+        assertTrue(exception.getMessage().contains("number of partitioning wildcards must not be larger than"));
     }
 
     @Test
@@ -135,7 +154,7 @@ class ElasticConsumerGroupTest {
         );
 
         ConsumerGroupException exception = assertThrows(ConsumerGroupException.class, config::validate);
-        assertTrue(exception.getMessage().contains("partitioning wildcard indexes must be greater than 1"));
+        assertTrue(exception.getMessage().contains("partitioning wildcard indexes must be less than or equal to"));
     }
 
     @Test
@@ -230,6 +249,39 @@ class ElasticConsumerGroupTest {
 
         String dest = config.getPartitioningTransformDest();
         assertEquals("{{Partition(8,2)}}.a.{{Wildcard(1)}}.b.{{Wildcard(2)}}.c.{{Wildcard(3)}}", dest);
+    }
+
+    @Test
+    void testGetPartitioningTransformDestNoWildcards() {
+        ElasticConsumerGroupConfig config = new ElasticConsumerGroupConfig(
+                4, "foo.*", new int[]{}, 0, 0,
+                new ArrayList<>(), new ArrayList<>()
+        );
+
+        String dest = config.getPartitioningTransformDest();
+        assertEquals("{{Partition(4)}}.foo.{{Wildcard(1)}}", dest);
+    }
+
+    @Test
+    void testGetPartitioningTransformDestNoFilter() {
+        ElasticConsumerGroupConfig config = new ElasticConsumerGroupConfig(
+                4, null, new int[]{}, 0, 0,
+                new ArrayList<>(), new ArrayList<>()
+        );
+
+        String dest = config.getPartitioningTransformDest();
+        assertEquals("{{Partition(4)}}.>", dest);
+    }
+
+    @Test
+    void testGetPartitioningTransformDestEmptyFilter() {
+        ElasticConsumerGroupConfig config = new ElasticConsumerGroupConfig(
+                4, "", new int[]{}, 0, 0,
+                new ArrayList<>(), new ArrayList<>()
+        );
+
+        String dest = config.getPartitioningTransformDest();
+        assertEquals("{{Partition(4)}}.>", dest);
     }
 
     @Test
