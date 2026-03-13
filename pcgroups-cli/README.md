@@ -66,15 +66,6 @@ Commands:
 ```
 
 ## Building from Source
-The project contains both a Maven pom.xml file and a Gradle project,
-and both are configured to build an executable Java jar named `cg.jar`
-
-### Maven
-```
-mvn clean package
-``` 
-
-will build the `cg.jar` in the `target` folder 
 
 ### Gradle
 ```

@@ -25,6 +25,7 @@ import java.util.Objects;
 
 import static io.nats.client.support.JsonUtils.*;
 import static io.nats.client.support.JsonValueUtils.*;
+import static io.nats.client.support.JsonValueUtils.readString;
 
 /**
  * Represents a partitioning filter with its associated wildcard indexes.
@@ -33,6 +34,8 @@ import static io.nats.client.support.JsonValueUtils.*;
 public class PartitioningFilter implements JsonSerializable {
     static final String FILTER = "filter";
     static final String PARTITIONING_WILDCARDS = "partitioning_wildcards";
+
+    public static PartitioningFilter EVERYTHING = new PartitioningFilter(">", new int[0]);
 
     private String filter;
     private int[] partitioningWildcards;
@@ -43,6 +46,10 @@ public class PartitioningFilter implements JsonSerializable {
 
     public PartitioningFilter() {
         this.partitioningWildcards = new int[0];
+    }
+
+    public PartitioningFilter(String filter) {
+        this(filter, new int[0]);
     }
 
     public PartitioningFilter(String filter, int[] partitioningWildcards) {
@@ -78,6 +85,34 @@ public class PartitioningFilter implements JsonSerializable {
 
     public void setPartitioningWildcards(int[] partitioningWildcards) {
         this.partitioningWildcards = partitioningWildcards != null ? partitioningWildcards.clone() : new int[0];
+    }
+
+    public String getPartitioningTransformDest(int maxMembers) {
+        String effectiveFilter = (getFilter() != null && !getFilter().isEmpty()) ? getFilter() : ">";
+        int[] wildcards = getPartitioningWildcards();
+
+        StringBuilder wildcardList = new StringBuilder();
+        for (int i = 0; i < wildcards.length; i++) {
+            if (i > 0) wildcardList.append(",");
+            wildcardList.append(wildcards[i]);
+        }
+
+        String[] filterTokens = effectiveFilter.split("\\.");
+        int cwIndex = 1;
+        for (int i = 0; i < filterTokens.length; i++) {
+            if (filterTokens[i].equals("*")) {
+                filterTokens[i] = "{{Wildcard(" + cwIndex + ")}}";
+                cwIndex++;
+            }
+        }
+
+        String destFromFilter = String.join(".", filterTokens);
+
+        if (wildcards.length == 0) {
+            return "{{Partition(" + maxMembers + ")}}." + destFromFilter;
+        }
+
+        return "{{Partition(" + maxMembers + "," + wildcardList + ")}}." + destFromFilter;
     }
 
     @Override

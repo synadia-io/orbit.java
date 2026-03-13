@@ -158,9 +158,10 @@ class IntegrationTest {
                     .ackWait(Duration.ofSeconds(1))
                     .build();
 
+            PartitioningFilter pf = new PartitioningFilter("bar.*", new int[]{1});
             // Create elastic consumer group
-            ElasticConsumerGroup.create(nc, streamName, cgName, 2, "bar.*",
-                    new int[]{1}, -1, -1);
+            ElasticConsumerGroup.create(nc, streamName, cgName, 2,
+                Collections.singletonList(pf), -1, -1);
 
             // Start consuming on both members
             ConsumerGroupConsumeContext cc1 = ElasticConsumerGroup.consume(nc, streamName, cgName, "m1", msg -> {
@@ -250,8 +251,7 @@ class IntegrationTest {
             AtomicInteger c4 = new AtomicInteger(0);
 
             // Create elastic consumer group with no filter (null) and empty wildcards
-            ElasticConsumerGroup.create(nc, streamName, cgName2, 2, null,
-                    new int[]{}, -1, -1);
+            ElasticConsumerGroup.create(nc, streamName, cgName2, 2, null, -1, -1);
 
             // Start consuming on both members
             ConsumerGroupConsumeContext cc3 = ElasticConsumerGroup.consume(nc, streamName, cgName2, "m1", msg -> {

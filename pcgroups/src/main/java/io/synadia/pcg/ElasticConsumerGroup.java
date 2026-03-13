@@ -30,6 +30,7 @@ import java.util.function.Consumer;
 import java.util.logging.Logger;
 
 import static io.synadia.pcg.PartitionUtils.*;
+import static io.synadia.pcg.PartitioningFilter.EVERYTHING;
 
 /**
  * Elastic consumer group implementation.
@@ -131,13 +132,13 @@ public class ElasticConsumerGroup {
             for (PartitioningFilter pf : partitioningFilters) {
                 subjectTransforms.add(SubjectTransform.builder()
                         .source(pf.getFilter())
-                        .destination(getPartitioningTransformDest(pf, maxMembers))
+                        .destination(pf.getPartitioningTransformDest(maxMembers))
                         .build());
             }
         } else {
             subjectTransforms.add(SubjectTransform.builder()
                     .source(">")
-                    .destination(getPartitioningTransformDest(new PartitioningFilter(">", new int[0]), maxMembers))
+                    .destination(EVERYTHING.getPartitioningTransformDest(maxMembers))
                     .build());
         }
 
@@ -548,34 +549,6 @@ public class ElasticConsumerGroup {
         }
         config.validate();
         return config;
-    }
-
-    private static String getPartitioningTransformDest(PartitioningFilter pf, int maxMembers) {
-        String effectiveFilter = (pf.getFilter() != null && !pf.getFilter().isEmpty()) ? pf.getFilter() : ">";
-        int[] wildcards = pf.getPartitioningWildcards();
-
-        StringBuilder wildcardList = new StringBuilder();
-        for (int i = 0; i < wildcards.length; i++) {
-            if (i > 0) wildcardList.append(",");
-            wildcardList.append(wildcards[i]);
-        }
-
-        String[] filterTokens = effectiveFilter.split("\\.");
-        int cwIndex = 1;
-        for (int i = 0; i < filterTokens.length; i++) {
-            if (filterTokens[i].equals("*")) {
-                filterTokens[i] = "{{Wildcard(" + cwIndex + ")}}";
-                cwIndex++;
-            }
-        }
-
-        String destFromFilter = String.join(".", filterTokens);
-
-        if (wildcards.length == 0) {
-            return "{{Partition(" + maxMembers + ")}}." + destFromFilter;
-        }
-
-        return "{{Partition(" + maxMembers + "," + wildcardList + ")}}." + destFromFilter;
     }
 
     /**
