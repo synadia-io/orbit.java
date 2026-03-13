@@ -189,35 +189,35 @@ public class ElasticConsumerGroupConfig implements JsonSerializable {
         }
 
         // Validate filter and partitioning wildcards
-        if (filter == null || filter.isEmpty()) {
-            throw new ConsumerGroupException("filter must not be empty");
-        }
-
-        String[] filterTokens = filter.split("\\.");
-        int numWildcards = 0;
-        for (String token : filterTokens) {
-            if ("*".equals(token)) {
-                numWildcards++;
+        if (filter != null && !filter.isEmpty()) {
+            String[] filterTokens = filter.split("\\.");
+            int numWildcards = 0;
+            for (String token : filterTokens) {
+                if ("*".equals(token)) {
+                    numWildcards++;
+                }
             }
-        }
 
-        if (numWildcards < 1) {
-            throw new ConsumerGroupException("filter must contain at least one * wildcard");
-        }
-
-        if (partitioningWildcards == null || partitioningWildcards.length < 1 || partitioningWildcards.length > numWildcards) {
-            throw new ConsumerGroupException("the number of partitioning wildcards must be between 1 and the total number of * wildcards in the filter");
-        }
-
-        Set<Integer> seenWildcards = new HashSet<>();
-        for (int pwc : partitioningWildcards) {
-            if (seenWildcards.contains(pwc)) {
-                throw new ConsumerGroupException("partitioning wildcard indexes must be unique");
+            if (numWildcards == 0 && !">".equals(filterTokens[filterTokens.length - 1])) {
+                throw new ConsumerGroupException("partitioning filters must have at least one * wildcard or end with > wildcard");
             }
-            seenWildcards.add(pwc);
 
-            if (pwc < 1 || pwc > numWildcards) {
-                throw new ConsumerGroupException("partitioning wildcard indexes must be greater than 1 and less than or equal to the number of * wildcards in the filter");
+            if (partitioningWildcards != null && partitioningWildcards.length > numWildcards) {
+                throw new ConsumerGroupException("the number of partitioning wildcards must not be larger than the total number of * wildcards in the filter");
+            }
+
+            Set<Integer> seenWildcards = new HashSet<>();
+            if (partitioningWildcards != null) {
+                for (int pwc : partitioningWildcards) {
+                    if (seenWildcards.contains(pwc)) {
+                        throw new ConsumerGroupException("partitioning wildcard indexes must be unique");
+                    }
+                    seenWildcards.add(pwc);
+
+                    if (pwc > numWildcards || pwc < 1) {
+                        throw new ConsumerGroupException("partitioning wildcard indexes must be between 1 and the number of * wildcards in the filter");
+                    }
+                }
             }
         }
 
@@ -266,15 +266,18 @@ public class ElasticConsumerGroupConfig implements JsonSerializable {
      * Generates the subject transform destination for partitioning.
      */
     public String getPartitioningTransformDest() {
+        String effectiveFilter = (filter != null && !filter.isEmpty()) ? filter : ">";
+        int[] effectiveWildcards = (partitioningWildcards != null) ? partitioningWildcards : new int[0];
+
         StringBuilder wildcardList = new StringBuilder();
-        for (int i = 0; i < partitioningWildcards.length; i++) {
+        for (int i = 0; i < effectiveWildcards.length; i++) {
             if (i > 0) {
                 wildcardList.append(",");
             }
-            wildcardList.append(partitioningWildcards[i]);
+            wildcardList.append(effectiveWildcards[i]);
         }
 
-        String[] filterTokens = filter.split("\\.");
+        String[] filterTokens = effectiveFilter.split("\\.");
         int cwIndex = 1;
         for (int i = 0; i < filterTokens.length; i++) {
             if ("*".equals(filterTokens[i])) {
@@ -284,6 +287,11 @@ public class ElasticConsumerGroupConfig implements JsonSerializable {
         }
 
         String destFromFilter = String.join(".", filterTokens);
+
+        if (effectiveWildcards.length == 0) {
+            return "{{Partition(" + maxMembers + ")}}." + destFromFilter;
+        }
+
         return "{{Partition(" + maxMembers + "," + wildcardList + ")}}." + destFromFilter;
     }
 

@@ -243,6 +243,56 @@ class IntegrationTest {
 
             // Delete elastic consumer group
             ElasticConsumerGroup.delete(nc, streamName, cgName);
+
+            // --- Test elastic with no partitioning filters (partition on whole subject) ---
+            String cgName2 = "group2";
+            AtomicInteger c3 = new AtomicInteger(0);
+            AtomicInteger c4 = new AtomicInteger(0);
+
+            // Create elastic consumer group with no filter (null) and empty wildcards
+            ElasticConsumerGroup.create(nc, streamName, cgName2, 2, null,
+                    new int[]{}, -1, -1);
+
+            // Start consuming on both members
+            ConsumerGroupConsumeContext cc3 = ElasticConsumerGroup.consume(nc, streamName, cgName2, "m1", msg -> {
+                c3.incrementAndGet();
+                try {
+                    msg.ack();
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
+                }
+            }, config);
+
+            ConsumerGroupConsumeContext cc4 = ElasticConsumerGroup.consume(nc, streamName, cgName2, "m2", msg -> {
+                c4.incrementAndGet();
+                try {
+                    msg.ack();
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
+                }
+            }, config);
+
+            // Add members
+            ElasticConsumerGroup.addMembers(nc, streamName, cgName2, Arrays.asList("m1", "m2"));
+
+            // Wait for all 30 messages (from previous publishes) to be consumed, split between the 2 members
+            // The stream has 30 messages total (10 + 10 + 10 from the three publish phases above)
+            deadline = System.currentTimeMillis() + 10000;
+            while (c3.get() + c4.get() < 30) {
+                Thread.sleep(100);
+                if (System.currentTimeMillis() > deadline) {
+                    fail("timeout no-filter elastic: c3=" + c3.get() + " c4=" + c4.get() + " expected total=30");
+                }
+            }
+
+            assertEquals(30, c3.get() + c4.get());
+
+            cc3.stop();
+            cc4.stop();
+
+            // Delete elastic consumer group
+            ElasticConsumerGroup.delete(nc, streamName, cgName2);
+
             nc.close();
         }
     }

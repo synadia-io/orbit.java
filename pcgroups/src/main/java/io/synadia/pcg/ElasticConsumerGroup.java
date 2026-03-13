@@ -111,6 +111,7 @@ public class ElasticConsumerGroup {
 
         // Create the work queue stream with subject transform
         String workQueueStreamName = composeCGSName(streamName, consumerGroupName);
+        String effectiveFilter = (filter != null && !filter.isEmpty()) ? filter : ">";
         String filterDest = getPartitioningTransformDest(config);
 
         StreamConfiguration.Builder scBuilder = StreamConfiguration.builder()
@@ -129,12 +130,11 @@ public class ElasticConsumerGroup {
         }
 
         // Add source with subject transform
-        External external = null; // Local stream
         scBuilder.addSource(Source.builder()
                 .sourceName(streamName)
                 .startSeq(0)
                 .subjectTransforms(SubjectTransform.builder()
-                        .source(filter)
+                        .source(effectiveFilter)
                         .destination(filterDest)
                         .build())
                 .build());
@@ -534,14 +534,16 @@ public class ElasticConsumerGroup {
     }
 
     private static String getPartitioningTransformDest(ElasticConsumerGroupConfig config) {
+        String effectiveFilter = (config.getFilter() != null && !config.getFilter().isEmpty()) ? config.getFilter() : ">";
         int[] wildcards = config.getPartitioningWildcards();
+
         StringBuilder wildcardList = new StringBuilder();
         for (int i = 0; i < wildcards.length; i++) {
             if (i > 0) wildcardList.append(",");
             wildcardList.append(wildcards[i]);
         }
 
-        String[] filterTokens = config.getFilter().split("\\.");
+        String[] filterTokens = effectiveFilter.split("\\.");
         int cwIndex = 1;
         for (int i = 0; i < filterTokens.length; i++) {
             if (filterTokens[i].equals("*")) {
@@ -551,6 +553,11 @@ public class ElasticConsumerGroup {
         }
 
         String destFromFilter = String.join(".", filterTokens);
+
+        if (wildcards.length == 0) {
+            return "{{Partition(" + config.getMaxMembers() + ")}}." + destFromFilter;
+        }
+
         return "{{Partition(" + config.getMaxMembers() + "," + wildcardList + ")}}." + destFromFilter;
     }
 
@@ -643,7 +650,7 @@ public class ElasticConsumerGroup {
                         }
                     };
 
-                    watchSubscription = kv.watch(key, watcher, KeyValueWatchOption.UPDATES_ONLY);
+                    watchSubscription = kv.watch(key, watcher);
 
                 } catch (Exception e) {
                     if (!stopped.get()) {
