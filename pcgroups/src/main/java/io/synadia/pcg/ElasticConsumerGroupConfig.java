@@ -30,16 +30,14 @@ import static io.nats.client.support.JsonValueUtils.*;
  */
 public class ElasticConsumerGroupConfig implements JsonSerializable {
     static final String MAX_MEMBERS = "max_members";
-    static final String FILTER = "filter";
-    static final String PARTITIONING_WILDCARDS = "partitioning_wildcards";
+    static final String PARTITIONING_FILTERS = "partitioning_filters";
     static final String MAX_BUFFERED_MSG = "max_buffered_msg";
     static final String MAX_BUFFERED_BYTES = "max_buffered_bytes";
     static final String MEMBERS = "members";
     static final String MEMBER_MAPPINGS = "member_mappings";
 
     private int maxMembers;
-    private String filter;
-    private int[] partitioningWildcards;
+    private List<PartitioningFilter> partitioningFilters;
     private long maxBufferedMessages;
     private long maxBufferedBytes;
     private List<String> members;
@@ -67,17 +65,16 @@ public class ElasticConsumerGroupConfig implements JsonSerializable {
     }
 
     public ElasticConsumerGroupConfig() {
-        this.partitioningWildcards = new int[0];
+        this.partitioningFilters = new ArrayList<>();
         this.members = new ArrayList<>();
         this.memberMappings = new ArrayList<>();
     }
 
-    public ElasticConsumerGroupConfig(int maxMembers, String filter, int[] partitioningWildcards,
+    public ElasticConsumerGroupConfig(int maxMembers, List<PartitioningFilter> partitioningFilters,
                                       long maxBufferedMessages, long maxBufferedBytes,
                                       List<String> members, List<MemberMapping> memberMappings) {
         this.maxMembers = maxMembers;
-        this.filter = filter;
-        this.partitioningWildcards = partitioningWildcards != null ? partitioningWildcards.clone() : new int[0];
+        this.partitioningFilters = partitioningFilters == null ? new ArrayList<>() : new ArrayList<>(partitioningFilters);
         this.maxBufferedMessages = maxBufferedMessages;
         this.maxBufferedBytes = maxBufferedBytes;
         this.members = members == null ? new ArrayList<>() : new ArrayList<>(members);
@@ -86,13 +83,7 @@ public class ElasticConsumerGroupConfig implements JsonSerializable {
 
     public ElasticConsumerGroupConfig(JsonValue jv) {
         this.maxMembers = JsonValueUtils.readInteger(jv, MAX_MEMBERS, 0);
-        this.filter = JsonValueUtils.readString(jv, FILTER);
-        List<Integer> integers = read(jv, PARTITIONING_WILDCARDS, v -> listOf(v, JsonValueUtils::getInteger));
-        this.partitioningWildcards = new int[integers.size()];
-        for (int x = 0; x < integers.size(); x++) {
-            Integer i = integers.get(x);
-            this.partitioningWildcards[x] = i == null ? 0 : i;
-        }
+        this.partitioningFilters = PartitioningFilter.listOfOrEmptyList(readValue(jv, PARTITIONING_FILTERS));
         this.maxBufferedMessages = JsonValueUtils.readLong(jv, MAX_BUFFERED_MSG, 0);
         this.maxBufferedBytes = JsonValueUtils.readLong(jv, MAX_BUFFERED_BYTES, 0);
         this.members = JsonValueUtils.readStringList(jv, MEMBERS);
@@ -107,20 +98,12 @@ public class ElasticConsumerGroupConfig implements JsonSerializable {
         this.maxMembers = maxMembers;
     }
 
-    public String getFilter() {
-        return filter;
+    public List<PartitioningFilter> getPartitioningFilters() {
+        return new ArrayList<>(partitioningFilters);
     }
 
-    public void setFilter(String filter) {
-        this.filter = filter;
-    }
-
-    public int[] getPartitioningWildcards() {
-        return partitioningWildcards.clone();
-    }
-
-    public void setPartitioningWildcards(int[] partitioningWildcards) {
-        this.partitioningWildcards = partitioningWildcards == null ? new int[0] : partitioningWildcards.clone();
+    public void setPartitioningFilters(List<PartitioningFilter> partitioningFilters) {
+        this.partitioningFilters = partitioningFilters == null ? new ArrayList<>() : new ArrayList<>(partitioningFilters);
     }
 
     public long getMaxBufferedMessages() {
@@ -188,9 +171,13 @@ public class ElasticConsumerGroupConfig implements JsonSerializable {
             throw new ConsumerGroupException("the max number of members must be >= 1");
         }
 
-        // Validate filter and partitioning wildcards
-        if (filter != null && !filter.isEmpty()) {
-            String[] filterTokens = filter.split("\\.");
+        // Validate partitioning filters
+        for (PartitioningFilter pf : partitioningFilters) {
+            if (pf.getFilter() == null || pf.getFilter().isEmpty()) {
+                throw new ConsumerGroupException("partitioning filters must have a non-empty filter");
+            }
+
+            String[] filterTokens = pf.getFilter().split("\\.");
             int numWildcards = 0;
             for (String token : filterTokens) {
                 if ("*".equals(token)) {
@@ -202,13 +189,14 @@ public class ElasticConsumerGroupConfig implements JsonSerializable {
                 throw new ConsumerGroupException("partitioning filters must have at least one * wildcard or end with > wildcard");
             }
 
-            if (partitioningWildcards != null && partitioningWildcards.length > numWildcards) {
+            int[] wildcards = pf.getPartitioningWildcards();
+            if (wildcards != null && wildcards.length > numWildcards) {
                 throw new ConsumerGroupException("the number of partitioning wildcards must not be larger than the total number of * wildcards in the filter");
             }
 
             Set<Integer> seenWildcards = new HashSet<>();
-            if (partitioningWildcards != null) {
-                for (int pwc : partitioningWildcards) {
+            if (wildcards != null) {
+                for (int pwc : wildcards) {
                     if (seenWildcards.contains(pwc)) {
                         throw new ConsumerGroupException("partitioning wildcard indexes must be unique");
                     }
@@ -262,52 +250,12 @@ public class ElasticConsumerGroupConfig implements JsonSerializable {
         }
     }
 
-    /**
-     * Generates the subject transform destination for partitioning.
-     */
-    public String getPartitioningTransformDest() {
-        String effectiveFilter = (filter != null && !filter.isEmpty()) ? filter : ">";
-        int[] effectiveWildcards = (partitioningWildcards != null) ? partitioningWildcards : new int[0];
-
-        StringBuilder wildcardList = new StringBuilder();
-        for (int i = 0; i < effectiveWildcards.length; i++) {
-            if (i > 0) {
-                wildcardList.append(",");
-            }
-            wildcardList.append(effectiveWildcards[i]);
-        }
-
-        String[] filterTokens = effectiveFilter.split("\\.");
-        int cwIndex = 1;
-        for (int i = 0; i < filterTokens.length; i++) {
-            if ("*".equals(filterTokens[i])) {
-                filterTokens[i] = "{{Wildcard(" + cwIndex + ")}}";
-                cwIndex++;
-            }
-        }
-
-        String destFromFilter = String.join(".", filterTokens);
-
-        if (effectiveWildcards.length == 0) {
-            return "{{Partition(" + maxMembers + ")}}." + destFromFilter;
-        }
-
-        return "{{Partition(" + maxMembers + "," + wildcardList + ")}}." + destFromFilter;
-    }
-
     @Override
     @NonNull
     public String toJson() {
         StringBuilder sb = beginJson();
         addField(sb, MAX_MEMBERS, maxMembers);
-        addField(sb, FILTER, filter);
-        if (partitioningWildcards.length > 0) {
-            List<Integer> integers = new ArrayList<>(partitioningWildcards.length);
-            for (int i : partitioningWildcards) {
-                integers.add(i);
-            }
-            _addList(sb, PARTITIONING_WILDCARDS, integers, StringBuilder::append);
-        }
+        addJsons(sb, PARTITIONING_FILTERS, partitioningFilters);
         addField(sb, MAX_BUFFERED_MSG, maxBufferedMessages);
         addField(sb, MAX_BUFFERED_BYTES, maxBufferedBytes);
         addStrings(sb, MEMBERS, members);
@@ -323,25 +271,21 @@ public class ElasticConsumerGroupConfig implements JsonSerializable {
         return maxMembers == that.maxMembers &&
                 maxBufferedMessages == that.maxBufferedMessages &&
                 maxBufferedBytes == that.maxBufferedBytes &&
-                Objects.equals(filter, that.filter) &&
-                Arrays.equals(partitioningWildcards, that.partitioningWildcards) &&
+                Objects.equals(partitioningFilters, that.partitioningFilters) &&
                 Objects.equals(members, that.members) &&
                 Objects.equals(memberMappings, that.memberMappings);
     }
 
     @Override
     public int hashCode() {
-        int result = Objects.hash(maxMembers, filter, maxBufferedMessages, maxBufferedBytes, members, memberMappings);
-        result = 31 * result + Arrays.hashCode(partitioningWildcards);
-        return result;
+        return Objects.hash(maxMembers, partitioningFilters, maxBufferedMessages, maxBufferedBytes, members, memberMappings);
     }
 
     @Override
     public String toString() {
         return "ElasticConsumerGroupConfig{" +
                 "maxMembers=" + maxMembers +
-                ", filter='" + filter + '\'' +
-                ", partitioningWildcards=" + Arrays.toString(partitioningWildcards) +
+                ", partitioningFilters=" + partitioningFilters +
                 ", maxBufferedMessages=" + maxBufferedMessages +
                 ", maxBufferedBytes=" + maxBufferedBytes +
                 ", members=" + members +

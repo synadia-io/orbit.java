@@ -28,6 +28,7 @@ import java.util.concurrent.Callable;
  * Static consumer group CLI commands.
  */
 @Command(name = "static", description = "Static consumer groups mode",
+        mixinStandardHelpOptions = true,
         subcommands = {
                 StaticCommands.Ls.class,
                 StaticCommands.Info.class,
@@ -49,7 +50,7 @@ public class StaticCommands implements Callable<Integer> {
         return 0;
     }
 
-    @Command(name = "ls", aliases = {"list"}, description = "List static consumer groups for a stream")
+    @Command(name = "ls", aliases = {"list"}, description = "List static consumer groups for a stream", mixinStandardHelpOptions = true)
     static class Ls implements Callable<Integer> {
         @ParentCommand
         private StaticCommands parent;
@@ -70,7 +71,7 @@ public class StaticCommands implements Callable<Integer> {
         }
     }
 
-    @Command(name = "info", description = "Get static consumer group info")
+    @Command(name = "info", description = "Get static consumer group info", mixinStandardHelpOptions = true)
     static class Info implements Callable<Integer> {
         @ParentCommand
         private StaticCommands parent;
@@ -107,6 +108,7 @@ public class StaticCommands implements Callable<Integer> {
     }
 
     @Command(name = "create", description = "Create a static partitioned consumer group",
+            mixinStandardHelpOptions = true,
             subcommands = {StaticCommands.CreateBalanced.class, StaticCommands.CreateMapped.class})
     static class Create implements Callable<Integer> {
         @ParentCommand
@@ -119,7 +121,7 @@ public class StaticCommands implements Callable<Integer> {
         }
     }
 
-    @Command(name = "balanced", description = "Create a static consumer group with balanced members")
+    @Command(name = "balanced", description = "Create a static consumer group with balanced members", mixinStandardHelpOptions = true)
     static class CreateBalanced implements Callable<Integer> {
         @ParentCommand
         private Create createParent;
@@ -152,7 +154,7 @@ public class StaticCommands implements Callable<Integer> {
         }
     }
 
-    @Command(name = "mapped", description = "Create a static consumer group with member mappings")
+    @Command(name = "mapped", description = "Create a static consumer group with member mappings", mixinStandardHelpOptions = true)
     static class CreateMapped implements Callable<Integer> {
         @ParentCommand
         private Create createParent;
@@ -186,7 +188,7 @@ public class StaticCommands implements Callable<Integer> {
         }
     }
 
-    @Command(name = "delete", aliases = {"rm"}, description = "Delete a static partitioned consumer group")
+    @Command(name = "delete", aliases = {"rm"}, description = "Delete a static partitioned consumer group", mixinStandardHelpOptions = true)
     static class Delete implements Callable<Integer> {
         @ParentCommand
         private StaticCommands parent;
@@ -220,7 +222,7 @@ public class StaticCommands implements Callable<Integer> {
         }
     }
 
-    @Command(name = "member-info", aliases = {"memberinfo", "minfo"}, description = "Get static consumer group member info")
+    @Command(name = "member-info", aliases = {"memberinfo", "minfo"}, description = "Get static consumer group member info", mixinStandardHelpOptions = true)
     static class MemberInfo implements Callable<Integer> {
         @ParentCommand
         private StaticCommands parent;
@@ -258,7 +260,7 @@ public class StaticCommands implements Callable<Integer> {
         }
     }
 
-    @Command(name = "step-down", aliases = {"stepdown", "sd"}, description = "Initiate a step down for a member")
+    @Command(name = "step-down", aliases = {"stepdown", "sd"}, description = "Initiate a step down for a member", mixinStandardHelpOptions = true)
     static class StepDown implements Callable<Integer> {
         @ParentCommand
         private StaticCommands parent;
@@ -285,7 +287,7 @@ public class StaticCommands implements Callable<Integer> {
         }
     }
 
-    @Command(name = "consume", aliases = {"join"}, description = "Join a static partitioned consumer group")
+    @Command(name = "consume", aliases = {"join"}, description = "Join a static partitioned consumer group", mixinStandardHelpOptions = true)
     static class Consume implements Callable<Integer> {
         @ParentCommand
         private StaticCommands parent;
@@ -345,7 +347,7 @@ public class StaticCommands implements Callable<Integer> {
         }
     }
 
-    @Command(name = "prompt", description = "Interactive prompt mode")
+    @Command(name = "prompt", description = "Interactive prompt mode", mixinStandardHelpOptions = true)
     static class Prompt implements Callable<Integer> {
         @ParentCommand
         private StaticCommands parent;

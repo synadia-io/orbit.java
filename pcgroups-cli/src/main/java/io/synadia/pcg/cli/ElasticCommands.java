@@ -28,6 +28,7 @@ import java.util.concurrent.Callable;
  * Elastic consumer group CLI commands.
  */
 @Command(name = "elastic", description = "Elastic consumer groups mode",
+        mixinStandardHelpOptions = true,
         subcommands = {
                 ElasticCommands.Ls.class,
                 ElasticCommands.Info.class,
@@ -53,7 +54,7 @@ public class ElasticCommands implements Callable<Integer> {
         return 0;
     }
 
-    @Command(name = "ls", aliases = {"list"}, description = "List elastic consumer groups for a stream")
+    @Command(name = "ls", aliases = {"list"}, description = "List elastic consumer groups for a stream", mixinStandardHelpOptions = true)
     static class Ls implements Callable<Integer> {
         @ParentCommand
         private ElasticCommands parent;
@@ -74,7 +75,7 @@ public class ElasticCommands implements Callable<Integer> {
         }
     }
 
-    @Command(name = "info", description = "Get elastic consumer group info")
+    @Command(name = "info", description = "Get elastic consumer group info", mixinStandardHelpOptions = true)
     static class Info implements Callable<Integer> {
         @ParentCommand
         private ElasticCommands parent;
@@ -90,8 +91,16 @@ public class ElasticCommands implements Callable<Integer> {
             try (Connection nc = CliUtils.connect(parent.parent.context)) {
                 ElasticConsumerGroupConfig config = ElasticConsumerGroup.getConfig(nc, streamName, consumerGroupName);
 
-                System.out.printf("config: max members=%d, filter=%s, partitioning wildcards %s%n",
-                        config.getMaxMembers(), config.getFilter(), Arrays.toString(config.getPartitioningWildcards()));
+                System.out.printf("config: max members=%d, max buffered msgs=%d, max buffered bytes=%d%n", config.getMaxMembers(), config.getMaxBufferedMessages(), config.getMaxBufferedBytes());
+
+                if (config.getPartitioningFilters().isEmpty()) {
+                    System.out.printf("no partitioning filters defined (whole subject used)%n");
+                } else {
+                    for (PartitioningFilter pf : config.getPartitioningFilters()) {
+                        System.out.printf("filter=%s, partitioning wildcards %s%n",
+                                pf.getFilter(), Arrays.toString(pf.getPartitioningWildcards()));
+                    }
+                }
 
                 if (!config.getMembers().isEmpty()) {
                     System.out.printf("members: %s%n", config.getMembers());
@@ -111,7 +120,7 @@ public class ElasticCommands implements Callable<Integer> {
         }
     }
 
-    @Command(name = "create", description = "Create an elastic partitioned consumer group")
+    @Command(name = "create", description = "Create an elastic partitioned consumer group", mixinStandardHelpOptions = true)
     static class Create implements Callable<Integer> {
         @ParentCommand
         private ElasticCommands parent;
@@ -125,11 +134,8 @@ public class ElasticCommands implements Callable<Integer> {
         @Parameters(index = "2", description = "Max number of members")
         int maxMembers;
 
-        @Parameters(index = "3", description = "Filter")
-        String filter;
-
-        @Parameters(index = "4..*", description = "Partitioning wildcard indexes")
-        List<String> wildcardArgs;
+        @Option(names = "--filter", description = "Partitioning filter in format 'subject:wildcard1,wildcard2' or just 'subject' (repeatable, omit to use whole subject)", split = "\\|")
+        List<String> filterArgs;
 
         @Option(names = "--max-buffered-msgs", description = "Max number of buffered messages", defaultValue = "0")
         long maxBufferedMsgs;
@@ -140,8 +146,8 @@ public class ElasticCommands implements Callable<Integer> {
         @Override
         public Integer call() {
             try (Connection nc = CliUtils.connect(parent.parent.context)) {
-                int[] wildcards = CliUtils.parsePartitioningWildcards(wildcardArgs);
-                ElasticConsumerGroup.create(nc, streamName, consumerGroupName, maxMembers, filter, wildcards, maxBufferedMsgs, maxBufferedBytes);
+                List<PartitioningFilter> partitioningFilters = CliUtils.parsePartitioningFilters(filterArgs);
+                ElasticConsumerGroup.create(nc, streamName, consumerGroupName, maxMembers, partitioningFilters, maxBufferedMsgs, maxBufferedBytes);
                 System.out.println("elastic partitioned consumer group created");
                 return 0;
             } catch (Exception e) {
@@ -151,7 +157,7 @@ public class ElasticCommands implements Callable<Integer> {
         }
     }
 
-    @Command(name = "delete", aliases = {"rm"}, description = "Delete an elastic partitioned consumer group")
+    @Command(name = "delete", aliases = {"rm"}, description = "Delete an elastic partitioned consumer group", mixinStandardHelpOptions = true)
     static class Delete implements Callable<Integer> {
         @ParentCommand
         private ElasticCommands parent;
@@ -185,7 +191,7 @@ public class ElasticCommands implements Callable<Integer> {
         }
     }
 
-    @Command(name = "add", description = "Add members to an elastic consumer group")
+    @Command(name = "add", description = "Add members to an elastic consumer group", mixinStandardHelpOptions = true)
     static class Add implements Callable<Integer> {
         @ParentCommand
         private ElasticCommands parent;
@@ -212,7 +218,7 @@ public class ElasticCommands implements Callable<Integer> {
         }
     }
 
-    @Command(name = "drop", description = "Drop members from an elastic consumer group")
+    @Command(name = "drop", description = "Drop members from an elastic consumer group", mixinStandardHelpOptions = true)
     static class Drop implements Callable<Integer> {
         @ParentCommand
         private ElasticCommands parent;
@@ -239,7 +245,7 @@ public class ElasticCommands implements Callable<Integer> {
         }
     }
 
-    @Command(name = "create-mapping", aliases = {"cm", "createmapping"}, description = "Create member mappings for an elastic consumer group")
+    @Command(name = "create-mapping", aliases = {"cm", "createmapping"}, description = "Create member mappings for an elastic consumer group", mixinStandardHelpOptions = true)
     static class CreateMapping implements Callable<Integer> {
         @ParentCommand
         private ElasticCommands parent;
@@ -267,7 +273,7 @@ public class ElasticCommands implements Callable<Integer> {
         }
     }
 
-    @Command(name = "delete-mapping", aliases = {"dm", "deletemapping"}, description = "Delete member mappings for an elastic consumer group")
+    @Command(name = "delete-mapping", aliases = {"dm", "deletemapping"}, description = "Delete member mappings for an elastic consumer group", mixinStandardHelpOptions = true)
     static class DeleteMapping implements Callable<Integer> {
         @ParentCommand
         private ElasticCommands parent;
@@ -291,7 +297,7 @@ public class ElasticCommands implements Callable<Integer> {
         }
     }
 
-    @Command(name = "member-info", aliases = {"memberinfo", "minfo"}, description = "Get elastic consumer group member info")
+    @Command(name = "member-info", aliases = {"memberinfo", "minfo"}, description = "Get elastic consumer group member info", mixinStandardHelpOptions = true)
     static class MemberInfo implements Callable<Integer> {
         @ParentCommand
         private ElasticCommands parent;
@@ -330,7 +336,7 @@ public class ElasticCommands implements Callable<Integer> {
         }
     }
 
-    @Command(name = "step-down", aliases = {"stepdown", "sd"}, description = "Initiate a step down for a member")
+    @Command(name = "step-down", aliases = {"stepdown", "sd"}, description = "Initiate a step down for a member", mixinStandardHelpOptions = true)
     static class StepDown implements Callable<Integer> {
         @ParentCommand
         private ElasticCommands parent;
@@ -357,7 +363,7 @@ public class ElasticCommands implements Callable<Integer> {
         }
     }
 
-    @Command(name = "consume", aliases = {"join"}, description = "Join an elastic partitioned consumer group")
+    @Command(name = "consume", aliases = {"join"}, description = "Join an elastic partitioned consumer group", mixinStandardHelpOptions = true)
     static class Consume implements Callable<Integer> {
         @ParentCommand
         private ElasticCommands parent;
@@ -417,7 +423,7 @@ public class ElasticCommands implements Callable<Integer> {
         }
     }
 
-    @Command(name = "prompt", description = "Interactive prompt mode")
+    @Command(name = "prompt", description = "Interactive prompt mode", mixinStandardHelpOptions = true)
     static class Prompt implements Callable<Integer> {
         @ParentCommand
         private ElasticCommands parent;

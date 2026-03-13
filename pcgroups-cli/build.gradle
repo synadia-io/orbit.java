@@ -20,7 +20,7 @@ repositories {
 dependencies {
     implementation 'io.nats:jnats:2.25.1'
     implementation 'org.jspecify:jspecify:1.0.0'
-    implementation 'io.synadia:pcgroups:0.1.0'
+    implementation 'io.synadia:pcgroups:0.1.1-SNAPSHOT'
     implementation 'info.picocli:picocli:4.7.5'
 
     testImplementation 'io.nats:jnats-server-runner:3.1.0'

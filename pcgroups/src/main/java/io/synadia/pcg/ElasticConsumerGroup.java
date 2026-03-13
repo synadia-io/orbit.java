@@ -50,19 +50,18 @@ public class ElasticConsumerGroup {
      * @param streamName            Name of the source stream
      * @param consumerGroupName     Name of the consumer group
      * @param maxMembers            Maximum number of members (partitions)
-     * @param filter                Subject filter with wildcards
-     * @param partitioningWildcards Indexes of wildcards to use for partitioning
-     * @param maxBufferedMessages       Max messages in work queue (0 for unlimited)
+     * @param partitioningFilters   List of partitioning filters
+     * @param maxBufferedMessages   Max messages in work queue (0 for unlimited)
      * @param maxBufferedBytes      Max bytes in work queue (0 for unlimited)
      * @return The created configuration
      */
     public static ElasticConsumerGroupConfig create(Connection nc, String streamName, String consumerGroupName,
-                                                    int maxMembers, String filter, int[] partitioningWildcards,
+                                                    int maxMembers, List<PartitioningFilter> partitioningFilters,
                                                     long maxBufferedMessages, long maxBufferedBytes)
             throws ConsumerGroupException, IOException, JetStreamApiException, InterruptedException {
 
         ElasticConsumerGroupConfig config = new ElasticConsumerGroupConfig(
-                maxMembers, filter, partitioningWildcards, maxBufferedMessages, maxBufferedBytes,
+                maxMembers, partitioningFilters, maxBufferedMessages, maxBufferedBytes,
                 new ArrayList<>(), new ArrayList<>());
         config.validate();
 
@@ -95,10 +94,9 @@ public class ElasticConsumerGroup {
         ElasticConsumerGroupConfig existingConfig = ElasticConsumerGroupConfig.instance(kv.get(key));
         if (existingConfig != null) {
             if (existingConfig.getMaxMembers() != maxMembers ||
-                !Objects.equals(existingConfig.getFilter(), filter) ||
+                !Objects.equals(existingConfig.getPartitioningFilters(), partitioningFilters) ||
                 existingConfig.getMaxBufferedMessages() != maxBufferedMessages ||
-                existingConfig.getMaxBufferedBytes() != maxBufferedBytes ||
-                !Arrays.equals(existingConfig.getPartitioningWildcards(), partitioningWildcards)) {
+                existingConfig.getMaxBufferedBytes() != maxBufferedBytes) {
                 throw new ConsumerGroupException(
                     "the existing elastic consumer group config can not be updated to the requested one, " +
                         "please delete the existing elastic consumer group and create a new one");
@@ -111,8 +109,6 @@ public class ElasticConsumerGroup {
 
         // Create the work queue stream with subject transform
         String workQueueStreamName = composeCGSName(streamName, consumerGroupName);
-        String effectiveFilter = (filter != null && !filter.isEmpty()) ? filter : ">";
-        String filterDest = getPartitioningTransformDest(config);
 
         StreamConfiguration.Builder scBuilder = StreamConfiguration.builder()
                 .name(workQueueStreamName)
@@ -129,14 +125,26 @@ public class ElasticConsumerGroup {
             scBuilder.maxBytes(maxBufferedBytes);
         }
 
-        // Add source with subject transform
+        // Add source with subject transforms
+        List<SubjectTransform> subjectTransforms = new ArrayList<>();
+        if (partitioningFilters != null && !partitioningFilters.isEmpty()) {
+            for (PartitioningFilter pf : partitioningFilters) {
+                subjectTransforms.add(SubjectTransform.builder()
+                        .source(pf.getFilter())
+                        .destination(getPartitioningTransformDest(pf, maxMembers))
+                        .build());
+            }
+        } else {
+            subjectTransforms.add(SubjectTransform.builder()
+                    .source(">")
+                    .destination(getPartitioningTransformDest(new PartitioningFilter(">", new int[0]), maxMembers))
+                    .build());
+        }
+
         scBuilder.addSource(Source.builder()
                 .sourceName(streamName)
                 .startSeq(0)
-                .subjectTransforms(SubjectTransform.builder()
-                        .source(effectiveFilter)
-                        .destination(filterDest)
-                        .build())
+                .subjectTransforms(subjectTransforms.toArray(new SubjectTransform[0]))
                 .build());
 
         try {
@@ -513,8 +521,17 @@ public class ElasticConsumerGroup {
      * Returns the list of partition filters for a given member based on the config.
      */
     public static List<String> getPartitionFilters(ElasticConsumerGroupConfig config, String memberName) {
-        return PartitionUtils.generatePartitionFilters(
-                config.getMembers(), config.getMaxMembers(), config.getMemberMappings(), memberName);
+        List<String> filters = new ArrayList<>();
+        if (!config.getPartitioningFilters().isEmpty()) {
+            for (PartitioningFilter pf : config.getPartitioningFilters()) {
+                filters.addAll(PartitionUtils.generatePartitionFilters(
+                        config.getMembers(), config.getMaxMembers(), config.getMemberMappings(), memberName, pf.getFilter()));
+            }
+        } else {
+            filters.addAll(PartitionUtils.generatePartitionFilters(
+                    config.getMembers(), config.getMaxMembers(), config.getMemberMappings(), memberName));
+        }
+        return filters;
     }
 
     private static ElasticConsumerGroupConfig getConfigFromKV(KeyValue kv, String streamName, String consumerGroupName)
@@ -533,9 +550,9 @@ public class ElasticConsumerGroup {
         return config;
     }
 
-    private static String getPartitioningTransformDest(ElasticConsumerGroupConfig config) {
-        String effectiveFilter = (config.getFilter() != null && !config.getFilter().isEmpty()) ? config.getFilter() : ">";
-        int[] wildcards = config.getPartitioningWildcards();
+    private static String getPartitioningTransformDest(PartitioningFilter pf, int maxMembers) {
+        String effectiveFilter = (pf.getFilter() != null && !pf.getFilter().isEmpty()) ? pf.getFilter() : ">";
+        int[] wildcards = pf.getPartitioningWildcards();
 
         StringBuilder wildcardList = new StringBuilder();
         for (int i = 0; i < wildcards.length; i++) {
@@ -555,10 +572,10 @@ public class ElasticConsumerGroup {
         String destFromFilter = String.join(".", filterTokens);
 
         if (wildcards.length == 0) {
-            return "{{Partition(" + config.getMaxMembers() + ")}}." + destFromFilter;
+            return "{{Partition(" + maxMembers + ")}}." + destFromFilter;
         }
 
-        return "{{Partition(" + config.getMaxMembers() + "," + wildcardList + ")}}." + destFromFilter;
+        return "{{Partition(" + maxMembers + "," + wildcardList + ")}}." + destFromFilter;
     }
 
     /**
@@ -723,10 +740,9 @@ public class ElasticConsumerGroup {
 
                 // Check if critical config changed (immutable fields)
                 if (newConfig.getMaxMembers() != config.getMaxMembers() ||
-                        !Objects.equals(newConfig.getFilter(), config.getFilter()) ||
+                        !Objects.equals(newConfig.getPartitioningFilters(), config.getPartitioningFilters()) ||
                         newConfig.getMaxBufferedMessages() != config.getMaxBufferedMessages() ||
-                        newConfig.getMaxBufferedBytes() != config.getMaxBufferedBytes() ||
-                        !Arrays.equals(newConfig.getPartitioningWildcards(), config.getPartitioningWildcards())) {
+                        newConfig.getMaxBufferedBytes() != config.getMaxBufferedBytes()) {
                     stopConsuming();
                     stopped.set(true);
                     doneFuture.completeExceptionally(

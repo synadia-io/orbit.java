@@ -19,6 +19,7 @@ import io.nats.client.JetStreamOptions;
 import io.nats.client.Nats;
 import io.nats.client.Options;
 import io.synadia.pcg.MemberMapping;
+import io.synadia.pcg.PartitioningFilter;
 
 import java.io.*;
 import java.nio.file.Files;
@@ -122,6 +123,49 @@ public class CliUtils {
         }
 
         return mappings;
+    }
+
+    /**
+     * Parses partitioning filter arguments in the format "filter:wildcard1,wildcard2" or just "filter".
+     * Each string in the list represents one PartitioningFilter.
+     */
+    public static List<PartitioningFilter> parsePartitioningFilters(List<String> filterArgs) throws IllegalArgumentException {
+        List<PartitioningFilter> filters = new ArrayList<>();
+
+        if (filterArgs == null || filterArgs.isEmpty()) {
+            return filters;
+        }
+
+        for (String arg : filterArgs) {
+            int colonIndex = arg.indexOf(':');
+            if (colonIndex < 0) {
+                // No wildcards specified
+                filters.add(new PartitioningFilter(arg, new int[0]));
+            } else {
+                String filter = arg.substring(0, colonIndex);
+                String wildcardsInput = arg.substring(colonIndex + 1);
+                int[] wildcards = parsePartitioningWildcardsString(wildcardsInput);
+                filters.add(new PartitioningFilter(filter, wildcards));
+            }
+        }
+
+        return filters;
+    }
+
+    private static int[] parsePartitioningWildcardsString(String input) throws IllegalArgumentException {
+        if (input == null || input.isEmpty()) {
+            return new int[0];
+        }
+        String[] parts = input.split(",");
+        int[] wildcards = new int[parts.length];
+        for (int i = 0; i < parts.length; i++) {
+            try {
+                wildcards[i] = Integer.parseInt(parts[i].trim());
+            } catch (NumberFormatException e) {
+                throw new IllegalArgumentException("can't parse wildcard index '" + parts[i] + "': not a valid integer");
+            }
+        }
+        return wildcards;
     }
 
     /**

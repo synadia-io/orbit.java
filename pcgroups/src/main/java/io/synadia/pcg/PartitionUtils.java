@@ -75,6 +75,13 @@ public final class PartitionUtils {
      */
     public static List<String> generatePartitionFilters(List<String> members, int maxMembers,
                                                         List<MemberMapping> memberMappings, String memberName) {
+        return generatePartitionFilters(members, maxMembers, memberMappings, memberName, ">");
+    }
+
+    public static List<String> generatePartitionFilters(List<String> members, int maxMembers,
+                                                        List<MemberMapping> memberMappings, String memberName,
+                                                        String filter) {
+        String effectiveFilter = (filter != null && !filter.isEmpty()) ? filter : ">";
         if (members != null && !members.isEmpty()) {
             // Deduplicate and sort members
             List<String> sortedMembers = members.stream()
@@ -99,12 +106,12 @@ public final class PartitionUtils {
 
                     if (i < (numMembers * numPer)) {
                         if (sortedMembers.get(memberIndex % numMembers).equals(memberName)) {
-                            myFilters.add(i + ".>");
+                            myFilters.add(i + "." + effectiveFilter);
                         }
                     } else {
                         // Remainder if the number of partitions is not a multiple of the number of members
                         if (sortedMembers.get((i - (numMembers * numPer)) % numMembers).equals(memberName)) {
-                            myFilters.add(i + ".>");
+                            myFilters.add(i + "." + effectiveFilter);
                         }
                     }
                 }
@@ -118,7 +125,7 @@ public final class PartitionUtils {
             for (MemberMapping mapping : memberMappings) {
                 if (mapping.getMember().equals(memberName)) {
                     for (int pn : mapping.getPartitions()) {
-                        myFilters.add(pn + ".>");
+                        myFilters.add(pn + "." + effectiveFilter);
                     }
                 }
             }
