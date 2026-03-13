@@ -4,7 +4,7 @@ plugins {
 }
 
 version = "0.2.0"
-def originalShadow = 'pcg-cli-' + version + '-all.jar'
+def originalShadow = 'pcgroups-cli-' + version + '-all.jar'
 
 java {
     sourceCompatibility = JavaVersion.VERSION_1_8
