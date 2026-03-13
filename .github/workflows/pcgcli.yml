@@ -14,7 +14,7 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: ./pcgroups-cli
+        working-directory: ./pcgroups
     steps:
       - name: Set up JDK
         uses: actions/setup-java@v5
@@ -24,36 +24,15 @@ jobs:
       - name: Check out code
         uses: actions/checkout@v4
       - name: Build with Gradle
-        run: chmod +x gradlew && ./gradlew clean dist
-      - name: Build with Maven
-        run: mvn clean package
+        run: chmod +x gradlew && ./gradlew :pcgroups-cli:clean :pcgroups-cli:dist
       - name: Validate artifacts were created
         run: |
-          FILE_PATH="build/cg.jar"
-          if [ -f "$FILE_PATH" ]; then
-            echo "Validation successful: $FILE_PATH was created."
-          else
-            echo "Validation failed: $FILE_PATH was not found."
-            exit 1 # Fails the workflow step
-          fi
-          FILE_PATH="build/cg.zip"
-          if [ -f "$FILE_PATH" ]; then
-            echo "Validation successful: $FILE_PATH was created."
-          else
-            echo "Validation failed: $FILE_PATH was not found."
-            exit 1 # Fails the workflow step
-          fi
-          FILE_PATH="build/cg.tar"
-          if [ -f "$FILE_PATH" ]; then
-            echo "Validation successful: $FILE_PATH was created."
-          else
-            echo "Validation failed: $FILE_PATH was not found."
-            exit 1 # Fails the workflow step
-          fi
-          FILE_PATH="target/cg.jar"
-          if [ -f "$FILE_PATH" ]; then
-            echo "Validation successful: $FILE_PATH was created."
-          else
-            echo "Validation failed: $FILE_PATH was not found."
-            exit 1 # Fails the workflow step
-          fi
+          CLI_BUILD="../pcgroups-cli/build"
+          for f in cg.jar cg.zip cg.tar; do
+            if [ -f "$CLI_BUILD/$f" ]; then
+              echo "Validation successful: $CLI_BUILD/$f was created."
+            else
+              echo "Validation failed: $CLI_BUILD/$f was not found."
+              exit 1
+            fi
+          done

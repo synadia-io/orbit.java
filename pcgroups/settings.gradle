@@ -11,3 +11,6 @@ pluginManagement {
     }
 }
 rootProject.name = 'pcgroups'
+
+include 'pcgroups-cli'
+project(':pcgroups-cli').projectDir = file('../pcgroups-cli')
