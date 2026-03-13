@@ -159,7 +159,7 @@ class PromptHandler {
         System.out.println("  exit/quit - exit the program");
         System.out.println("  list/ls <stream name> - list partitioned consumer groups");
         System.out.println("  info <stream name> <partitioned consumer group name> - get partitioned consumer group info");
-        System.out.println("  create <stream name> <partitioned consumer group name> <max members> <filter> <comma separated partitioning wildcard indexes> - create a partitioned consumer group");
+        System.out.println("  create - create a partitioned consumer group (interactive, filter and wildcard indexes are optional)");
         System.out.println("  delete/rm <stream name> <partitioned consumer group name> - delete a partitioned consumer group");
         System.out.println("  memberinfo/minfo <stream name> <partitioned consumer group name> <member name> - get partitioned consumer group member info");
         System.out.println("  add <stream name> <partitioned consumer group name> <member name> [...] - add a member to a partitioned consumer group");
@@ -245,8 +245,15 @@ class PromptHandler {
                 System.out.printf("currently active members: %s%n", activeMembers);
             } else {
                 ElasticConsumerGroupConfig config = ElasticConsumerGroup.getConfig(nc, currentStream, currentGroup);
-                System.out.printf("config: max members=%d, filter=%s, partitioning wildcards %s%n",
-                        config.getMaxMembers(), config.getFilter(), Arrays.toString(config.getPartitioningWildcards()));
+                if (config.getPartitioningFilters().isEmpty()) {
+                    System.out.printf("config: max members=%d, no partitioning filters (whole subject used)%n",
+                            config.getMaxMembers());
+                } else {
+                    for (PartitioningFilter pf : config.getPartitioningFilters()) {
+                        System.out.printf("config: max members=%d, filter=%s, partitioning wildcards %s%n",
+                                config.getMaxMembers(), pf.getFilter(), Arrays.toString(pf.getPartitioningWildcards()));
+                    }
+                }
                 if (!config.getMembers().isEmpty()) {
                     System.out.printf("members: %s%n", config.getMembers());
                 } else if (!config.getMemberMappings().isEmpty()) {
@@ -283,12 +290,11 @@ class PromptHandler {
             if (input == null) return;
             int maxMembers = Integer.parseInt(input.trim());
 
-            System.out.print("filter: ");
-            input = reader.readLine();
-            if (input == null) return;
-            String filter = input.trim();
-
             if (isStatic) {
+                System.out.print("filter (empty for whole subject partitioning): ");
+                input = reader.readLine();
+                if (input == null) return;
+                String filter = input.trim().isEmpty() ? null : input.trim();
                 System.out.print("space separated set of members (hit return to set member mappings instead): ");
                 input = reader.readLine();
                 if (input == null) return;
@@ -310,13 +316,29 @@ class PromptHandler {
                     System.out.println("static partitioned consumer group created");
                 }
             } else {
-                System.out.print("space separated partitioning wildcard indexes: ");
-                input = reader.readLine();
-                if (input == null) return;
-                String[] pwciArgs = input.trim().split("\\s+");
-                int[] wildcards = new int[pwciArgs.length];
-                for (int i = 0; i < pwciArgs.length; i++) {
-                    wildcards[i] = Integer.parseInt(pwciArgs[i]);
+                List<PartitioningFilter> partitioningFilters = new ArrayList<>();
+                System.out.println("enter partitioning filters (empty filter to finish, or empty first filter for whole subject partitioning):");
+                while (true) {
+                    System.out.print("  filter: ");
+                    input = reader.readLine();
+                    if (input == null) return;
+                    String filter = input.trim();
+                    if (filter.isEmpty()) break;
+
+                    System.out.print("  space separated partitioning wildcard indexes (empty for none): ");
+                    input = reader.readLine();
+                    if (input == null) return;
+                    int[] wildcards;
+                    if (input.trim().isEmpty()) {
+                        wildcards = new int[0];
+                    } else {
+                        String[] pwciArgs = input.trim().split("\\s+");
+                        wildcards = new int[pwciArgs.length];
+                        for (int i = 0; i < pwciArgs.length; i++) {
+                            wildcards[i] = Integer.parseInt(pwciArgs[i]);
+                        }
+                    }
+                    partitioningFilters.add(new PartitioningFilter(filter, wildcards));
                 }
 
                 System.out.print("max buffered messages (0 for no limit): ");
@@ -329,7 +351,7 @@ class PromptHandler {
                 if (input == null) return;
                 long maxBufferedBytes = input.trim().isEmpty() ? 0 : Long.parseLong(input.trim());
 
-                ElasticConsumerGroup.create(nc, currentStream, currentGroup, maxMembers, filter, wildcards, maxBufferedMsgs, maxBufferedBytes);
+                ElasticConsumerGroup.create(nc, currentStream, currentGroup, maxMembers, partitioningFilters, maxBufferedMsgs, maxBufferedBytes);
                 System.out.println("elastic partitioned consumer group created");
             }
         } catch (Exception e) {
@@ -351,6 +373,13 @@ class PromptHandler {
             } else {
                 currentStream = args[0];
                 currentGroup = args[1];
+            }
+
+            System.out.print("WARNING: this operation will cause all existing consumer members to terminate consuming. Are you sure? (y/n): ");
+            String confirm = reader.readLine();
+            if (confirm == null || !confirm.trim().equalsIgnoreCase("y")) {
+                System.out.println("Operation canceled");
+                return;
             }
 
             if (isStatic) {
