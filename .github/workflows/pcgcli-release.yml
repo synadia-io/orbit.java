@@ -1,0 +1,36 @@
+name: Partitioned Consumer Groups CLI Release
+
+on:
+  push:
+    tags: [ 'pcgcli/*' ]
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    defaults:
+      run:
+        working-directory: ./pcgroups
+    steps:
+      - name: Set up JDK
+        uses: actions/setup-java@v5
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+
+      - name: Check out code
+        uses: actions/checkout@v4
+
+      - name: Build distribution
+        run: chmod +x gradlew && ./gradlew :pcgroups-cli:clean :pcgroups-cli:dist
+
+      - name: Upload release assets
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          CLI_BUILD="../pcgroups-cli/build"
+          gh release upload "${{ github.ref_name }}" \
+            "$CLI_BUILD/cg.jar" \
+            "$CLI_BUILD/cg.tar" \
+            --clobber
