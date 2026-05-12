@@ -9,6 +9,7 @@ import io.nats.client.*;
 import io.nats.client.api.MessageInfo;
 import io.nats.client.api.PublishAck;
 import io.nats.client.api.StorageType;
+import io.nats.client.impl.Headers;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -16,7 +17,7 @@ import org.junit.jupiter.api.Test;
 import java.time.Duration;
 import java.util.logging.Level;
 
-import static io.nats.client.support.NatsJetStreamConstants.NATS_SCHEDULE_HDR;
+import static io.nats.client.support.NatsJetStreamConstants.*;
 import static org.junit.jupiter.api.Assertions.*;
 
 public class ScheduleManagementTests {
@@ -249,5 +250,62 @@ public class ScheduleManagementTests {
         assertThrows(JetStreamApiException.class, () ->
             ScheduleManagement.publishAndCancelSchedule(
                 jsm, schedSubject, seq + 999, tgtSubject, "cancel-now".getBytes(), null));
+    }
+
+    // -- ADR-51 constraint: targetSubject must not equal scheduleSubject -------
+
+    /**
+     * The server rejects an atomic stop publish whose target subject equals the schedule
+     * subject (ADR-51 error 10212). The client does not pre-check this — it lets the
+     * server surface the rejection.
+     */
+    @Test
+    public void testPublishAndCancel_targetEqualsScheduleSubject_serverRejects() throws Exception {
+        Fixture f = newFixture();
+        String sameSubject = f.sched("same");
+        scheduleInTheFuture(sameSubject, f.tgt("same"), "body");
+
+        JetStreamApiException ex = assertThrows(JetStreamApiException.class, () ->
+            ScheduleManagement.publishAndCancelSchedule(
+                jsm, sameSubject, sameSubject, "x".getBytes(), null, false));
+        assertEquals(10212, ex.getApiErrorCode());
+    }
+
+    // -- userHeaders cannot override the required Nats-Scheduler / Nats-Schedule-Next --
+
+    /**
+     * If the caller passes the protected headers ({@code Nats-Scheduler} or
+     * {@code Nats-Schedule-Next}) in {@code userHeaders}, the values set by the method
+     * must win — otherwise the atomic stop signal would be corrupted and the schedule
+     * would not be purged. Unrelated user headers must still be carried through to the
+     * published message.
+     */
+    @Test
+    public void testPublishAndCancel_userHeadersCannotOverrideRequired() throws Exception {
+        Fixture f = newFixture();
+        String schedSubject = f.sched("hdr");
+        String tgtSubject   = f.tgt("hdr");
+        scheduleInTheFuture(schedSubject, tgtSubject, "body");
+
+        Headers userHeaders = new Headers();
+        userHeaders.put(NATS_SCHEDULE_NEXT_HDR, "not-purge");
+        userHeaders.put(NATS_SCHEDULER_HDR, "wrong-subject");
+        userHeaders.put("X-Custom", "carry-me");
+
+        PublishAck ack = ScheduleManagement.publishAndCancelSchedule(
+            jsm, schedSubject, tgtSubject, "cancel-now".getBytes(), userHeaders, false);
+        assertNotNull(ack);
+
+        // The schedule was actually cancelled — proves the required headers won.
+        assertFalse(scheduleExists(f.stream, schedSubject));
+
+        // The published target message carries the correct required values plus the user header.
+        MessageInfo tgtMsg = jsm.getLastMessage(f.stream, tgtSubject);
+        assertNotNull(tgtMsg);
+        Headers tgtHeaders = tgtMsg.getHeaders();
+        assertNotNull(tgtHeaders);
+        assertEquals("purge",       tgtHeaders.getFirst(NATS_SCHEDULE_NEXT_HDR));
+        assertEquals(schedSubject,  tgtHeaders.getFirst(NATS_SCHEDULER_HDR));
+        assertEquals("carry-me",    tgtHeaders.getFirst("X-Custom"));
     }
 }
