@@ -1,10 +1,13 @@
-// Copyright (c) 2025 Synadia Communications Inc. All Rights Reserved.
+// Copyright (c) 2025-2026 Synadia Communications Inc. All Rights Reserved.
 // See LICENSE and NOTICE file for details.
 
 package io.synadia.sm;
 
+import io.nats.client.JetStream;
+import io.nats.client.JetStreamApiException;
 import io.nats.client.Message;
 import io.nats.client.MessageTtl;
+import io.nats.client.api.PublishAck;
 import io.nats.client.impl.Headers;
 import io.nats.client.impl.NatsMessage;
 import io.nats.client.support.DateTimeUtils;
@@ -12,6 +15,7 @@ import io.nats.client.support.NatsJetStreamConstants;
 import io.nats.client.support.Validator;
 import org.jspecify.annotations.NonNull;
 
+import java.io.IOException;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
@@ -22,11 +26,29 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 /**
- * Class to make a message that can be published to a stream that allows message scheduling
+ * Builder for constructing a NATS JetStream {@link Message} that carries a schedule per ADR-51.
+ * <p>
+ * The resulting message is published to a schedule subject on a stream that supports message
+ * scheduling. The message itself does not get delivered to subscribers directly; instead the
+ * server interprets the {@code Nats-Schedule-*} headers and produces published messages on the
+ * configured target subject according to the schedule.
+ * <p>
+ * Three scheduling modes are supported:
+ * <ul>
+ *   <li>{@code @at} - a one-shot schedule at a specific point in time
+ *       (see {@link #scheduleAt}, {@link #scheduleIn}, {@link #scheduleImmediate}).</li>
+ *   <li>{@code @every} - a fixed interval, with a minimum supported interval of 1 second
+ *       (see {@link #scheduleEvery}).</li>
+ *   <li>Cron / predefined - a standard cron expression or one of the predefined entries
+ *       such as {@code @hourly}, {@code @daily}, etc.
+ *       (see {@link #scheduleCron}, {@link #schedule(PredefinedSchedules)}).</li>
+ * </ul>
  */
 public class ScheduledMessageBuilder {
 
+    /** Number of nanoseconds in one second. */
     public static final long NANOS_PER_SECOND = 1_000_000_000L;
+
     private String scheduleString;
     private String timezone;
     private String scheduleSubject;
@@ -34,6 +56,7 @@ public class ScheduledMessageBuilder {
     private Headers headers;
     private byte[] data;
     private MessageTtl messageTtl;
+    private boolean rollup;
     private final List<String> sources = new ArrayList<>();
 
     public ScheduledMessageBuilder() {}
@@ -105,6 +128,7 @@ public class ScheduledMessageBuilder {
     /**
      * Copy the subject, data and headers from an existing message
      * @param message the message
+     * @return the builder
      */
     public ScheduledMessageBuilder copy(Message message) {
         scheduleSubject(message.getSubject());
@@ -228,11 +252,27 @@ public class ScheduledMessageBuilder {
         return this;
     }
 
+    /**
+     * Set the {@code Nats-Schedule-TTL} header. This TTL is applied to each message
+     * the schedule publishes to the target subject (when the stream supports per-message TTLs);
+     * it is not a TTL on the schedule itself.
+     * @param messageTtl the per-published-message TTL
+     * @return the builder
+     */
     public ScheduledMessageBuilder messageTtl(MessageTtl messageTtl) {
         this.messageTtl = messageTtl;
         return this;
     }
 
+    /**
+     * Set the {@code Nats-Schedule-Source} header. When set, the schedule reads the last
+     * message on the source subject and publishes it to the target subject; if no message
+     * exists on the source subject, the schedule's own body and headers are used as a
+     * fallback. Wildcards are not supported. Per ADR-51 conventions the header supports
+     * a list of source subjects.
+     * @param sources the source subjects
+     * @return the builder
+     */
     public ScheduledMessageBuilder sources(List<String> sources) {
         this.sources.clear();
         if (sources != null) {
@@ -241,6 +281,15 @@ public class ScheduledMessageBuilder {
         return this;
     }
 
+    /**
+     * Set the {@code Nats-Schedule-Source} header. When set, the schedule reads the last
+     * message on the source subject and publishes it to the target subject; if no message
+     * exists on the source subject, the schedule's own body and headers are used as a
+     * fallback. Wildcards are not supported. Per ADR-51 conventions the header supports
+     * a list of source subjects.
+     * @param sources the source subjects
+     * @return the builder
+     */
     public ScheduledMessageBuilder sources(String... sources) {
         this.sources.clear();
         if (sources != null) {
@@ -249,6 +298,40 @@ public class ScheduledMessageBuilder {
         return this;
     }
 
+    /**
+     * Set the {@code Nats-Schedule-Rollup} header to {@code sub}, which is the only
+     * valid value per ADR-51. This causes published messages to roll up the target subject.
+     * @return the builder
+     */
+    public ScheduledMessageBuilder rollup() {
+        rollup = true;
+        return this;
+    }
+
+    /**
+     * Build the scheduled message and publish it to JetStream.
+     * @param js the JetStream context used to publish
+     * @return the sequence number of the stored schedule message from the {@link PublishAck}
+     * @throws JetStreamApiException if the server returns an error
+     * @throws IOException if there is a communication problem with the server
+     */
+    public long scheduleMessage(JetStream js) throws JetStreamApiException, IOException {
+        return js.publish(build()).getSeqno();
+    }
+
+    /**
+     * Build the fully constructed message ready to be published to the schedule subject.
+     * <p>
+     * Validates that {@code scheduleSubject} and {@code targetSubject} are both supplied
+     * and printable without {@code *} or {@code >} wildcards, and that a schedule string
+     * has been set via one of the {@code scheduleXxx}/{@code schedule} methods.
+     * <p>
+     * Sets the following headers as applicable:
+     * {@code Nats-Schedule}, {@code Nats-Schedule-Target},
+     * {@code Nats-Schedule-TTL}, {@code Nats-Schedule-Time-Zone},
+     * {@code Nats-Schedule-Source}, {@code Nats-Schedule-Rollup}.
+     * @return the constructed {@link Message}
+     */
     public Message build() {
         Validator.required(scheduleSubject, "Publish Subject is required.");
         Validator.required(targetSubject, "Target Subject is required.");
@@ -274,6 +357,9 @@ public class ScheduledMessageBuilder {
         if (sources.size() > 0) {
             headers.put(NatsJetStreamConstants.NATS_SCHEDULE_SOURCE_HDR, sources);
         }
+        if (rollup) {
+            headers.put(NatsJetStreamConstants.NATS_SCHEDULE_ROLLUP_HDR, "sub");
+        }
 
         return NatsMessage.builder()
             .subject(scheduleSubject)
@@ -282,6 +368,12 @@ public class ScheduledMessageBuilder {
             .build();
     }
 
+    /**
+     * Format a {@link Duration} as a Go {@code time.ParseDuration()} string
+     * (for example {@code "1h30m5s"}). Used to render {@code @every} interval values.
+     * @param duration the duration to format
+     * @return the Go-formatted duration string
+     */
     public static String toGoDuration(Duration duration) {
         long left    = duration.toNanos();
         long nanos   = left % 1_000_000L;
@@ -303,6 +395,13 @@ public class ScheduledMessageBuilder {
         return sb.toString();
     }
 
+    /**
+     * Validate that a Go {@code time.ParseDuration()} formatted string represents a
+     * duration of at least one second, matching ADR-51's minimum supported interval
+     * rule for {@code @every} schedules.
+     * @param s the Go-formatted duration string
+     * @return {@code true} if the string parses successfully and is at least 1 second
+     */
     public static boolean isAtLeastOneSecond(@NonNull String s) {
         long totalNanos = 0;
         int i = 0;

@@ -8,8 +8,8 @@ import io.nats.client.api.StorageType;
 import io.nats.client.api.StreamInfo;
 import io.nats.client.impl.Headers;
 import io.nats.client.impl.NatsMessage;
+import io.synadia.sm.ScheduleManagement;
 import io.synadia.sm.ScheduledMessageBuilder;
-import io.synadia.sm.ScheduledStreamUtil;
 
 import java.time.Duration;
 import java.util.concurrent.CountDownLatch;
@@ -40,7 +40,7 @@ public class ScheduleFromSource {
                 try { jsm.deleteStream(STREAM); } catch (Exception ignore) {}
 
                 // Use the utility to properly create a schedulable stream
-                StreamInfo si = ScheduledStreamUtil.createSchedulableStream(jsm, STREAM, StorageType.Memory, STREAM_SUBJECTS);
+                StreamInfo si = ScheduleManagement.createSchedulableStream(jsm, STREAM, StorageType.Memory, STREAM_SUBJECTS);
                 report("Created stream", si.getConfiguration());
 
                 CountDownLatch latch1 = new CountDownLatch(1);
@@ -72,7 +72,7 @@ public class ScheduleFromSource {
                 Headers sourceHeaders = new Headers();
                 sourceHeaders.put("foo1", "bar1");
                 Message sourceMessage = new NatsMessage(SOURCE, null, sourceHeaders, sourceData.getBytes());
-                report("SOURCE 1 (sending)", sourceMessage);
+                report("SOURCE 1 (publishing)", sourceMessage);
                 js.publish(sourceMessage);
                 connection.flush(Duration.ofSeconds(1));
 
@@ -82,7 +82,7 @@ public class ScheduleFromSource {
                     .scheduleImmediate()
                     .sources(SOURCE)
                     .build();
-                report("SCHEDULE 1 (sending)", scheduleMessage);
+                report("SCHEDULE 1 (publishing)", scheduleMessage);
                 js.publish(scheduleMessage);
 
                 latch1.await();
@@ -91,11 +91,11 @@ public class ScheduleFromSource {
                 sourceHeaders = new Headers();
                 sourceHeaders.put("foo2", "bar2");
                 sourceMessage = new NatsMessage(SOURCE, null, sourceHeaders, sourceData.getBytes());
-                report("SOURCE 2 (sending)", sourceMessage);
+                report("SOURCE 2 (publishing)", sourceMessage);
                 js.publish(sourceMessage);
                 connection.flush(Duration.ofSeconds(1));
 
-                report("SCHEDULE 2 (sending)", scheduleMessage);
+                report("SCHEDULE 2 (publishing)", scheduleMessage);
                 js.publish(scheduleMessage);
 
                 latch2.await();

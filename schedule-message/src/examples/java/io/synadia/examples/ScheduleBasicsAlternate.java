@@ -15,7 +15,7 @@ import java.util.concurrent.TimeUnit;
 
 import static io.synadia.examples.ScheduleUtils.report;
 
-public class ScheduleBasics {
+public class ScheduleBasicsAlternate {
     public static final String STREAM = "schedules-enabled";
 
     public static final String SCHEDULE_PREFIX = "schedule.";
@@ -60,29 +60,32 @@ public class ScheduleBasics {
                     latch.countDown();
                 }, false);
 
-                report("SCHEDULE-NOW (publishing)");
-                new ScheduledMessageBuilder()
+                Message m = new ScheduledMessageBuilder()
                     .scheduleSubject(SCHEDULE_PREFIX + "now")
                     .targetSubject(TARGET_PREFIX + "now")
                     .scheduleImmediate()
                     .data("Schedule-Now")
-                    .scheduleMessage(js);
+                    .build();
+                report("SCHEDULE-NOW (publishing)", m);
+                js.publish(m);
 
-                report("SCHEDULE-AT (publishing)");
-                new ScheduledMessageBuilder()
+                m = new ScheduledMessageBuilder()
                     .scheduleSubject(SCHEDULE_PREFIX + "at")
                     .targetSubject(TARGET_PREFIX + "at")
                     .scheduleAt(DateTimeUtils.gmtNow().plusSeconds(5))
                     .data("Scheduled-At")
-                    .scheduleMessage(js);
+                    .build();
+                report("SCHEDULE-AT (publishing)", m);
+                js.publish(m);
 
-                report("SCHEDULE-EVERY (publishing)");
-                new ScheduledMessageBuilder()
+                m = new ScheduledMessageBuilder()
                     .scheduleSubject(SCHEDULE_PREFIX + "at")
                     .targetSubject(TARGET_PREFIX + "at")
                     .scheduleEvery(1, TimeUnit.SECONDS)
                     .data("Every Second")
-                    .scheduleMessage(js);
+                    .build();
+                report("SCHEDULE-EVERY (publishing)", m);
+                js.publish(m);
 
                 latch.await();
             }

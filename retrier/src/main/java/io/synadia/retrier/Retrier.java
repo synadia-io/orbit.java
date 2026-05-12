@@ -33,7 +33,7 @@ public class Retrier {
      * or the observer declines to retry.
      */
     public static <T> T execute(RetryConfig config, RetryAction<T> action, RetryObserver observer) throws Exception {
-        long[] backoffPolicy = config.getBackoffPolicy();;
+        long[] backoffPolicy = config.getBackoffPolicy();
         int plen = backoffPolicy.length;
         int retries = 0;
         long deadlineExpiresAt = System.currentTimeMillis() + config.getDeadline();
