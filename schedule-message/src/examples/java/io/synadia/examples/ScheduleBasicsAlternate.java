@@ -15,17 +15,34 @@ import java.util.concurrent.TimeUnit;
 
 import static io.synadia.examples.ScheduleUtils.report;
 
+/**
+ * Example: same scenario as {@link ScheduleBasics}, but built using
+ * {@link io.synadia.sm.ScheduledMessageBuilder#build()} and then published
+ * via {@link io.nats.client.JetStream#publish(io.nats.client.Message)}.
+ */
 public class ScheduleBasicsAlternate {
+
+    /** Stream name used by this example. */
     public static final String STREAM = "schedules-enabled";
 
+    /** Prefix for all schedule subjects in this example. */
     public static final String SCHEDULE_PREFIX = "schedule.";
+
+    /** Prefix for all target subjects in this example. */
     public static final String TARGET_PREFIX = "target.";
 
     private static final String SCHEDULES = SCHEDULE_PREFIX + ">";
     private static final String TARGETS = TARGET_PREFIX + "*";
 
+    /** Subject patterns the example stream accepts. */
     public static final String[] STREAM_SUBJECTS = new String[]{SCHEDULES, TARGETS};
 
+    private ScheduleBasicsAlternate() {}
+
+    /**
+     * Example entry point.
+     * @param args ignored
+     */
     public static void main(String[] args) {
         try {
             Options options = new Options.Builder()

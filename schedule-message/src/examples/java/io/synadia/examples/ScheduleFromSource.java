@@ -16,15 +16,29 @@ import java.util.concurrent.CountDownLatch;
 
 import static io.synadia.examples.ScheduleUtils.report;
 
+/**
+ * Example: schedule a message whose body and headers are taken from the last
+ * message published on a separate source subject (the
+ * {@code Nats-Schedule-Source} feature in ADR-51).
+ */
 public class ScheduleFromSource {
+
+    /** Stream name used by this example. */
     public static final String STREAM = "schedules-enabled";
 
     private static final String SCHEDULES = "schedules";
     private static final String TARGET = "target";
     private static final String SOURCE = "source";
 
+    /** Subject patterns the example stream accepts. */
     public static final String[] STREAM_SUBJECTS = new String[]{SCHEDULES, TARGET, SOURCE};
 
+    private ScheduleFromSource() {}
+
+    /**
+     * Example entry point.
+     * @param args ignored
+     */
     public static void main(String[] args) {
         try {
             Options options = new Options.Builder()

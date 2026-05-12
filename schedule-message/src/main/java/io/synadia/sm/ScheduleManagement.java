@@ -38,6 +38,9 @@ import static io.nats.client.support.Validator.notPrintableOrHasWildGt;
 @NullMarked
 public abstract class ScheduleManagement {
 
+    /** Utility class — not intended to be instantiated. */
+    private ScheduleManagement() {}
+
     /**
      * Outcome of a {@code cancelSchedule(...)} call.
      */
@@ -189,7 +192,13 @@ public abstract class ScheduleManagement {
      * @param targetSubject               the subject to publish to; this may be the
      *                                    original schedule's target subject (to publish
      *                                    early) or any other subject
-     * @param data                        the message body
+     * @param data                        the message body; may be {@code null}
+     * @param userHeaders                 extra headers to include on the published
+     *                                    message; may be {@code null}. The
+     *                                    {@code Nats-Scheduler} and
+     *                                    {@code Nats-Schedule-Next} headers are always
+     *                                    set by this method and override any conflicting
+     *                                    keys from {@code userHeaders}
      * @param publishOnlyIfScheduleExists when {@code true}, the publish is sent with an
      *                                    expected-last-subject-sequence guard so it
      *                                    only succeeds if the schedule message is still
@@ -236,7 +245,12 @@ public abstract class ScheduleManagement {
      *                               on {@code scheduleSubject}
      * @param targetSubject          the subject to publish to (must differ from
      *                               {@code scheduleSubject})
-     * @param data                   the message body
+     * @param data                   the message body; may be {@code null}
+     * @param userHeaders            extra headers to include on the published message;
+     *                               may be {@code null}. The {@code Nats-Scheduler} and
+     *                               {@code Nats-Schedule-Next} headers are always set by
+     *                               this method and override any conflicting keys from
+     *                               {@code userHeaders}
      * @return the {@link PublishAck} from the server
      * @throws JetStreamApiException if the precondition fails or the server returned
      *     another error

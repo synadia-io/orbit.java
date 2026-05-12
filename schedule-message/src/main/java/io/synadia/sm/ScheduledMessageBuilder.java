@@ -59,6 +59,11 @@ public class ScheduledMessageBuilder {
     private boolean rollup;
     private final List<String> sources = new ArrayList<>();
 
+    /**
+     * Construct an empty builder. Configure the schedule and target subjects, the
+     * schedule (one of the {@code schedule*} methods), and any data / headers before
+     * calling {@link #build()} or {@link #scheduleMessage(JetStream)}.
+     */
     public ScheduledMessageBuilder() {}
 
     /**
@@ -149,7 +154,8 @@ public class ScheduledMessageBuilder {
     /**
      * Schedule for an amount of time from now.
      * This is not absolute since it takes time to build and send the message.
-     * @param fromNow how long from now to schedule
+     * @param fromNow  how long from now to schedule, expressed in {@code timeUnit}s
+     * @param timeUnit the unit for {@code fromNow}
      * @return a ScheduledMessageBuilder object
      */
     public ScheduledMessageBuilder scheduleIn(long fromNow, TimeUnit timeUnit) {
