@@ -183,15 +183,18 @@ public abstract class ScheduleManagement {
      *   <li>{@code Nats-Scheduler}: {@code scheduleSubject}</li>
      *   <li>{@code Nats-Schedule-Next}: {@code purge}</li>
      * </ul>
-     * The {@code targetSubject} must not equal {@code scheduleSubject} — the server
-     * rejects such publishes with error code {@code 10212}.
+     * The {@code targetSubject} must not equal {@code scheduleSubject}. This constraint
+     * is enforced by the server, not by this method, so passing equal subjects surfaces
+     * as a {@link JetStreamApiException} with error code {@code 10212} from the publish
+     * call.
      *
      * @param jsm                         the JetStream management context (its
      *                                    {@code jetStream()} context is used to publish)
      * @param scheduleSubject             the schedule subject to stop
      * @param targetSubject               the subject to publish to; this may be the
      *                                    original schedule's target subject (to publish
-     *                                    early) or any other subject
+     *                                    early) or any other subject. Must not equal
+     *                                    {@code scheduleSubject} — see above
      * @param data                        the message body; may be {@code null}
      * @param userHeaders                 extra headers to include on the published
      *                                    message; may be {@code null}. The
@@ -205,8 +208,10 @@ public abstract class ScheduleManagement {
      *                                    present; when {@code false}, the publish is
      *                                    sent unconditionally
      * @return the {@link PublishAck} from the server, or {@code null} when
-     *     {@code publishOnlyIfScheduleExists} is {@code true} and no schedule for the
-     *     subject could be located
+     *     {@code publishOnlyIfScheduleExists} is {@code true} and the schedule for the
+     *     subject could not be located. The lookup requires <i>exactly one</i> matching
+     *     stream; if zero or more than one stream covers {@code scheduleSubject}, the
+     *     method returns {@code null} without publishing
      * @throws JetStreamApiException if the server returned an error
      * @throws IOException           if the request could not be sent
      */
@@ -243,8 +248,10 @@ public abstract class ScheduleManagement {
      * @param scheduleSubject        the schedule subject to stop
      * @param scheduleStreamSequence the expected stream sequence of the schedule message
      *                               on {@code scheduleSubject}
-     * @param targetSubject          the subject to publish to (must differ from
-     *                               {@code scheduleSubject})
+     * @param targetSubject          the subject to publish to. Must not equal
+     *                               {@code scheduleSubject}; the server enforces this
+     *                               constraint and rejects with error code {@code 10212}
+     *                               if the two are equal
      * @param data                   the message body; may be {@code null}
      * @param userHeaders            extra headers to include on the published message;
      *                               may be {@code null}. The {@code Nats-Scheduler} and
@@ -252,8 +259,9 @@ public abstract class ScheduleManagement {
      *                               this method and override any conflicting keys from
      *                               {@code userHeaders}
      * @return the {@link PublishAck} from the server
-     * @throws JetStreamApiException if the precondition fails or the server returned
-     *     another error
+     * @throws JetStreamApiException if the precondition fails, the server returned error
+     *     {@code 10212} (target subject equals schedule subject), or any other server
+     *     error occurred
      * @throws IOException           if the request could not be sent
      */
     public static PublishAck publishAndCancelSchedule(JetStreamManagement jsm, String scheduleSubject, long scheduleStreamSequence, String targetSubject,
@@ -269,13 +277,13 @@ public abstract class ScheduleManagement {
 
     private static Headers makeHeaders(String scheduleSubject, @Nullable Headers userHeaders) {
         Headers h = new Headers();
-        h.put(NATS_SCHEDULE_NEXT_HDR, "purge");
-        h.put(NATS_SCHEDULER_HDR, scheduleSubject);
         if (userHeaders != null) {
             for (String key : userHeaders.keySet()) {
                 h.put(key, userHeaders.get(key));
             }
         }
+        h.put(NATS_SCHEDULE_NEXT_HDR, "purge");
+        h.put(NATS_SCHEDULER_HDR, scheduleSubject);
         return h;
     }
 
