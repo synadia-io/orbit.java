@@ -1,24 +1,28 @@
-// Copyright (c) 2025 Synadia Communications Inc. All Rights Reserved.
+// Copyright (c) 2025-2026 Synadia Communications Inc. All Rights Reserved.
 // See LICENSE and NOTICE file for details.
 
 package io.synadia.examples;
 
 import io.nats.client.*;
 import io.nats.client.api.StorageType;
-import io.nats.client.support.DateTimeUtils;
+import io.nats.client.impl.Headers;
+import io.nats.client.impl.NatsMessage;
 import io.synadia.sm.ScheduleManagement;
 import io.synadia.sm.ScheduledMessageBuilder;
 
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
 
 import static io.synadia.examples.ScheduleExampleUtils.report;
 
 /**
- * Example: build and publish a few scheduled messages using
- * {@link io.synadia.sm.ScheduledMessageBuilder#scheduleMessage(io.nats.client.JetStream)}.
+ * Example: attaching user headers to a schedule and seeding a schedule from
+ * an existing {@link Message} via {@link ScheduledMessageBuilder#copy(Message)}.
+ * <p>
+ * The builder writes its own {@code Nats-Schedule-*} headers after copying
+ * user headers, so user headers are preserved on the message that the schedule
+ * publishes to the target subject.
  */
-public class ScheduleBasics {
+public class ScheduleHeadersAndCopy {
 
     /** Stream name used by this example. */
     public static final String STREAM = "schedules-enabled";
@@ -35,7 +39,7 @@ public class ScheduleBasics {
     /** Subject patterns the example stream accepts. */
     public static final String[] STREAM_SUBJECTS = new String[]{SCHEDULES, TARGETS};
 
-    private ScheduleBasics() {}
+    private ScheduleHeadersAndCopy() {}
 
     /**
      * Example entry point.
@@ -55,54 +59,50 @@ public class ScheduleBasics {
                 // delete the stream in case it existed, just for a fresh example
                 try { jsm.deleteStream(STREAM); } catch (Exception ignore) {}
 
-                // Use the utility to properly create a schedulable stream
                 ScheduleManagement.createSchedulableStream(jsm, STREAM, StorageType.Memory, STREAM_SUBJECTS);
 
-                CountDownLatch latch = new CountDownLatch(4);
+                CountDownLatch latch = new CountDownLatch(2);
                 Dispatcher d = connection.createDispatcher();
 
-                // subscribe to the subject that receives the schedule message
-                js.subscribe(SCHEDULES, d, m -> {
-                    report("MONITORING via '" + SCHEDULES + "'", m);
-                    m.ack();
-                }, false);
-
-                // subscribe to the target subject
                 js.subscribe(TARGETS, d, m -> {
                     report("TARGETED via '" + TARGETS + "'", m);
                     m.ack();
                     latch.countDown();
                 }, false);
 
-                report("SCHEDULING " + SCHEDULE_PREFIX + "now");
+                // 1) Attach custom headers to a scheduled message.
+                Headers userHeaders = new Headers();
+                userHeaders.put("X-Trace-Id", "abc-123");
+                userHeaders.put("X-Origin",   "ScheduleHeadersAndCopy");
+
+                String withHeadersSubject = SCHEDULE_PREFIX + "with-headers";
+                report("SCHEDULING " + withHeadersSubject + " with custom headers");
                 new ScheduledMessageBuilder()
-                    .scheduleSubject(SCHEDULE_PREFIX + "now")
-                    .targetSubject(TARGET_PREFIX + "now")
+                    .scheduleSubject(withHeadersSubject)
+                    .targetSubject(TARGET_PREFIX + "with-headers")
                     .scheduleImmediate()
-                    .data("Schedule-Now")
+                    .headers(userHeaders)
+                    .data("Has-User-Headers")
                     .scheduleMessage(js);
 
-                report("SCHEDULING " + SCHEDULE_PREFIX + "at");
-                new ScheduledMessageBuilder()
-                    .scheduleSubject(SCHEDULE_PREFIX + "at")
-                    .targetSubject(TARGET_PREFIX + "at")
-                    .scheduleAt(DateTimeUtils.gmtNow().plusSeconds(5))
-                    .data("Scheduled-At")
-                    .scheduleMessage(js);
+                // 2) Seed a schedule from an existing message via copy().
+                //    copy() pulls subject, data, and headers; the schedule subject
+                //    here is taken from the source message, while the target subject
+                //    is set explicitly.
+                Headers seedHeaders = new Headers();
+                seedHeaders.put("X-Seeded-From", "template");
+                Message seed = new NatsMessage(SCHEDULE_PREFIX + "copied", null, seedHeaders, "Seed-Data".getBytes());
+                report("SEED message (template for copy())", seed);
 
-                report("SCHEDULING " + SCHEDULE_PREFIX + "every");
+                String copiedSubject = SCHEDULE_PREFIX + "copied";
+                report("SCHEDULING " + copiedSubject + " built via copy(seed)");
                 new ScheduledMessageBuilder()
-                    .scheduleSubject(SCHEDULE_PREFIX + "every")
-                    .targetSubject(TARGET_PREFIX + "every")
-                    .scheduleEvery(1, TimeUnit.SECONDS)
-                    .data("Every Second")
+                    .copy(seed)
+                    .targetSubject(TARGET_PREFIX + "copied")
+                    .scheduleImmediate()
                     .scheduleMessage(js);
 
                 latch.await();
-
-                // The "every" schedule keeps firing until it is removed.
-                report("CANCEL " + SCHEDULE_PREFIX + "every",
-                    ScheduleManagement.cancelSchedule(jsm, SCHEDULE_PREFIX + "every", STREAM));
             }
         }
         catch (Exception e) {

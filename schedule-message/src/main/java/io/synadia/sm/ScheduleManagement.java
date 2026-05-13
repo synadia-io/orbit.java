@@ -25,10 +25,15 @@ import static io.nats.client.support.Validator.notPrintableOrHasWildGt;
  *       longer fire. {@link #cancelSchedule(JetStreamManagement, String, long)} deletes by
  *       stream sequence; the subject-based overloads look the sequence up first.</li>
  *   <li><b>Atomic publish-and-stop</b> — publish a message to a different subject and stop
- *       the schedule as a single atomic step, optionally guarded by an existence check on
- *       the schedule message. See
- *       {@link #publishAndCancelSchedule(JetStreamManagement, String, String, byte[], Headers, boolean)}
- *       and {@link #publishAndCancelSchedule(JetStreamManagement, String, long, String, byte[], Headers)}.</li>
+ *       the schedule as a single atomic step. The unconditional form
+ *       {@link #publishAndCancelSchedule(JetStreamManagement, String, String, byte[], Headers)}
+ *       publishes without checking that the schedule still exists;
+ *       {@link #publishAndCancelScheduleIfExists(JetStreamManagement, String, String, byte[], Headers)}
+ *       guards the publish with an existence check, returning {@code null} if the schedule
+ *       is no longer present. The sequence-bound variant
+ *       {@link #publishAndCancelSchedule(JetStreamManagement, String, long, String, byte[], Headers)}
+ *       uses {@code Nats-Expected-Last-Subject-Sequence} so the publish only succeeds while
+ *       the schedule message is still at the named sequence.</li>
  * </ul>
  * Per the ADR the publish subject of the atomic variants must not equal the schedule
  * subject; the server rejects such publishes with error code {@code 10212}.
@@ -183,53 +188,76 @@ public abstract class ScheduleManagement {
      *   <li>{@code Nats-Scheduler}: {@code scheduleSubject}</li>
      *   <li>{@code Nats-Schedule-Next}: {@code purge}</li>
      * </ul>
+     * The publish is sent unconditionally; the schedule is stopped as a side effect of
+     * the server processing the headers. Use
+     * {@link #publishAndCancelScheduleIfExists(JetStreamManagement, String, String, byte[], Headers)}
+     * if you need to skip the publish when the schedule is no longer present.
+     * <p>
      * The {@code targetSubject} must not equal {@code scheduleSubject}. This constraint
      * is enforced by the server, not by this method, so passing equal subjects surfaces
      * as a {@link JetStreamApiException} with error code {@code 10212} from the publish
      * call.
      *
-     * @param jsm                         the JetStream management context (its
-     *                                    {@code jetStream()} context is used to publish)
-     * @param scheduleSubject             the schedule subject to stop
-     * @param targetSubject               the subject to publish to; this may be the
-     *                                    original schedule's target subject (to publish
-     *                                    early) or any other subject. Must not equal
-     *                                    {@code scheduleSubject} — see above
-     * @param data                        the message body; may be {@code null}
-     * @param userHeaders                 extra headers to include on the published
-     *                                    message; may be {@code null}. The
-     *                                    {@code Nats-Scheduler} and
-     *                                    {@code Nats-Schedule-Next} headers are always
-     *                                    set by this method and override any conflicting
-     *                                    keys from {@code userHeaders}
-     * @param publishOnlyIfScheduleExists when {@code true}, the publish is sent with an
-     *                                    expected-last-subject-sequence guard so it
-     *                                    only succeeds if the schedule message is still
-     *                                    present; when {@code false}, the publish is
-     *                                    sent unconditionally
-     * @return the {@link PublishAck} from the server, or {@code null} when
-     *     {@code publishOnlyIfScheduleExists} is {@code true} and the schedule for the
-     *     subject could not be located. The lookup requires <i>exactly one</i> matching
-     *     stream; if zero or more than one stream covers {@code scheduleSubject}, the
-     *     method returns {@code null} without publishing
+     * @param jsm             the JetStream management context (its {@code jetStream()}
+     *                        context is used to publish)
+     * @param scheduleSubject the schedule subject to stop
+     * @param targetSubject   the subject to publish to; this may be the original
+     *                        schedule's target subject (to publish early) or any other
+     *                        subject. Must not equal {@code scheduleSubject} — see above
+     * @param data            the message body; may be {@code null}
+     * @param userHeaders     extra headers to include on the published message; may be
+     *                        {@code null}. The {@code Nats-Scheduler} and
+     *                        {@code Nats-Schedule-Next} headers are always set by this
+     *                        method and override any conflicting keys from
+     *                        {@code userHeaders}
+     * @return the {@link PublishAck} from the server
      * @throws JetStreamApiException if the server returned an error
      * @throws IOException           if the request could not be sent
      */
-    public static @Nullable PublishAck publishAndCancelSchedule(JetStreamManagement jsm, String scheduleSubject, String targetSubject,
-                                                                byte @Nullable[] data, @Nullable Headers userHeaders, boolean publishOnlyIfScheduleExists) throws JetStreamApiException, IOException {
-        if (publishOnlyIfScheduleExists) {
-            String streamName = findStreamLenient(jsm, scheduleSubject);
-            if (streamName != null) {
-                long seq = getScheduleSequence(jsm, streamName, scheduleSubject);
-                if (seq != -1) {
-                    return publishAndCancelSchedule(jsm, scheduleSubject, seq, targetSubject, data, userHeaders);
-                }
-            }
-            return null;
-        }
-
+    public static PublishAck publishAndCancelSchedule(JetStreamManagement jsm, String scheduleSubject, String targetSubject,
+                                                      byte @Nullable[] data, @Nullable Headers userHeaders) throws JetStreamApiException, IOException {
         Headers h = makeHeaders(scheduleSubject, userHeaders);
         return jsm.jetStream().publish(targetSubject, h, data);
+    }
+
+    /**
+     * Guarded variant of
+     * {@link #publishAndCancelSchedule(JetStreamManagement, String, String, byte[], Headers)}:
+     * looks up the schedule message first and only publishes if it is still present, using
+     * the {@code Nats-Expected-Last-Subject-Sequence} precondition so the operation is
+     * atomic with any concurrent fire.
+     * <p>
+     * The lookup requires <i>exactly one</i> stream to cover {@code scheduleSubject}; if
+     * zero or more than one stream matches, the method returns {@code null} without
+     * publishing.
+     *
+     * @param jsm             the JetStream management context
+     * @param scheduleSubject the schedule subject to stop
+     * @param targetSubject   the subject to publish to; must not equal
+     *                        {@code scheduleSubject} (server rejects with code
+     *                        {@code 10212})
+     * @param data            the message body; may be {@code null}
+     * @param userHeaders     extra headers to include on the published message; may be
+     *                        {@code null}. The {@code Nats-Scheduler} and
+     *                        {@code Nats-Schedule-Next} headers are always set by this
+     *                        method and override any conflicting keys from
+     *                        {@code userHeaders}
+     * @return the {@link PublishAck} from the server, or {@code null} if the schedule
+     *     for {@code scheduleSubject} could not be located (no schedule message present,
+     *     or the stream lookup was ambiguous)
+     * @throws JetStreamApiException if the server returned an error
+     * @throws IOException           if the request could not be sent
+     */
+    public static @Nullable PublishAck publishAndCancelScheduleIfExists(JetStreamManagement jsm, String scheduleSubject, String targetSubject,
+                                                                        byte @Nullable[] data, @Nullable Headers userHeaders) throws JetStreamApiException, IOException {
+        String streamName = findStreamLenient(jsm, scheduleSubject);
+        if (streamName != null) {
+            long seq = getScheduleSequence(jsm, streamName, scheduleSubject);
+            if (seq != -1) {
+                return publishAndCancelSchedule(jsm, scheduleSubject, seq, targetSubject, data, userHeaders);
+            }
+        }
+        return null;
     }
 
     /**

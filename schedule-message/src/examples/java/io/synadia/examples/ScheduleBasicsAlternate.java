@@ -13,12 +13,14 @@ import io.synadia.sm.ScheduledMessageBuilder;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
-import static io.synadia.examples.ScheduleUtils.report;
+import static io.synadia.examples.ScheduleExampleUtils.report;
 
 /**
  * Example: same scenario as {@link ScheduleBasics}, but built using
  * {@link io.synadia.sm.ScheduledMessageBuilder#build()} and then published
  * via {@link io.nats.client.JetStream#publish(io.nats.client.Message)}.
+ * There is really no reason to do this unless you specifically want to log the
+ * actual message.
  */
 public class ScheduleBasicsAlternate {
 
@@ -66,13 +68,13 @@ public class ScheduleBasicsAlternate {
 
                 // subscribe to the subject that receives the schedule message
                 js.subscribe(SCHEDULES, d, m -> {
-                    report("SCHEDULED (received)", m);
+                    report("MONITORING via '" + SCHEDULES + "'", m);
                     m.ack();
                 }, false);
 
                 // subscribe to the target subject
                 js.subscribe(TARGETS, d, m -> {
-                    report("TARGETED (received)", m);
+                    report("TARGETED via '" + TARGETS + "'", m);
                     m.ack();
                     latch.countDown();
                 }, false);
@@ -83,7 +85,7 @@ public class ScheduleBasicsAlternate {
                     .scheduleImmediate()
                     .data("Schedule-Now")
                     .build();
-                report("SCHEDULE-NOW (publishing)", m);
+                report("SCHEDULING " + SCHEDULE_PREFIX + "now", m);
                 js.publish(m);
 
                 m = new ScheduledMessageBuilder()
@@ -92,19 +94,23 @@ public class ScheduleBasicsAlternate {
                     .scheduleAt(DateTimeUtils.gmtNow().plusSeconds(5))
                     .data("Scheduled-At")
                     .build();
-                report("SCHEDULE-AT (publishing)", m);
+                report("SCHEDULING " + SCHEDULE_PREFIX + "at", m);
                 js.publish(m);
 
                 m = new ScheduledMessageBuilder()
-                    .scheduleSubject(SCHEDULE_PREFIX + "at")
-                    .targetSubject(TARGET_PREFIX + "at")
+                    .scheduleSubject(SCHEDULE_PREFIX + "every")
+                    .targetSubject(TARGET_PREFIX + "every")
                     .scheduleEvery(1, TimeUnit.SECONDS)
                     .data("Every Second")
                     .build();
-                report("SCHEDULE-EVERY (publishing)", m);
+                report("SCHEDULING " + SCHEDULE_PREFIX + "now", m);
                 js.publish(m);
 
                 latch.await();
+
+                // The "every" schedule keeps firing until it is removed.
+                report("CANCEL " + SCHEDULE_PREFIX + "every",
+                    ScheduleManagement.cancelSchedule(jsm, SCHEDULE_PREFIX + "every", STREAM));
             }
         }
         catch (Exception e) {

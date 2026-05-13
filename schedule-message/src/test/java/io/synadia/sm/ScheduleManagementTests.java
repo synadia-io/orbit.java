@@ -182,7 +182,8 @@ public class ScheduleManagementTests {
             ScheduleManagement.cancelSchedule(jsm, f.schedPrefix + ".*", f.stream));
     }
 
-    // -- publishAndCancelSchedule(jsm, sched, tgt, data, publishOnlyIfExists) --
+    // -- publishAndCancelSchedule(jsm, sched, tgt, data, userHeaders) ----------
+    // -- publishAndCancelScheduleIfExists(jsm, sched, tgt, data, userHeaders) --
 
     @Test
     public void testPublishAndCancel_unconditional_success() throws Exception {
@@ -192,7 +193,7 @@ public class ScheduleManagementTests {
         scheduleInTheFuture(schedSubject, tgtSubject, "body");
 
         PublishAck ack = ScheduleManagement.publishAndCancelSchedule(
-            jsm, schedSubject, tgtSubject, "cancel-now".getBytes(), null, false);
+            jsm, schedSubject, tgtSubject, "cancel-now".getBytes(), null);
 
         assertNotNull(ack);
         assertFalse(scheduleExists(f.stream, schedSubject));
@@ -205,8 +206,8 @@ public class ScheduleManagementTests {
         String tgtSubject   = f.tgt("p2");
         scheduleInTheFuture(schedSubject, tgtSubject, "body");
 
-        PublishAck ack = ScheduleManagement.publishAndCancelSchedule(
-            jsm, schedSubject, tgtSubject, "cancel-now".getBytes(), null, true);
+        PublishAck ack = ScheduleManagement.publishAndCancelScheduleIfExists(
+            jsm, schedSubject, tgtSubject, "cancel-now".getBytes(), null);
 
         assertNotNull(ack);
         assertFalse(scheduleExists(f.stream, schedSubject));
@@ -218,8 +219,8 @@ public class ScheduleManagementTests {
         String schedSubject = f.sched("p3");
         String tgtSubject   = f.tgt("p3");
 
-        PublishAck ack = ScheduleManagement.publishAndCancelSchedule(
-            jsm, schedSubject, tgtSubject, "cancel-now".getBytes(), null, true);
+        PublishAck ack = ScheduleManagement.publishAndCancelScheduleIfExists(
+            jsm, schedSubject, tgtSubject, "cancel-now".getBytes(), null);
 
         assertNull(ack);
     }
@@ -267,7 +268,7 @@ public class ScheduleManagementTests {
 
         JetStreamApiException ex = assertThrows(JetStreamApiException.class, () ->
             ScheduleManagement.publishAndCancelSchedule(
-                jsm, sameSubject, sameSubject, "x".getBytes(), null, false));
+                jsm, sameSubject, sameSubject, "x".getBytes(), null));
         assertEquals(10212, ex.getApiErrorCode());
     }
 
@@ -293,7 +294,7 @@ public class ScheduleManagementTests {
         userHeaders.put("X-Custom", "carry-me");
 
         PublishAck ack = ScheduleManagement.publishAndCancelSchedule(
-            jsm, schedSubject, tgtSubject, "cancel-now".getBytes(), userHeaders, false);
+            jsm, schedSubject, tgtSubject, "cancel-now".getBytes(), userHeaders);
         assertNotNull(ack);
 
         // The schedule was actually cancelled — proves the required headers won.

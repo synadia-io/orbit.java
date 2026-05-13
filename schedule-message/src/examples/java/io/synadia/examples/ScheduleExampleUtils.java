@@ -9,9 +9,9 @@ import io.nats.client.impl.Headers;
 /**
  * Small console-logging helpers shared by the example apps.
  */
-public class ScheduleUtils {
+public class ScheduleExampleUtils {
 
-    private ScheduleUtils() {}
+    private ScheduleExampleUtils() {}
 
     /**
      * Print a pipe-separated, timestamped line to {@code System.out}. Each object is
