@@ -3,6 +3,11 @@
 
 package io.synadia.sm;
 
+/**
+ * Predefined cron-like schedule shortcuts supported by NATS message schedules
+ * (per ADR-51). Pass one to
+ * {@link ScheduledMessageBuilder#schedule(PredefinedSchedules)}.
+ */
 public enum PredefinedSchedules {
     /**
      * Run once a year, midnight, Jan. 1st. Same as Yearly. Equivalent to cron string 0 0 0 1 1 *

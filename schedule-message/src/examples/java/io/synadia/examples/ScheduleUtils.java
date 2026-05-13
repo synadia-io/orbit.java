@@ -6,8 +6,19 @@ package io.synadia.examples;
 import io.nats.client.Message;
 import io.nats.client.impl.Headers;
 
+/**
+ * Small console-logging helpers shared by the example apps.
+ */
 public class ScheduleUtils {
 
+    private ScheduleUtils() {}
+
+    /**
+     * Print a pipe-separated, timestamped line to {@code System.out}. Each object is
+     * rendered with {@link Object#toString()}, except {@link Message}, which is rendered
+     * via {@link #toString(Message)}.
+     * @param objects the values to render
+     */
     public static void report(Object... objects) {
         StringBuilder sb = new StringBuilder();
         boolean first = true;
@@ -28,6 +39,12 @@ public class ScheduleUtils {
         System.out.println("[" + System.currentTimeMillis() + "] " + sb);
     }
 
+    /**
+     * Format a {@link Message} as a short multi-line string showing the subject, data
+     * (when present), and headers (when any).
+     * @param msg the message to format
+     * @return a human-readable representation
+     */
     public static String toString(Message msg) {
         StringBuilder sb = new StringBuilder(System.lineSeparator())
             .append("  Subject: ").append(msg.getSubject());

@@ -16,10 +16,11 @@ import java.util.concurrent.TimeUnit;
 import static io.synadia.examples.ScheduleUtils.report;
 
 /**
- * Example: build and publish a few scheduled messages using
- * {@link io.synadia.sm.ScheduledMessageBuilder#scheduleMessage(io.nats.client.JetStream)}.
+ * Example: same scenario as {@link ScheduleBasics}, but built using
+ * {@link io.synadia.sm.ScheduledMessageBuilder#build()} and then published
+ * via {@link io.nats.client.JetStream#publish(io.nats.client.Message)}.
  */
-public class ScheduleBasics {
+public class ScheduleBasicsAlternate {
 
     /** Stream name used by this example. */
     public static final String STREAM = "schedules-enabled";
@@ -36,7 +37,7 @@ public class ScheduleBasics {
     /** Subject patterns the example stream accepts. */
     public static final String[] STREAM_SUBJECTS = new String[]{SCHEDULES, TARGETS};
 
-    private ScheduleBasics() {}
+    private ScheduleBasicsAlternate() {}
 
     /**
      * Example entry point.
@@ -76,29 +77,32 @@ public class ScheduleBasics {
                     latch.countDown();
                 }, false);
 
-                report("SCHEDULE-NOW (publishing)");
-                new ScheduledMessageBuilder()
+                Message m = new ScheduledMessageBuilder()
                     .scheduleSubject(SCHEDULE_PREFIX + "now")
                     .targetSubject(TARGET_PREFIX + "now")
                     .scheduleImmediate()
                     .data("Schedule-Now")
-                    .scheduleMessage(js);
+                    .build();
+                report("SCHEDULE-NOW (publishing)", m);
+                js.publish(m);
 
-                report("SCHEDULE-AT (publishing)");
-                new ScheduledMessageBuilder()
+                m = new ScheduledMessageBuilder()
                     .scheduleSubject(SCHEDULE_PREFIX + "at")
                     .targetSubject(TARGET_PREFIX + "at")
                     .scheduleAt(DateTimeUtils.gmtNow().plusSeconds(5))
                     .data("Scheduled-At")
-                    .scheduleMessage(js);
+                    .build();
+                report("SCHEDULE-AT (publishing)", m);
+                js.publish(m);
 
-                report("SCHEDULE-EVERY (publishing)");
-                new ScheduledMessageBuilder()
+                m = new ScheduledMessageBuilder()
                     .scheduleSubject(SCHEDULE_PREFIX + "at")
                     .targetSubject(TARGET_PREFIX + "at")
                     .scheduleEvery(1, TimeUnit.SECONDS)
                     .data("Every Second")
-                    .scheduleMessage(js);
+                    .build();
+                report("SCHEDULE-EVERY (publishing)", m);
+                js.publish(m);
 
                 latch.await();
             }
