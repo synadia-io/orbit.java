@@ -5,7 +5,6 @@ package io.synadia.examples;
 
 import io.nats.client.*;
 import io.nats.client.api.StorageType;
-import io.nats.client.api.StreamInfo;
 import io.nats.client.impl.Headers;
 import io.nats.client.impl.NatsMessage;
 import io.synadia.sm.ScheduleManagement;
@@ -14,7 +13,7 @@ import io.synadia.sm.ScheduledMessageBuilder;
 import java.time.Duration;
 import java.util.concurrent.CountDownLatch;
 
-import static io.synadia.examples.ScheduleUtils.report;
+import static io.synadia.examples.ScheduleExampleUtils.report;
 
 /**
  * Example: schedule a message whose body and headers are taken from the last
@@ -54,8 +53,7 @@ public class ScheduleFromSource {
                 try { jsm.deleteStream(STREAM); } catch (Exception ignore) {}
 
                 // Use the utility to properly create a schedulable stream
-                StreamInfo si = ScheduleManagement.createSchedulableStream(jsm, STREAM, StorageType.Memory, STREAM_SUBJECTS);
-                report("Created stream", si.getConfiguration());
+                ScheduleManagement.createSchedulableStream(jsm, STREAM, StorageType.Memory, STREAM_SUBJECTS);
 
                 CountDownLatch latch1 = new CountDownLatch(1);
                 CountDownLatch latch2 = new CountDownLatch(2);
