@@ -103,7 +103,7 @@ public class ScheduleBasicsAlternate {
                     .scheduleEvery(1, TimeUnit.SECONDS)
                     .data("Every Second")
                     .build();
-                report("SCHEDULING " + SCHEDULE_PREFIX + "now", m);
+                report("SCHEDULING " + SCHEDULE_PREFIX + "every", m);
                 js.publish(m);
 
                 latch.await();
