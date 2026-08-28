@@ -16,7 +16,7 @@ import java.util.Map;
 public final class CountersUtils {
 
     public static final String INCREMENT_HEADER = "Nats-Incr";
-    public static final String SOURCES_HEADER = "Nats-Counters-Sources";
+    public static final String SOURCES_HEADER = "Nats-Counter-Sources";
 
     public static BigInteger extractVal(byte @NonNull [] valBytes) {
         String s = new String(valBytes);

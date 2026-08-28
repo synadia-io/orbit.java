@@ -1,8 +1,10 @@
 package io.synadia.counters;
 
 import io.nats.client.*;
+import io.nats.client.api.Source;
 import io.nats.client.api.StorageType;
 import io.nats.client.api.StreamConfiguration;
+import io.nats.client.api.SubjectTransform;
 import nats.io.NatsServerRunner;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -148,6 +150,56 @@ public class CountersTests {
         assertNotNull(er);
         assertTrue(er.isEobStatus());
         assertEquals(1110, total.intValue());
+    }
+
+    @Test
+    public void testSourcesHeaderMatchesServer() {
+        // The server emits "Nats-Counter-Sources" (nats-server server/stream.go)
+        assertEquals("Nats-Counter-Sources", CountersUtils.SOURCES_HEADER);
+    }
+
+    @Test
+    public void testCounterSourcesPopulatedFromSourcedStream() throws Exception {
+        String prefix = "cshdr";
+        Counters es = createCountersStream(prefix + "-ES", prefix + ".es.*");
+
+        Counters eu = Counters.createCountersStream(nc,
+            StreamConfiguration.builder()
+                .name(prefix + "-EU")
+                .subjects(prefix + ".eu.*")
+                .storageType(StorageType.Memory)
+                .sources(Source.builder()
+                    .sourceName(prefix + "-ES")
+                    .subjectTransforms(SubjectTransform.builder()
+                        .source(prefix + ".es.>")
+                        .destination(prefix + ".eu.>")
+                        .build())
+                    .build())
+                .build());
+
+        es.add(prefix + ".es.hits", 100);
+
+        CounterEntry entry = null;
+        for (int i = 0; i < 100; i++) {
+            try {
+                entry = eu.getEntry(prefix + ".eu.hits");
+                if (!entry.getSources().isEmpty()) {
+                    break;
+                }
+            }
+            catch (Exception ignore) {
+                // sourcing not propagated yet
+            }
+            Thread.sleep(100);
+        }
+
+        assertNotNull(entry);
+        assertEquals(100, entry.getValue().intValue());
+        Map<String, Map<String, BigInteger>> sources = entry.getSources();
+        assertFalse(sources.isEmpty(), "sources should be populated from the sourced counter stream");
+        Map<String, BigInteger> esSources = sources.get(prefix + "-ES");
+        assertNotNull(esSources);
+        assertEquals(100, esSources.get(prefix + ".es.hits").intValue());
     }
 
     @Test
