@@ -1,9 +1,10 @@
 package io.synadia.rm;
 
+import io.nats.ConsoleOutput;
+import io.nats.NatsRunnerUtils;
+import io.nats.NatsServerRunner;
 import io.nats.client.*;
 import io.nats.client.impl.NatsMessage;
-import nats.io.ConsoleOutput;
-import nats.io.NatsServerRunner;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -509,17 +510,17 @@ public class RequestManyTests {
     }
 
     private static Options getOptions() {
-        return Options.builder().server(TS.getURI()).build();
+        return Options.builder().server(TS.getNatsLocalhostUri()).build();
     }
 
     @BeforeAll
     public static void beforeAll() {
-        NatsServerRunner.setDefaultOutputSupplier(ConsoleOutput::new);
-        NatsServerRunner.setDefaultOutputLevel(Level.WARNING);
+        NatsRunnerUtils.setDefaultOutputSupplier(ConsoleOutput::new);
+        NatsRunnerUtils.setDefaultOutputLevel(Level.WARNING);
         try {
             TS = NatsServerRunner.builder().build();
             sleep(200); // just give the server some time to be running
-            NC = Nats.connect(Options.builder().server(TS.getURI()).build());
+            NC = Nats.connect(Options.builder().server(TS.getNatsLocalhostUri()).build());
             sleep(200); // just give the connection time to be ready
             DEFAULT_TIMEOUT = NC.getOptions().getConnectionTimeout().toMillis();
         }

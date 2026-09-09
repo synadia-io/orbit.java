@@ -3,6 +3,8 @@
 
 package io.synadia.ekv;
 
+import io.nats.NatsRunnerUtils;
+import io.nats.NatsServerRunner;
 import io.nats.client.*;
 import io.nats.client.api.KeyValueConfiguration;
 import io.nats.client.api.KeyValueOperation;
@@ -12,7 +14,6 @@ import io.nats.client.impl.NatsKeyValueWatchSubscription;
 import io.synadia.ekv.codec.*;
 import io.synadia.ekv.misc.Data;
 import io.synadia.ekv.misc.GeneralType;
-import nats.io.NatsServerRunner;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.codec.binary.Hex;
 import org.junit.jupiter.api.BeforeAll;
@@ -38,7 +39,7 @@ import static org.junit.jupiter.api.Assertions.*;
 public class WorkflowTests {
     @BeforeAll
     public static void beforeAll() {
-        NatsServerRunner.setDefaultOutputLevel(Level.WARNING);
+        NatsRunnerUtils.setDefaultOutputLevel(Level.WARNING);
     }
 
     @ParameterizedTest
@@ -46,7 +47,7 @@ public class WorkflowTests {
     public void testStringKeyWorkflow(String gtName, String variant) throws Exception {
         GeneralType gt = gtName.equals("PLAIN") ? GeneralType.PLAIN : (gtName.equals("BASE64") ? GeneralType.BASE64 : GeneralType.HEX);
         try (NatsServerRunner runner = new NatsServerRunner(false, true)) {
-            try (Connection nc = Nats.connect(runner.getURI())) {
+            try (Connection nc = Nats.connect(runner.getNatsLocalhostUri())) {
                 GeneralStringKeyCodec keyCodec = new GeneralStringKeyCodec(gt);
                 DataValueCodec dvc = new DataValueCodec(gt);
 
@@ -227,7 +228,7 @@ public class WorkflowTests {
     @Test
     public void testKeyWorkflow() throws Exception {
         try (NatsServerRunner runner = new NatsServerRunner(false, true)) {
-            try (Connection nc = Nats.connect(runner.getURI())) {
+            try (Connection nc = Nats.connect(runner.getNatsLocalhostUri())) {
                 DataKeyCodec dkc = new DataKeyCodec();
                 DataValueCodec dvc = new DataValueCodec(GeneralType.BASE64);
 
@@ -448,7 +449,7 @@ public class WorkflowTests {
         List<String> allKeys = Arrays.asList(TEST_WATCH_KEY_1, TEST_WATCH_KEY_2, TEST_WATCH_KEY_NULL);
 
         try (NatsServerRunner runner = new NatsServerRunner(false, true)) {
-            try (Connection nc = Nats.connect(runner.getURI())) {
+            try (Connection nc = Nats.connect(runner.getNatsLocalhostUri())) {
                 _testWatch(nc, gt, key1FullWatcher, key1AllExpecteds, -1, kv -> kv.watch(TEST_WATCH_KEY_1, key1FullWatcher, key1FullWatcher.watchOptions));
                 _testWatch(nc, gt, key1MetaWatcher, key1AllExpecteds, -1, kv -> kv.watch(TEST_WATCH_KEY_1, key1MetaWatcher, key1MetaWatcher.watchOptions));
                 _testWatch(nc, gt, key1StartNewWatcher, key1AllExpecteds, -1, kv -> kv.watch(TEST_WATCH_KEY_1, key1StartNewWatcher, key1StartNewWatcher.watchOptions));

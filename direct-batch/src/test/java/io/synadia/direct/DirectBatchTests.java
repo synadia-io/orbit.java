@@ -1,5 +1,7 @@
 package io.synadia.direct;
 
+import io.nats.NatsRunnerUtils;
+import io.nats.NatsServerRunner;
 import io.nats.client.Connection;
 import io.nats.client.JetStream;
 import io.nats.client.JetStreamManagement;
@@ -10,7 +12,6 @@ import io.nats.client.api.StreamConfiguration;
 import io.nats.client.api.StreamInfo;
 import io.nats.client.support.DateTimeUtils;
 import io.nats.client.support.JsonUtils;
-import nats.io.NatsServerRunner;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
@@ -29,13 +30,13 @@ import static org.junit.jupiter.api.Assertions.*;
 public class DirectBatchTests {
     @BeforeAll
     public static void beforeAll() {
-        NatsServerRunner.setDefaultOutputLevel(Level.WARNING);
+        NatsRunnerUtils.setDefaultOutputLevel(Level.WARNING);
     }
 
     @Test
     public void testBatchDirectGetErrorsAndStatuses() throws Exception {
         try (NatsServerRunner runner = new NatsServerRunner(false, true)) {
-            try (Connection nc = Nats.connect(runner.getURI())) {
+            try (Connection nc = Nats.connect(runner.getNatsLocalhostUri())) {
                 assertThrows(IllegalArgumentException.class, () -> MessageBatchGetRequest.batch(null, 1));
                 assertThrows(IllegalArgumentException.class, () -> MessageBatchGetRequest.batch("", 1));
                 assertThrows(IllegalArgumentException.class, () -> MessageBatchGetRequest.batch(">", 0));
@@ -122,7 +123,7 @@ public class DirectBatchTests {
         try (NatsServerRunner runner = new NatsServerRunner(false, true)) {
             String stream = "stream6032";
             String subject = "subject6032";
-            try (Connection nc = Nats.connect(runner.getURI())) {
+            try (Connection nc = Nats.connect(runner.getNatsLocalhostUri())) {
                 JetStreamManagement jsm = nc.jetStreamManagement();
                 JetStream js = jsm.jetStream();
 
@@ -167,7 +168,7 @@ public class DirectBatchTests {
         try (NatsServerRunner runner = new NatsServerRunner(false, true)) {
             String stream = "stream6077";
             String subject = "subject6077";
-            try (Connection nc = Nats.connect(runner.getURI())) {
+            try (Connection nc = Nats.connect(runner.getNatsLocalhostUri())) {
                 JetStreamManagement jsm = nc.jetStreamManagement();
                 JetStream js = jsm.jetStream();
 
@@ -220,7 +221,7 @@ public class DirectBatchTests {
     @Test
     public void testBatchDirectGet() throws Exception {
         try (NatsServerRunner runner = new NatsServerRunner(false, true)) {
-            try (Connection nc = Nats.connect(runner.getURI())) {
+            try (Connection nc = Nats.connect(runner.getNatsLocalhostUri())) {
                 JetStream js = nc.jetStream();
                 JetStreamManagement jsm = nc.jetStreamManagement();
 

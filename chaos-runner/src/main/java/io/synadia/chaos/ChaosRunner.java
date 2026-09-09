@@ -3,12 +3,15 @@
 
 package io.synadia.chaos;
 
+import io.nats.ClusterDefaults;
 import io.nats.ClusterInsert;
 import io.nats.ClusterNode;
+import io.nats.NatsRunnerUtils;
 import io.nats.NatsServerRunner;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -19,7 +22,9 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.Level;
 
-import static io.nats.NatsRunnerUtils.*;
+import static io.nats.ClusterUtils.createClusterInserts;
+import static io.nats.ClusterUtils.createNodes;
+import static io.nats.NatsRunnerUtils.getNatsLocalhostUri;
 import static io.synadia.chaos.ChaosUtils.getDefaultPrinter;
 
 public class ChaosRunner {
@@ -91,7 +96,7 @@ public class ChaosRunner {
             .jetstream(true)
             .configInserts(ci.configInserts)
             .port(ci.node.port)
-            .connectCheckTries(0)
+            .skipConnectValidate()
             ;
         return b.build();
     }
@@ -172,7 +177,7 @@ public class ChaosRunner {
 
     private ChaosRunner(ChaosArguments a, ChaosPrinter printer) throws IOException {
         if (a.workDirectory == null) {
-            a.workDirectory = getTemporaryJetStreamStoreDirBase();
+            a.workDirectory = Files.createTempDirectory(null);
         }
         else if (!a.workDirectory.toFile().exists()) {
             throw new IllegalArgumentException("Work directory does not exist: " + a.workDirectory);
@@ -233,7 +238,15 @@ public class ChaosRunner {
             clusterInserts.add(new ClusterInsert(cn, inserts.toArray(new String[0])));
         }
         else {
-            List<ClusterNode> cns = createNodes(servers, clusterName, serverNamePrefix, jsStoreDirBase, DEFAULT_HOST, port, listen, monitor < 1 ? null : monitor);
+            ClusterDefaults cd = new ClusterDefaults()
+                .count(servers)
+                .clusterName(clusterName)
+                .serverNamePrefix(serverNamePrefix)
+                .host(NatsRunnerUtils.LocalHost.ip.host)
+                .portStart(port)
+                .listenStart(listen)
+                .monitorStart(monitor); // less than 1 turns the monitor off
+            List<ClusterNode> cns = createNodes(cd, jsStoreDirBase);
             if (specificPort != -1) {
                 boolean found = false;
                 for (ClusterNode cn : cns) {
@@ -279,7 +292,7 @@ public class ChaosRunner {
     }
 
     public static ChaosRunner start(ChaosArguments a, ChaosPrinter printer) throws Exception {
-        NatsServerRunner.setDefaultOutputLevel(Level.SEVERE);
+        NatsRunnerUtils.setDefaultOutputLevel(Level.SEVERE);
         final ChaosPrinter finalPrinter = printer == null ? getDefaultPrinter() : printer;
 
         INSTANCE_LOCK.lock();

@@ -1,5 +1,8 @@
 package io.synadia.jnats.extension;
 
+import io.nats.ConsoleOutput;
+import io.nats.NatsRunnerUtils;
+import io.nats.NatsServerRunner;
 import io.nats.client.*;
 import io.nats.client.api.PublishAck;
 import io.nats.client.api.StorageType;
@@ -7,8 +10,6 @@ import io.nats.client.api.StreamConfiguration;
 import io.nats.client.impl.Headers;
 import io.nats.client.impl.NatsMessage;
 import io.synadia.retrier.RetryConfig;
-import nats.io.ConsoleOutput;
-import nats.io.NatsServerRunner;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
@@ -22,8 +23,8 @@ import static org.junit.jupiter.api.Assertions.*;
 
 public class PublishRetrierTests {
     static {
-        NatsServerRunner.setDefaultOutputSupplier(ConsoleOutput::new);
-        NatsServerRunner.setDefaultOutputLevel(Level.WARNING);
+        NatsRunnerUtils.setDefaultOutputSupplier(ConsoleOutput::new);
+        NatsRunnerUtils.setDefaultOutputLevel(Level.WARNING);
     }
 
     interface SyncRetryFunction {
@@ -74,7 +75,7 @@ public class PublishRetrierTests {
     @Test
     public void testRetryJsApis() throws Exception {
         try (NatsServerRunner runner = new NatsServerRunner(false, true)) {
-            try (Connection nc = Nats.connect(runner.getURI())) {
+            try (Connection nc = Nats.connect(runner.getNatsLocalhostUri())) {
                 final JetStream js = nc.jetStream();
 
                 _testRetrySync(nc, subject -> PublishRetrier.publish(js, subject, null));

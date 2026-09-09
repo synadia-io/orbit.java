@@ -16,20 +16,17 @@ group = 'io.synadia'
 
 def isRelease = System.getenv("BUILD_EVENT") == "release"
 
-def tc = System.getenv("TARGET_COMPATIBILITY");
-def targetCompat = tc == "21" ? JavaVersion.VERSION_21 : (tc == "17" ? JavaVersion.VERSION_17 : JavaVersion.VERSION_1_8)
-def jarEnd =       tc == "21" ?  "-jdk21"              : (tc == "17" ? "-jdk17"               : "")
-def jarAndArtifactName = "schedule-message" + jarEnd
+def jarAndArtifactName = "schedule-message"
 
 version = isRelease ? jarVersion : jarVersion + "-SNAPSHOT" // version is the variable the build actually uses.
 
 System.out.println("Java: " + System.getProperty("java.version"))
-System.out.println("Target Compatibility: " + targetCompat)
+System.out.println("Target Compatibility: " + JavaVersion.VERSION_1_8)
 System.out.println(group + ":" + jarAndArtifactName + ":" + version)
 
 java {
     sourceCompatibility = JavaVersion.VERSION_1_8
-    targetCompatibility = targetCompat
+    targetCompatibility = JavaVersion.VERSION_1_8
 }
 
 repositories {
@@ -40,11 +37,11 @@ repositories {
 }
 
 dependencies {
-    implementation 'io.nats:jnats:2.25.3'
+    implementation 'io.nats:jnats:2.26.2'
     implementation 'org.jspecify:jspecify:1.0.0'
     implementation 'io.synadia:counters:0.2.2'
 
-    testImplementation 'io.nats:jnats-server-runner:3.1.0'
+    testImplementation 'io.nats:jnats-server-runner:3.1.1'
     testImplementation 'org.junit.jupiter:junit-jupiter:5.14.1'
     testImplementation 'org.junit.platform:junit-platform-launcher:1.14.3'
 }
@@ -69,11 +66,12 @@ tasks.register('bundle', Bundle) {
 
 jar {
     bundle {
-        bnd("Bundle-Name": "io.synadia.schedule.message",
+        bnd("Automatic-Module-Name": "io.synadia.schedule.message",
+                "Bundle-Name": "io.synadia.schedule.message",
                 "Bundle-Vendor": "synadia.io",
                 "Bundle-Description": "JetStream Scheduled Messages",
                 "Bundle-DocURL": "https://github.com/synadia-io/orbit.java/tree/main/schedule-message",
-                "Target-Compatibility": "Java " + targetCompat
+                "Target-Compatibility": "Java " + JavaVersion.VERSION_1_8
         )
     }
 }
