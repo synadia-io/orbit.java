@@ -3,10 +3,10 @@
 
 package io.synadia.ekv;
 
+import io.nats.NatsRunnerUtils;
 import io.synadia.ekv.codec.*;
 import io.synadia.ekv.misc.Data;
 import io.synadia.ekv.misc.GeneralType;
-import nats.io.NatsServerRunner;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
@@ -18,7 +18,7 @@ import static org.junit.jupiter.api.Assertions.*;
 public class ChainTests {
     @BeforeAll
     public static void beforeAll() {
-        NatsServerRunner.setDefaultOutputLevel(Level.WARNING);
+        NatsRunnerUtils.setDefaultOutputLevel(Level.WARNING);
     }
 
     @Test

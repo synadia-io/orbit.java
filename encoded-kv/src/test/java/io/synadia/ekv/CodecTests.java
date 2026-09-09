@@ -3,10 +3,10 @@
 
 package io.synadia.ekv;
 
+import io.nats.NatsRunnerUtils;
 import io.synadia.ekv.codec.*;
 import io.synadia.ekv.misc.Data;
 import io.synadia.ekv.misc.GeneralType;
-import nats.io.NatsServerRunner;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.codec.binary.Hex;
 import org.junit.jupiter.api.BeforeAll;
@@ -20,7 +20,7 @@ import static org.junit.jupiter.api.Assertions.*;
 public class CodecTests {
     @BeforeAll
     public static void beforeAll() {
-        NatsServerRunner.setDefaultOutputLevel(Level.WARNING);
+        NatsRunnerUtils.setDefaultOutputLevel(Level.WARNING);
     }
 
     @Test

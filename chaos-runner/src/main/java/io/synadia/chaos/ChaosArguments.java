@@ -5,14 +5,13 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Objects;
 
-import static io.nats.NatsRunnerUtils.DEFAULT_CLUSTER_NAME;
-import static io.nats.NatsRunnerUtils.DEFAULT_SERVER_NAME_PREFIX;
+import static io.nats.ClusterUtils.DEFAULT_CLUSTER_DEFAULTS;
 
 public class ChaosArguments {
 
     int servers = 3;
-    String clusterName = DEFAULT_CLUSTER_NAME;
-    String serverNamePrefix = DEFAULT_SERVER_NAME_PREFIX;
+    String clusterName = DEFAULT_CLUSTER_DEFAULTS.getClusterName();
+    String serverNamePrefix = DEFAULT_CLUSTER_DEFAULTS.getServerNamePrefix();
     boolean js = true;
     Path workDirectory;
     long initialDelay = 30_000;

@@ -1,11 +1,12 @@
 package io.synadia.counters;
 
+import io.nats.NatsRunnerUtils;
+import io.nats.NatsServerRunner;
 import io.nats.client.*;
 import io.nats.client.api.Source;
 import io.nats.client.api.StorageType;
 import io.nats.client.api.StreamConfiguration;
 import io.nats.client.api.SubjectTransform;
-import nats.io.NatsServerRunner;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -29,10 +30,10 @@ public class CountersTests {
 
     @BeforeAll
     public static void beforeAll() throws Exception {
-        NatsServerRunner.setDefaultOutputLevel(Level.WARNING);
+        NatsRunnerUtils.setDefaultOutputLevel(Level.WARNING);
         runner = new NatsServerRunner(false, true);
         Options options = Options.builder()
-            .server(runner.getURI())
+            .server(runner.getNatsLocalhostUri())
             .errorListener(new ErrorListener() {})
             .build();
         nc = Nats.connect(options);

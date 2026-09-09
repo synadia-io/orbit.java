@@ -6,15 +6,13 @@ plugins {
 group = 'io.synadia'
 version = "0.0.0"
 
-def tc = System.getenv("TARGET_COMPATIBILITY");
-def targetCompat = tc == "21" ? JavaVersion.VERSION_21 : (tc == "17" ? JavaVersion.VERSION_17 : JavaVersion.VERSION_1_8)
 
 System.out.println("Java: " + System.getProperty("java.version"))
-System.out.println("Target Compatibility: " + targetCompat)
+System.out.println("Target Compatibility: " + JavaVersion.VERSION_1_8)
 
 java {
     sourceCompatibility = JavaVersion.VERSION_1_8
-    targetCompatibility = targetCompat
+    targetCompatibility = JavaVersion.VERSION_1_8
 }
 
 repositories {
@@ -24,5 +22,5 @@ repositories {
 }
 
 dependencies {
-    implementation 'io.nats:jnats:2.25.1'
+    implementation 'io.nats:jnats:2.26.2'
 }
