@@ -80,6 +80,7 @@ jar {
                 "Target-Compatibility": "Java " + JavaVersion.VERSION_1_8
         )
     }
+    exclude("io/synadia/examples/**")
 }
 
 test {
