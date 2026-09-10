@@ -41,7 +41,7 @@ repositories {
 }
 
 dependencies {
-    implementation 'io.nats:jnats-server-runner:3.1.1'
+    implementation 'io.nats:jnats-server-runner:4.0.2'
 
     // this is only for the example and the uber jar won't include it
     implementation 'io.nats:jnats:2.26.2'

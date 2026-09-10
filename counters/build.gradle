@@ -40,7 +40,7 @@ dependencies {
     implementation 'io.synadia:direct-batch:0.1.4'
     implementation 'org.jspecify:jspecify:1.0.0'
 
-    testImplementation 'io.nats:jnats-server-runner:3.1.1'
+    testImplementation 'io.nats:jnats-server-runner:4.0.2'
     testImplementation 'commons-codec:commons-codec:1.20.0'
     testImplementation 'com.github.stefanbirkner:system-lambda:1.2.1'
     testImplementation 'nl.jqno.equalsverifier:equalsverifier:4.2.3'
