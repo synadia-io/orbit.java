@@ -6,6 +6,7 @@ package io.synadia.chaos;
 import io.nats.ClusterDefaults;
 import io.nats.ClusterInsert;
 import io.nats.ClusterNode;
+import io.nats.JsConfig;
 import io.nats.NatsRunnerUtils;
 import io.nats.NatsServerRunner;
 
@@ -93,11 +94,10 @@ public class ChaosRunner {
         ClusterInsert ci = clusterInserts.get(index);
         NatsServerRunner.Builder b = NatsServerRunner.builder()
             .debug(false)
-            .jetstream(true)
+            .jetstream(js)
             .configInserts(ci.configInserts)
             .port(ci.node.port)
-            .skipConnectValidate()
-            ;
+            .skipConnectValidate();
         return b.build();
     }
 
@@ -110,11 +110,19 @@ public class ChaosRunner {
     }
 
     private void downTask() {
+        // natsServerRunners is an ArrayList and shutdownServers() iterates it under this
+        // lock. executor.shutdown() does not interrupt a task already running, so without
+        // the lock a structural change here can race that iteration.
+        INSTANCE_LOCK.lock();
         try {
+            if (INSTANCE == null) {
+                // shut down before this task got to run
+                return;
+            }
             if (specificPort != -1) {
                 for (int i = 0; i < natsServerRunners.size(); i++) {
                     NatsServerRunner nsr = natsServerRunners.get(i);
-                    if (nsr.getPort() == specificPort) {
+                    if (nsr.getNatsPort() == specificPort) {
                         downIx = i;
                         break;
                     }
@@ -125,22 +133,39 @@ public class ChaosRunner {
             }
 
             NatsServerRunner runner = natsServerRunners.remove(downIx);
-            printer.out(CR_LABEL, "DOWN", runner.getPort());
+            printer.out(CR_LABEL, "DOWN", runner.getNatsPort());
             clusterInserts.add(clusterInserts.remove(downIx));
             runner.close();
             scheduleUp();
         }
         catch (Throwable e) {
-                printer.out(CR_LABEL, "DOWN/EX", e);
+            printer.out(CR_LABEL, "DOWN/EX", e);
+        }
+        finally {
+            INSTANCE_LOCK.unlock();
         }
     }
 
     private void upTask() {
         try {
             NatsServerRunner runner = createRunner(servers - 1);
-                printer.out(CR_LABEL, "UP", runner.getPort());
-            natsServerRunners.add(runner);
-            scheduleDown(delay);
+            INSTANCE_LOCK.lock();
+            try {
+                if (INSTANCE == null) {
+                    // Shut down while this server was starting. executor.shutdown() does not
+                    // interrupt a task already running, so we got here after shutdownServers()
+                    // had already closed out the list and the jvm hook was removed. Close it
+                    // here, or it outlives the jvm still holding its port.
+                    try { runner.close(); } catch (Exception ignore) {}
+                    return;
+                }
+                printer.out(CR_LABEL, "UP", runner.getNatsPort());
+                natsServerRunners.add(runner);
+                scheduleDown(delay);
+            }
+            finally {
+                INSTANCE_LOCK.unlock();
+            }
         }
         catch (Throwable e) {
                 printer.out(CR_LABEL, "UP/EX: ", e);
@@ -148,7 +173,7 @@ public class ChaosRunner {
         }
     }
 
-    private static void deleteDirContents(Path dir, boolean alsoDeleteSelf) throws IOException {
+    private static void deleteDirContents(Path dir, boolean alsoDeleteSelf) {
         File fDir = dir.toFile();
         if (fDir.exists()) {
             File[] items = fDir.listFiles();
@@ -208,9 +233,10 @@ public class ChaosRunner {
                 throw new IllegalArgumentException("Invalid specific port");
             }
             List<String> inserts = new ArrayList<>();
-            ClusterNode cn;
-            Path jsStorePath = Paths.get(jsStoreDirBase.toString(), "" + port);
-            cn = ClusterNode.builder()
+            // jsStoreDirBase is only set when js is on, and ClusterNode takes a null
+            // jsStoreDir, which is what the cluster branch ends up with in that case too
+            Path jsStorePath = js ? Paths.get(jsStoreDirBase.toString(), "" + port) : null;
+            ClusterNode cn = ClusterNode.builder()
                 .port(port)
                 .listen(listen)
                 .monitor(monitor < 1 ? null : monitor)
@@ -221,16 +247,9 @@ public class ChaosRunner {
                 inserts.add("http: " + monitor);
             }
             if (js) {
-                String storeDir = jsStorePath.toString();
-                if (File.separatorChar == '\\') {
-                    storeDir = storeDir.replace("\\", "\\\\").replace("/", "\\\\");
-                }
-                else {
-                    storeDir = storeDir.replace("\\", "/");
-                }
-                inserts.add("jetstream {");
-                inserts.add("    store_dir=" + storeDir);
-                inserts.add("}");
+                // as of jnats-server-runner 4.0.2 JsConfig cleans and escapes the dir it is
+                // given, the same as the cluster branch gets by way of createClusterInserts
+                inserts.addAll(new JsConfig(jsStorePath).configInserts);
             }
             inserts.add("server_name=" + serverNamePrefix);
 
@@ -266,7 +285,10 @@ public class ChaosRunner {
         // delete jsStoreDirs for clean start
         if (js) {
             for (ClusterInsert ci : clusterInserts) {
-                deleteDirContents(ci.node.jsStoreDir, false);
+                // jsStoreDir is nullable on ClusterNode, so it might not have been given one
+                if (ci.node.jsStoreDir != null) {
+                    deleteDirContents(ci.node.jsStoreDir, false);
+                }
             }
         }
 
@@ -307,12 +329,13 @@ public class ChaosRunner {
             }
 
             INSTANCE = new ChaosRunner(a, finalPrinter);
+            INSTANCE_ARGUMENTS = a;
 
             APP_SHUTDOWN_HOOK_THREAD = new Thread("app-shutdown-hook") {
                 @Override
                 public void run() {
-                    shutdownServers();
                     shutdownExecutor();
+                    shutdownServers();
                     finalPrinter.out(CR_LABEL, "EXIT");
                 }
             };
@@ -356,7 +379,11 @@ public class ChaosRunner {
     public static void shutdownExecutor() {
         INSTANCE_LOCK.lock();
         try {
-            INSTANCE.executor.shutdown();
+            // guard matches shutdownServers(). This is public and is also reachable a
+            // second time when the jvm hook and an explicit shutdown() overlap.
+            if (INSTANCE != null) {
+                INSTANCE.executor.shutdown();
+            }
         }
         finally {
             INSTANCE_LOCK.unlock();
@@ -384,6 +411,7 @@ public class ChaosRunner {
                     try { runner.close(); } catch (Exception ignore) {}
                 }
                 INSTANCE = null;
+                INSTANCE_ARGUMENTS = null;
             }
         }
         finally {
