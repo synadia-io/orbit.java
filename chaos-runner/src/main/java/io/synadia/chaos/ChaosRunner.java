@@ -110,7 +110,15 @@ public class ChaosRunner {
     }
 
     private void downTask() {
+        // natsServerRunners is an ArrayList and shutdownServers() iterates it under this
+        // lock. executor.shutdown() does not interrupt a task already running, so without
+        // the lock a structural change here can race that iteration.
+        INSTANCE_LOCK.lock();
         try {
+            if (INSTANCE == null) {
+                // shut down before this task got to run
+                return;
+            }
             if (specificPort != -1) {
                 for (int i = 0; i < natsServerRunners.size(); i++) {
                     NatsServerRunner nsr = natsServerRunners.get(i);
@@ -131,7 +139,10 @@ public class ChaosRunner {
             scheduleUp();
         }
         catch (Throwable e) {
-                printer.out(CR_LABEL, "DOWN/EX", e);
+            printer.out(CR_LABEL, "DOWN/EX", e);
+        }
+        finally {
+            INSTANCE_LOCK.unlock();
         }
     }
 
@@ -368,7 +379,11 @@ public class ChaosRunner {
     public static void shutdownExecutor() {
         INSTANCE_LOCK.lock();
         try {
-            INSTANCE.executor.shutdown();
+            // guard matches shutdownServers(). This is public and is also reachable a
+            // second time when the jvm hook and an explicit shutdown() overlap.
+            if (INSTANCE != null) {
+                INSTANCE.executor.shutdown();
+            }
         }
         finally {
             INSTANCE_LOCK.unlock();
