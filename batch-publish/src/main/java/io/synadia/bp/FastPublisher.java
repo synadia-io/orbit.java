@@ -47,7 +47,12 @@ public class FastPublisher extends AbstractFastPublisher {
     public PublishAck commit(@NonNull String subject, Headers userHeaders, byte[] data) throws FastPublishException {
         requireCommittable();
         _send(subject, userHeaders, data, FAST_BATCH_OP_COMMIT);
-        return awaitPubAck();
+        try {
+            return awaitPubAck();
+        }
+        finally {
+            abandonIfCommitDidNotFinish();
+        }
     }
 
     /**

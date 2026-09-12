@@ -42,7 +42,12 @@ public class EobFastPublisher extends AbstractFastPublisher {
             throw new FastPublishException(batchId, "Cannot commit an empty batch");
         }
         _send(firstSubject, null, null, FAST_BATCH_OP_COMMIT_EOB);
-        return awaitPubAck();
+        try {
+            return awaitPubAck();
+        }
+        finally {
+            abandonIfCommitDidNotFinish();
+        }
     }
 
     /**

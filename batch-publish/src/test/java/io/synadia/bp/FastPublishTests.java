@@ -396,13 +396,42 @@ public class FastPublishTests {
     public void testAckTimeoutNotInfinite() {
         // jnats reads a duration under one nanosecond as wait forever, so a zero or negative ack
         // timeout must fall back to the connection timeout rather than disabling every timeout in
-        // the publisher. Nothing captures this subject, so nothing ever answers the $FI reply and
-        // the add can only end by giving up.
+        // the publisher.
+        //
+        // Nothing captures this subject, so nothing answers the $FI reply - but a core subscriber
+        // has to be on it, or the server answers 503 no responders and the add fails on that
+        // instead, which would pass this test without ever reaching a timeout.
         for (long millis : new long[]{0, -5000}) {
+            String subject = NUID.nextGlobalSequence();
+            Subscription responder = nc.subscribe(subject);
             FastPublisher fp = FastPublisher.builder().connection(nc).ackTimeout(millis).build();
-            assertTimeoutPreemptively(Duration.ofSeconds(10), () ->
-                assertThrows(FastPublishException.class, () -> fp.add(NUID.nextGlobalSequence(), data("1"))));
+            assertTimeoutPreemptively(Duration.ofSeconds(10), () -> {
+                FastPublishException e = assertThrows(FastPublishException.class, () -> fp.add(subject, data("1")));
+                assertTrue(e.getMessage().contains("No response to the first message"), e.getMessage());
+            });
+            responder.unsubscribe();
+
+            // the first message is already on the wire and the batch never started, so the
+            // publisher is finished rather than left looking usable: a second add would append
+            // to a batch the server does not have
+            assertTrue(fp.isTerminal());
+            assertEquals(EndReason.Abandoned, fp.getEndReason());
+            assertThrows(FastPublishException.class, () -> fp.add(subject, data("2")));
         }
+    }
+
+    @Test
+    public void testNoRespondersIsNotReadAsAnAck() throws Exception {
+        // publishing to a subject no stream captures leaves nobody to respond, and the server
+        // says so on the reply subject. A status is not an acknowledgement: reading it as one
+        // would end the batch as committed and report "Invalid JetStream ack", neither of which
+        // is what happened.
+        FastPublisher fp = builder().build();
+        FastPublishException e = assertThrows(FastPublishException.class,
+            () -> fp.add(NUID.nextGlobalSequence(), data("1")));
+        assertTrue(e.getMessage().contains("status"), e.getMessage());
+        assertTrue(fp.isTerminal());
+        assertEquals(EndReason.Abandoned, fp.getEndReason());
     }
 
     @Test

@@ -5,7 +5,6 @@ package io.synadia.bp;
 
 import io.nats.client.*;
 import io.nats.client.api.PublishAck;
-import io.nats.client.api.PublishAck;
 import io.nats.client.impl.Headers;
 import org.jspecify.annotations.NonNull;
 

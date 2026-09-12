@@ -23,6 +23,10 @@ public enum EndReason {
     /** The server reported a per message error while in {@link GapMode#Fail}. */
     Error,
 
-    /** The client gave up, through {@code abandon()} or {@code close()}. */
+    /**
+     * The client gave up: {@code abandon()}, {@code close()}, or a failure that leaves the batch
+     * unusable - a first message the server never answered, or a commit whose acknowledgement
+     * never arrived.
+     */
     Abandoned
 }

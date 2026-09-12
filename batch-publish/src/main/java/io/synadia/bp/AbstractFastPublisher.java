@@ -208,8 +208,10 @@ public abstract class AbstractFastPublisher implements AutoCloseable {
      * Why the batch ended, or {@link EndReason#Open} while it is still running.
      * <p>
      * {@link #isTerminal()} answers whether the batch is over; this answers what ended it, which
-     * a caller needs to tell a committed batch from one the server abandoned under it. The two
-     * agree: the reason is {@code Open} exactly while {@code isTerminal()} is false.
+     * a caller needs to tell a committed batch from one the server abandoned under it. The
+     * guarantee between them is one directional and is the direction callers use: once
+     * {@code isTerminal()} is true this is never {@code Open}. It can be set an instant before
+     * the batch reads as terminal, which is harmless.
      * @return the reason
      */
     @NonNull
@@ -319,6 +321,11 @@ public abstract class AbstractFastPublisher implements AutoCloseable {
     private void awaitFirstReply() throws FastPublishException {
         Message m = nextMessage();
         if (m == null) {
+            // The batch never started, and the message that would have started it is already on
+            // the wire, so the next add would append to a batch the server does not have. Give
+            // up on it here rather than leaving a publisher that looks usable and is not, and
+            // release the control channel with it: nothing is coming.
+            abandon();
             throw new FastPublishException(batchId,
                 "No response to the first message of the batch. The server may not support fast ingest publish.");
         }
@@ -369,6 +376,9 @@ public abstract class AbstractFastPublisher implements AutoCloseable {
      * Give up on this batch without committing. The server cleans it up on its own inactivity
      * timeout. Anything already persisted stays persisted, and because there is no commit there
      * is no PublishAck, so there is no record of what that was.
+     * <p>
+     * Also used internally where a failure leaves a batch that can never be used again: a first
+     * message the server never answered, and a commit whose acknowledgement never arrived.
      */
     public void abandon() {
         end(EndReason.Abandoned);
@@ -440,6 +450,22 @@ public abstract class AbstractFastPublisher implements AutoCloseable {
             throw e;
         }
         requireUsable();
+    }
+
+    /**
+     * End a batch whose commit did not complete. The commit message is already on the wire, so
+     * the batch is in a state only the server knows: it may have committed and lost the ack, or
+     * never committed at all. Either way a second commit would be wrong, and the lost ack cannot
+     * be recovered by pinging, because a committed batch is cleaned up server side and a ping
+     * would be answered as an unknown batch. So the publisher is finished.
+     * <p>
+     * Does nothing when the commit ran to its acknowledgement, since that already ended the
+     * batch, including when the acknowledgement carried a server error.
+     */
+    protected void abandonIfCommitDidNotFinish() {
+        if (!isTerminal()) {
+            abandon();
+        }
     }
 
     /**
@@ -546,6 +572,7 @@ public abstract class AbstractFastPublisher implements AutoCloseable {
                 if (m == null) {
                     throw new FastPublishException(batchId, "Timed out waiting for the batch PublishAck.");
                 }
+                requireNotAStatus(m);
                 JsonValue jv = parse(m);
                 String type = jv == null ? null : type(jv);
                 if (type == null) {
@@ -643,8 +670,15 @@ public abstract class AbstractFastPublisher implements AutoCloseable {
      * @param reason why the batch ended
      */
     private void end(EndReason reason) {
-        terminal = true;
+        // The reason is set first on purpose. Both fields are written here and read elsewhere,
+        // and only one order is safe to read: a caller that sees isTerminal() true must never
+        // then see Open, because that is the pair it acts on. The volatile write to terminal
+        // cannot be reordered before the compare and set, so seeing the flag guarantees seeing
+        // the reason. The reverse window - a reason set an instant before the flag - is
+        // harmless, and in fact useful, since serverEnded() noticing early only means the
+        // terminal ack is collected sooner.
         endReason.compareAndSet(EndReason.Open, reason);
+        terminal = true;
     }
 
     private Message nextMessage() throws FastPublishException {
@@ -658,10 +692,10 @@ public abstract class AbstractFastPublisher implements AutoCloseable {
     }
 
     /**
-     * Take only what is already queued, never waiting. The pending count comes first because it
-     * is an {@code AtomicLong} read while the take locks the queue, and on this path the queue
-     * is almost always empty; the null timeout then makes the no-wait property structural
-     * rather than a consequence of the count being right.
+     * Process whatever the dispatcher has already handed over, and nothing more. A poll with no
+     * timeout on the internal queue returns null the moment it is empty, which is the common
+     * case on this path: it runs twice per add and the control channel is quiet by design, one
+     * acknowledgement per flow window rather than one per message.
      */
     private void drain() throws FastPublishException {
         while (!isFinished()) {
@@ -673,7 +707,27 @@ public abstract class AbstractFastPublisher implements AutoCloseable {
         }
     }
 
+    /**
+     * Refuse a status message on the control channel. The server answers `503 No Responders` on
+     * the reply subject when the subject a message went to has no subscriber at all, which for a
+     * fast batch means the stream does not capture it - a misconfigured subject rather than
+     * anything about the batch. It is not an acknowledgement and must not be read as one: doing
+     * so ends the batch as committed and reports "Invalid JetStream ack", neither of which is
+     * what happened. The batch cannot proceed either way, so it is given up here.
+     * @param m the control message
+     * @throws FastPublishException always, when the message is a status
+     */
+    private void requireNotAStatus(Message m) throws FastPublishException {
+        if (m.isStatusMessage()) {
+            abandon();
+            throw new FastPublishException(batchId,
+                "The server answered the batch with a status rather than an acknowledgement: "
+                    + m.getStatus() + ". The stream may not capture the subject being published to.");
+        }
+    }
+
     private void process(Message m) throws FastPublishException {
+        requireNotAStatus(m);
         JsonValue jv = parse(m);
         String type = jv == null ? null : type(jv);
         if (type == null) {
