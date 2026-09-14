@@ -355,8 +355,9 @@ public abstract class AbstractFastPublisher implements AutoCloseable {
      * and fail a {@link GapMode#Fail} batch.
      * <p>
      * The ping is addressed to the subject of the <b>first</b> message in the batch, which the
-     * stream captures by construction and which is where every other client sends it. A batch
-     * with no messages has no such subject and cannot be pinged.
+     * stream is already known to capture since it has taken a message on it, and which is where
+     * every other client sends it. A batch with no messages has no such subject and cannot be
+     * pinged.
      * @throws FastPublishException if the batch is finished, or has no messages in it
      */
     public void ping() throws FastPublishException {

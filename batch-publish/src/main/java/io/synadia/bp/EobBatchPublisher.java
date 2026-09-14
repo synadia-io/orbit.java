@@ -41,7 +41,7 @@ public class EobBatchPublisher extends AbstractBatchPublisher {
      * ADR-50 calls this a commit: operation "Commit without storing the final message (EOB mode)".
      * The sentinel is published on the subject of the <b>first</b> message added. There is
      * deliberately no overload taking a subject: the sentinel must land on a subject the stream
-     * captures, and the first added subject is one by construction.
+     * captures, and the stream has already taken a message on the first added subject.
      * @return the PublishAck. Its batch size excludes the sentinel.
      * @throws BatchPublishException if the batch is not open or has no messages in it
      */

@@ -32,7 +32,7 @@ public class EobFastPublisher extends AbstractFastPublisher {
      * <p>
      * The sentinel is published on the subject of the <b>first</b> message added. There is
      * deliberately no overload taking a subject: the sentinel must land on a subject the stream
-     * captures, and the first added subject is one by construction.
+     * captures, and the stream has already taken a message on the first added subject.
      * @return the authoritative PublishAck for the batch. Its batch size excludes the sentinel.
      * @throws FastPublishException if the batch is finished or has no messages in it
      */
