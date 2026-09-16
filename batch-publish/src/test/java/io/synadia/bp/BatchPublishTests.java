@@ -364,6 +364,41 @@ public class BatchPublishTests {
     }
 
     @Test
+    public void testNoRespondersIsReportedWhateverTheConnectionOptions() throws Exception {
+        // jnats v2 turns a 503 into a cancelled future by default and into an exceptionally
+        // completed one with reportNoResponders. The publisher must give the same diagnosis for
+        // both, on an acked add and on the commit.
+        Options reportOptions = Options.builder()
+            .server(runner.getNatsLocalhostUri())
+            .errorListener(new ErrorListener() {})
+            .reportNoResponders()
+            .build();
+        try (Connection reportNc = Nats.connect(reportOptions)) {
+            for (Connection c : new Connection[]{nc, reportNc}) {
+                String subject = NUID.nextGlobalSequence();
+
+                BatchPublisher onAdd = BatchPublisher.builder().connection(c).build();
+                BatchPublishException e = assertThrows(BatchPublishException.class, () -> onAdd.add(subject, data("1")));
+                assertTrue(e.getMessage().contains("503 No Responders"), e.getMessage());
+                assertTrue(e.getMessage().contains(subject), e.getMessage());
+
+                BatchPublisher onCommit = BatchPublisher.builder().connection(c).ackFirst(false).build();
+                onCommit.add(subject, data("1"));
+                e = assertThrows(BatchPublishException.class, () -> onCommit.commit(subject, data("2")));
+                assertTrue(e.getMessage().contains("503 No Responders"), e.getMessage());
+            }
+        }
+
+        // a request that reaches a subscriber that never answers is a timeout, not a 503
+        String subject = NUID.nextGlobalSequence();
+        Subscription silent = nc.subscribe(subject);
+        BatchPublisher bp = BatchPublisher.builder().connection(nc).ackTimeout(500).build();
+        BatchPublishException e = assertThrows(BatchPublishException.class, () -> bp.add(subject, data("1")));
+        assertFalse(e.getMessage().contains("503 No Responders"), e.getMessage());
+        silent.unsubscribe();
+    }
+
+    @Test
     public void testBatchSizeLimit() throws Exception {
         String subject = NUID.nextGlobalSequence();
         String streamName = createStream(true, subject);

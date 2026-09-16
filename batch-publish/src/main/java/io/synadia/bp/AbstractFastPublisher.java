@@ -881,8 +881,7 @@ public abstract class AbstractFastPublisher implements AutoCloseable {
          * @return The Builder
          */
         public B maxFlow(int maxFlow) {
-            this.maxFlow = maxFlow < 1 ? DEFAULT_MAX_FLOW
-                : (maxFlow > MAX_FLOW_CEILING ? MAX_FLOW_CEILING : maxFlow);
+            this.maxFlow = maxFlow < 1 ? DEFAULT_MAX_FLOW : Math.min(maxFlow, MAX_FLOW_CEILING);
             return self();
         }
 
@@ -897,8 +896,7 @@ public abstract class AbstractFastPublisher implements AutoCloseable {
          * @return The Builder
          */
         public B maxOutstandingAcks(int maxOutstandingAcks) {
-            this.maxOutstandingAcks = maxOutstandingAcks < 1 ? DEFAULT_MAX_OUTSTANDING_ACKS
-                : (maxOutstandingAcks > MAX_OUTSTANDING_ACKS ? MAX_OUTSTANDING_ACKS : maxOutstandingAcks);
+            this.maxOutstandingAcks = maxOutstandingAcks < 1 ? DEFAULT_MAX_OUTSTANDING_ACKS : Math.min(maxOutstandingAcks, MAX_OUTSTANDING_ACKS);
             return self();
         }
 

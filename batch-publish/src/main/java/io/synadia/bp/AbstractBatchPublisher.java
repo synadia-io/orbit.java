@@ -6,6 +6,7 @@ package io.synadia.bp;
 import io.nats.client.*;
 import io.nats.client.api.PublishAck;
 import io.nats.client.impl.Headers;
+import io.nats.client.support.NatsRequestCompletableFuture;
 import org.jspecify.annotations.NonNull;
 
 import java.io.IOException;
@@ -497,17 +498,30 @@ public abstract class AbstractBatchPublisher {
      * @throws BatchPublishException if the request fails or times out
      */
     protected Message request(@NonNull String subject, Headers userHeaders, byte[] data, String commitValue, BatchPublishOptions opts) throws BatchPublishException {
+        CompletableFuture<Message> f = null;
         try {
             updateHeaders(commitValue, userHeaders, opts);
-            CompletableFuture<Message> f = conn.requestWithTimeout(subject, headers, data, ackTimeout);
+            f = conn.requestWithTimeout(subject, headers, data, ackTimeout);
             return f.get(ackTimeout.toNanos(), TimeUnit.NANOSECONDS);
         }
-        catch (ExecutionException | TimeoutException e) {
+        catch (ExecutionException e) {
+            // with reportNoResponders set, jnats completes the future exceptionally with a
+            // JetStreamStatusException, and only for a 503
+            if (e.getCause() instanceof JetStreamStatusException) {
+                throw noResponders(subject);
+            }
+            throw new BatchPublishException(batchId, e);
+        }
+        catch (TimeoutException e) {
             throw new BatchPublishException(batchId, e);
         }
         catch (CancellationException e) {
             // requestWithTimeout cancels its future when nothing answers, so this is the shape a
-            // timeout actually arrives in. It is unchecked, so without this it escapes raw.
+            // timeout actually arrives in, and with the default connection options a 503 too.
+            // It is unchecked, so without this it escapes raw.
+            if (wasCancelledByNoResponders(f)) {
+                throw noResponders(subject);
+            }
             throw new BatchPublishException(batchId, e);
         }
         catch (InterruptedException e) {
@@ -521,6 +535,37 @@ public abstract class AbstractBatchPublisher {
             // go out, so its sequence stays spent.
             throw new NotSent(batchId, e);
         }
+    }
+
+    /**
+     * Whether a cancelled request future was cancelled because the server answered
+     * {@code 503 No Responders}. jnats v2 decides per connection what a 503 does to a request:
+     * with the default options it cancels the future, with {@code reportNoResponders()} it
+     * completes the future exceptionally instead. A cancellation also comes from the connection
+     * closing and from jnats' own cleanup expiring the request, so the future's flags rule
+     * those two out. The flags are written before the future completes, and get() has already
+     * seen the completion, so they are current when read here.
+     * @param f the future, null if the request never produced one
+     * @return true if the cancellation was a 503
+     */
+    private boolean wasCancelledByNoResponders(CompletableFuture<Message> f) {
+        if (conn.getOptions().isReportNoResponders() || !(f instanceof NatsRequestCompletableFuture)) {
+            return false;
+        }
+        NatsRequestCompletableFuture nf = (NatsRequestCompletableFuture) f;
+        return !nf.wasCancelledClosing() && !nf.wasCancelledTimedOut();
+    }
+
+    /**
+     * Make the exception for a {@code 503 No Responders} answer, the same whichever way jnats
+     * delivered it, so the diagnosis does not depend on the application's connection options.
+     * Never a NotSent: the server answered, so the message reached it and the sequence was used.
+     * @param subject the subject the message was published to
+     * @return the exception to throw
+     */
+    private BatchPublishException noResponders(String subject) {
+        return new BatchPublishException(batchId,
+            "The server answered with 503 No Responders rather than an acknowledgement. The stream may not capture the subject being published to: " + subject);
     }
 
     /**
