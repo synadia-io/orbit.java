@@ -1,4 +1,4 @@
-// Copyright (c) 2025 Synadia Communications Inc. All Rights Reserved.
+// Copyright (c) 2025-2026 Synadia Communications Inc. All Rights Reserved.
 // See LICENSE and NOTICE file for details.
 
 package io.synadia.examples;
@@ -9,7 +9,16 @@ import io.nats.client.impl.Headers;
 import io.synadia.bp.BatchPublishOptions;
 import io.synadia.bp.BatchPublisher;
 
+/**
+ * Set per message expectations on a batch - expected last sequence, expected last subject
+ * sequence and the subject that applies to - and re-use one options builder across messages.
+ * The server checks all of them at commit time, under lock.
+ * Requires a server at 2.12.0 or later.
+ */
 public class ExpectationsBatchPublishExample {
+    // a main class, never instantiated
+    private ExpectationsBatchPublishExample() {}
+
     static final String NATS_URL = "nats://localhost:4222";
     static final String STREAM = "expect-batch";
     static final String SUBJECT_PREFIX = "expect.";
@@ -17,11 +26,16 @@ public class ExpectationsBatchPublishExample {
     static final String SUBJECT_A = SUBJECT_PREFIX + "A";
     static final String SUBJECT_B = SUBJECT_PREFIX + "B";
 
+    /**
+     * Run the example.
+     * @param args unused
+     * @throws Exception if anything the example does fails
+     */
     public static void main(String[] args) throws Exception {
         try (Connection nc = Nats.connect(NATS_URL)) {
             JetStreamManagement jsm = nc.jetStreamManagement();
 
-            // Set up a fresh counter stream
+            // Set up a fresh stream that allows atomic batch publish
             try { jsm.deleteStream(STREAM); }  catch (JetStreamApiException ignore) {}
             StreamConfiguration config = StreamConfiguration.builder()
                 .name(STREAM)
@@ -62,7 +76,6 @@ public class ExpectationsBatchPublishExample {
 
             System.out.println("Batch Commit Add to '" + SUBJECT_A + "', 'A3'");
             PublishAck pa = publisher.commit(SUBJECT_A, "A3".getBytes());
-            assert pa.getJv() != null;
             System.out.println("Batch [" + pa.getBatchId() + "] Committed " + pa.getJv().toJson());
 
             StreamInfo si = jsm.getStreamInfo(STREAM, StreamInfoOptions.allSubjects());
@@ -87,6 +100,11 @@ public class ExpectationsBatchPublishExample {
         }
     }
 
+    /**
+     * Render a message, its data and its headers, for printing.
+     * @param msg the message
+     * @return the rendering
+     */
     public static String toString(Message msg) {
         StringBuilder sb = new StringBuilder("  '").append(msg.getSubject());
         sb.append("', '").append(new String(msg.getData())).append("'");

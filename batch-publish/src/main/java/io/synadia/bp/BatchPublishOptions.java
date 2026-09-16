@@ -1,21 +1,37 @@
-// Copyright (c) 2025 Synadia Communications Inc. All Rights Reserved.
+// Copyright (c) 2025-2026 Synadia Communications Inc. All Rights Reserved.
 // See LICENSE and NOTICE file for details.
 
 package io.synadia.bp;
 
 import io.nats.client.MessageTtl;
 
-import java.time.Duration;
-
-import static io.nats.client.PublishOptions.DEFAULT_TIMEOUT;
 import static io.nats.client.PublishOptions.UNSET_LAST_SEQUENCE;
 import static io.nats.client.support.Validator.*;
 
+/**
+ * Per message options, supplied when adding a message to a batch or when committing one.
+ * They carry the expectations the server checks before it accepts the message, and the
+ * message's ttl. A ttl set here takes precedence over the one set on the publisher.
+ * <p>
+ * Acknowledgement settings are deliberately not here. Whether the first message is acked, how
+ * often the ones after it are, and how long to wait for an ack are all properties of the batch
+ * rather than of one message, so they live on the publisher's builder. Earlier releases carried
+ * copies of them here that were never read; they were removed in 0.3.0.
+ */
 public class BatchPublishOptions {
+    /** The stream the message is expected to be stored in, or null when not set. */
     public final String expectedStream;
+
+    /** The expected last sequence of the stream, or UNSET_LAST_SEQUENCE when not set. */
     public final long expectedLastSeq;
+
+    /** The expected last sequence for the subject, or UNSET_LAST_SEQUENCE when not set. */
     public final long expectedLastSubSeq;
+
+    /** The subject the expected last subject sequence applies to, which can be a wildcard, or null to use the message's own subject. */
     public final String expectedLastSubSeqSubject;
+
+    /** The ttl for the message, or null when not set. */
     public final MessageTtl messageTtl;
 
     private BatchPublishOptions(Builder b) {
@@ -87,15 +103,10 @@ public class BatchPublishOptions {
     }
 
     /**
-     * PublishOptions are created using a Builder. The builder supports chaining and will
-     * create a default set of options if no methods are calls. The builder can also
-     * be created from a properties object using the property names defined with the
-     * prefix PROP_ in this class.
+     * BatchPublishOptions are created using a Builder. The builder supports chaining and
+     * will create a default set of options if no methods are called.
      */
     public static class Builder {
-        Duration ackTimeout = DEFAULT_TIMEOUT;
-        boolean ackFirst = true;
-        int ackEvery = 0;
         String expectedStream;
         long expectedLastSeq = UNSET_LAST_SEQUENCE;
         long expectedLastSubSeq = UNSET_LAST_SEQUENCE;
@@ -106,46 +117,6 @@ public class BatchPublishOptions {
          * Constructs a new publish options Builder with the default values.
          */
         public Builder() {}
-
-        /**
-         * Sets the timeout to wait for the acknowledgement for acks when adding or the commit.
-         * @param ackTimeout the ack timeout.
-         * @return The Builder
-         */
-        public Builder ackTimeout(Duration ackTimeout) {
-            this.ackTimeout = validateDurationNotRequiredGtOrEqZero(ackTimeout, DEFAULT_TIMEOUT);
-            return this;
-        }
-
-        /**
-         * Sets the timeout im milliseconds to wait for the acknowledgement for acks when adding or the commit.
-         * @param ackTimeoutMillis the ack timeout.
-         * @return The Builder
-         */
-        public Builder ackTimeout(long ackTimeoutMillis) {
-            this.ackTimeout = ackTimeoutMillis < 1 ? DEFAULT_TIMEOUT : Duration.ofMillis(ackTimeoutMillis);
-            return this;
-        }
-
-        /**
-         * Whether to ack the first message. Defaults to true
-         * @param ackFirst the flag
-         * @return The Builder
-         */
-        public Builder ackFirst(boolean ackFirst) {
-            this.ackFirst = ackFirst;
-            return this;
-        }
-
-        /**
-         * The interval to ack when adding a message, after the first message. Defaults to 0 (never).
-         * @param ackEvery the ack every value
-         * @return The Builder
-         */
-        public Builder ackEvery(int ackEvery) {
-            this.ackEvery = ackEvery < 1 ? 0 : ackEvery;
-            return this;
-        }
 
         /**
          * Sets the expected stream for the publish. If the

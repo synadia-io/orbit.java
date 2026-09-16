@@ -14,7 +14,7 @@ client. Note that these libraries will evolve rapidly and API guarantees are gen
 | [Request Many](request-many)                          | Get many responses for a single core request.           | 0.1.1           | 0.1.2-SNAPSHOT |
 | [Encoded KeyValue](encoded-kv)                        | Allow custom encoding of keys and values.               | 0.1.1           | 0.1.2-SNAPSHOT |
 | [Direct Batch](direct-batch)                          | Leverages direct message capabilities in NATS Server    | 0.0.4           | 0.0.5-SNAPSHOT |
-| [Batch Publish](batch-publish)                        | Publish an atomic batch                                 | 0.2.2           | 0.2.3-SNAPSHOT |
+| [Batch Publish](batch-publish)                        | Publish an atomic batch or a fast-ingest batch          | 0.2.2           | 0.3.0-SNAPSHOT |
 | [Distributed Counters](counters)                      | Leverage distributed counters functionality             | 0.2.2           | 0.2.3-SNAPSHOT |
 | [Scheduled Message](schedule-message)                 | Leverage ability to schedule a message                  | 0.0.3           | 0.0.4-SNAPSHOT |
 | [Chaos Runner](chaos-runner)                          | Run some NATS servers and cause chaos                   | 0.0.8           | 0.0.9-SNAPSHOT |
@@ -84,13 +84,13 @@ The functionality is described in [ADR-31](https://github.com/nats-io/nats-archi
 
 ### Batch Publish
 
-Utility to publish an atomic batch, a group of up to 1000 messages
+Utility to publish a group of messages as one unit, either as an atomic batch of up to 1000 messages where all are stored or none are, or as a fast-ingest batch with no size limit and server driven flow control.
 
 [Batch Publish README](batch-publish/README.md)
 
 ![Artifact](https://img.shields.io/badge/Artifact-io.synadia:batch--publish-197556?labelColor=grey&style=flat)
 ![0.2.2](https://img.shields.io/badge/Current_Release-0.2.2-27AAE0)
-![0.2.3](https://img.shields.io/badge/Current_Snapshot-0.2.3--SNAPSHOT-27AAE0)
+![0.3.0](https://img.shields.io/badge/Current_Snapshot-0.3.0--SNAPSHOT-27AAE0)
 [![javadoc](https://javadoc.io/badge2/io.synadia/batch-publish/javadoc.svg)](https://javadoc.io/doc/io.synadia/batch-publish)
 [![Maven Central](https://img.shields.io/maven-central/v/io.synadia/batch-publish)](https://img.shields.io/maven-central/v/io.synadia/batch-publish)
 
