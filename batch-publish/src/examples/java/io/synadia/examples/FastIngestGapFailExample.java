@@ -24,7 +24,7 @@ public class FastIngestGapFailExample {
     static final int COUNT = 1000;
 
     // a field rather than a local so the listener below can query the publisher it belongs to
-    static EobFastPublisher fp;
+    static FastPublisher fp;
 
     /**
      * Run the example.
@@ -42,7 +42,7 @@ public class FastIngestGapFailExample {
                 .allowBatched(true)
                 .build());
 
-            fp = EobFastPublisher.builder()
+            fp = FastPublisher.builder()
                 .connection(nc)
                 .gapMode(GapMode.Fail)   // this is the default, shown here for clarity
                 .listener(new FastPublishListener() {
@@ -73,7 +73,7 @@ public class FastIngestGapFailExample {
                         break;
                     }
                 }
-                PublishAck pa = fp.commit();
+                PublishAck pa = fp.closeBatch();
                 System.out.println("Batch [" + pa.getBatchId() + "] stored " + pa.getBatchSize() + " messages.");
             }
             catch (FastPublishException e) {

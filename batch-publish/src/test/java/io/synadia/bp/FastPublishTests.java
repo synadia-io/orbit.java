@@ -83,10 +83,6 @@ public class FastPublishTests {
         return FastPublisher.builder().connection(nc).ackTimeout(10_000);
     }
 
-    private static EobFastPublisher.Builder eobBuilder() {
-        return EobFastPublisher.builder().connection(nc).ackTimeout(10_000);
-    }
-
     // ----------------------------------------------------------------------------------
     // happy paths
     // ----------------------------------------------------------------------------------
@@ -99,7 +95,7 @@ public class FastPublishTests {
         for (int i = 1; i <= 1000; i++) {
             fp.add(subject, data("data-" + i));
         }
-        PublishAck pa = fp.commit(subject, data("last"));
+        PublishAck pa = fp.closeBatch(subject, data("last"));
 
         assertEquals(1001, pa.getBatchSize());
         assertEquals(fp.getBatchId(), pa.getBatchId());
@@ -114,11 +110,11 @@ public class FastPublishTests {
         String subject = NUID.nextGlobalSequence();
         String streamName = createStream(true, subject);
 
-        EobFastPublisher fp = eobBuilder().gapMode(GapMode.Fail).build();
+        FastPublisher fp = builder().gapMode(GapMode.Fail).build();
         for (int i = 1; i <= 100; i++) {
             fp.add(subject, data("data-" + i));
         }
-        PublishAck pa = fp.commit();
+        PublishAck pa = fp.closeBatch();
 
         // the EOB marker consumed a batch sequence but is not counted and not stored
         assertEquals(100, pa.getBatchSize());
@@ -136,7 +132,7 @@ public class FastPublishTests {
         // ADR-50 carves this out as returning a plain PubAck with no preceding flow ack
         FastPublisher fp = builder().build();
         fp.add(subject, data("one"));
-        PublishAck pa = fp.commit(subject, data("two"));
+        PublishAck pa = fp.closeBatch(subject, data("two"));
 
         assertEquals(2, pa.getBatchSize());
         assertEquals(2, msgCount(streamName));
@@ -149,11 +145,11 @@ public class FastPublishTests {
 
         // ADR-50: "The pub ack's BatchSize will reflect the messages in the batch, without
         // counting the EOB message." size() must agree with the server, not count the sentinel.
-        EobFastPublisher eob = eobBuilder().build();
+        FastPublisher eob = builder().build();
         for (int i = 1; i <= 10; i++) {
             eob.add(subject, data("d" + i));
         }
-        PublishAck eobAck = eob.commit();
+        PublishAck eobAck = eob.closeBatch();
         assertEquals(10, eobAck.getBatchSize());
         assertEquals(10, eob.size(), "size() must exclude the EOB sentinel");
         assertEquals(eobAck.getBatchSize(), eob.size());
@@ -166,7 +162,7 @@ public class FastPublishTests {
         for (int i = 1; i <= 10; i++) {
             stored.add(subject2, data("d" + i));
         }
-        PublishAck storeAck = stored.commit(subject2, data("final"));
+        PublishAck storeAck = stored.closeBatch(subject2, data("final"));
         assertEquals(11, storeAck.getBatchSize());
         assertEquals(11, stored.size(), "size() must count a stored final message");
         assertEquals(storeAck.getBatchSize(), stored.size());
@@ -182,7 +178,7 @@ public class FastPublishTests {
         createStream(true, subject);
 
         List<Long> flowChanges = new ArrayList<>();
-        EobFastPublisher fp = eobBuilder()
+        FastPublisher fp = builder()
             .maxFlow(100)
             .listener(new FastPublishListener() {
                 @Override
@@ -195,7 +191,7 @@ public class FastPublishTests {
         for (int i = 1; i <= 2000; i++) {
             fp.add(subject, data("data-" + i));
         }
-        fp.commit();
+        fp.closeBatch();
 
         assertFalse(flowChanges.isEmpty(), "the server must report a starting flow rate");
         assertTrue(fp.flow() > 0);
@@ -210,7 +206,7 @@ public class FastPublishTests {
         String subject = NUID.nextGlobalSequence();
         createStream(true, subject);
 
-        EobFastPublisher fp = eobBuilder().maxOutstandingAcks(1).maxFlow(10).build();
+        FastPublisher fp = builder().maxOutstandingAcks(1).maxFlow(10).build();
         for (int i = 1; i <= 500; i++) {
             FastPubAck a = fp.add(subject, data("data-" + i));
             long outstanding = a.getBatchSequence() - a.getAckSequence();
@@ -218,7 +214,7 @@ public class FastPublishTests {
             assertTrue(outstanding <= fp.flow() * 2,
                 "outstanding " + outstanding + " exceeded twice the flow " + fp.flow());
         }
-        fp.commit();
+        fp.closeBatch();
     }
 
     @Test
@@ -226,14 +222,14 @@ public class FastPublishTests {
         String subject = NUID.nextGlobalSequence();
         String streamName = createStream(true, subject);
 
-        EobFastPublisher fp = eobBuilder().build();
+        FastPublisher fp = builder().build();
         fp.add(subject, data("1"));
         fp.add(subject, data("2"));
         long before = fp.size();
         fp.ping();
         assertEquals(before, fp.size(), "ping must not consume a batch sequence");
 
-        PublishAck pa = fp.commit();
+        PublishAck pa = fp.closeBatch();
         assertEquals(2, pa.getBatchSize());
         assertEquals(2, msgCount(streamName));
     }
@@ -258,7 +254,7 @@ public class FastPublishTests {
         createStream(true, subject);
 
         AtomicLong errorSeq = new AtomicLong(-1);
-        EobFastPublisher fp = eobBuilder()
+        FastPublisher fp = builder()
             .gapMode(GapMode.Ok)
             .listener(new FastPublishListener() {
                 @Override
@@ -278,20 +274,20 @@ public class FastPublishTests {
                 fp.add(subject, data("data-" + i));
             }
         }
-        fp.commit();
+        fp.closeBatch();
 
         // in Ok mode the failure is reported and the batch keeps going
         assertNotEquals(-1, errorSeq.get(), "onError should have fired for the bad message");
     }
 
     @Test
-    public void testCommitEobEmptyBatch() throws Exception {
+    public void testCloseBatchEobEmptyBatch() throws Exception {
         String subject = NUID.nextGlobalSequence();
         createStream(true, subject);
 
-        EobFastPublisher fp = eobBuilder().build();
-        FastPublishException e = assertThrows(FastPublishException.class, fp::commit);
-        assertTrue(e.getMessage().contains("Cannot commit an empty batch"), e.getMessage());
+        FastPublisher fp = builder().build();
+        FastPublishException e = assertThrows(FastPublishException.class, fp::closeBatch);
+        assertTrue(e.getMessage().contains("Cannot close an empty batch"), e.getMessage());
     }
 
     @Test
@@ -305,11 +301,11 @@ public class FastPublishTests {
 
         assertTrue(fp.isTerminal());
         assertThrows(FastPublishException.class, () -> fp.add(subject, data("2")));
-        assertThrows(FastPublishException.class, () -> fp.commit(subject, data("2")));
+        assertThrows(FastPublishException.class, () -> fp.closeBatch(subject, data("2")));
     }
 
     @Test
-    public void testCommitAsTheFirstCall() throws Exception {
+    public void testCloseBatchAsTheFirstCall() throws Exception {
         String subject = NUID.nextGlobalSequence();
         String streamName = createStream(true, subject);
 
@@ -317,14 +313,14 @@ public class FastPublishTests {
         // the first-reply feature check lives in add, so this path skips it and learns about a
         // server problem from the PublishAck instead.
         FastPublisher fp = builder().build();
-        PublishAck pa = fp.commit(subject, data("only"));
+        PublishAck pa = fp.closeBatch(subject, data("only"));
         assertEquals(1, pa.getBatchSize());
         assertEquals(1, msgCount(streamName));
         assertEquals(EndReason.Committed, fp.getEndReason());
 
         // the EOB commit is the one that cannot start a batch, and it is refused locally
-        EobFastPublisher eob = eobBuilder().build();
-        assertThrows(FastPublishException.class, eob::commit);
+        FastPublisher eob = builder().build();
+        assertThrows(FastPublishException.class, eob::closeBatch);
     }
 
     @Test
@@ -342,12 +338,12 @@ public class FastPublishTests {
 
         // every operation is refused once the batch is over, including ping
         assertThrows(FastPublishException.class, () -> fp.add(subject, data("2")));
-        assertThrows(FastPublishException.class, () -> fp.commit(subject, data("2")));
+        assertThrows(FastPublishException.class, () -> fp.closeBatch(subject, data("2")));
         assertThrows(FastPublishException.class, fp::ping);
     }
 
     @Test
-    public void testCloseAbandonsNeverCommits() throws Exception {
+    public void testCloseAbandonsNeverClosesTheBatch() throws Exception {
         String subject = NUID.nextGlobalSequence();
         createStream(true, subject);
 
@@ -367,7 +363,7 @@ public class FastPublishTests {
         // and it is harmless after the batch has already ended on its own
         FastPublisher committed = builder().build();
         committed.add(subject, data("1"));
-        assertNotNull(committed.commit(subject, data("2")));
+        assertNotNull(committed.closeBatch(subject, data("2")));
         committed.close();
         assertTrue(committed.isTerminal());
     }
@@ -449,7 +445,7 @@ public class FastPublishTests {
         assertEquals(0, fp.size());
         fp.add(subject, data("1"));
         assertEquals(1, fp.size());
-        assertEquals(2, fp.commit(subject, data("2")).getBatchSize());
+        assertEquals(2, fp.closeBatch(subject, data("2")).getBatchSize());
     }
 
     /**
@@ -622,7 +618,7 @@ public class FastPublishTests {
         assertFalse(ok.isTerminal());
 
         // the injected gaps are invisible to the server, so the batch commits normally
-        PublishAck pa = ok.commit(subject, data("last"));
+        PublishAck pa = ok.closeBatch(subject, data("last"));
         assertEquals(ok.size(), pa.getBatchSize());
         assertEquals(ok.size(), msgCount(streamName));
 
@@ -654,7 +650,7 @@ public class FastPublishTests {
         assertEquals(EndReason.Open, committed.getEndReason());
         committed.add(subject, data("1"));
         assertEquals(EndReason.Open, committed.getEndReason());
-        committed.commit(subject, data("2"));
+        committed.closeBatch(subject, data("2"));
         assertEquals(EndReason.Committed, committed.getEndReason());
 
         FastPublisher abandoned = builder().build();
@@ -731,7 +727,7 @@ public class FastPublishTests {
 
         // committing a batch the server already ended cannot publish anything, but it must hand
         // back that ack rather than refusing empty handed
-        FastPublishException e = assertThrows(FastPublishException.class, () -> fp.commit(subject, data("x")));
+        FastPublishException e = assertThrows(FastPublishException.class, () -> fp.closeBatch(subject, data("x")));
         assertNotNull(e.getPublishAck(), "the terminal ack must be collected, not discarded");
         assertEquals(2, e.getPublishAck().getBatchSize());
         assertEquals(streamName, e.getPublishAck().getStream());
@@ -752,7 +748,7 @@ public class FastPublishTests {
         injectGap(control, 1, 3);
         addUntilGapSeen(fp, subject, 1);
 
-        FastPublishException e = assertThrows(FastPublishException.class, () -> fp.commit(subject, data("x")));
+        FastPublishException e = assertThrows(FastPublishException.class, () -> fp.closeBatch(subject, data("x")));
         assertNull(e.getPublishAck());
         assertEquals(EndReason.Gap, fp.getEndReason());
     }
@@ -768,7 +764,7 @@ public class FastPublishTests {
         String control = controlSubject(publishOneAndCaptureReply(fp, subject).getReplyTo());
         fp.add(subject, data("2"));
         injectPubAck(control, streamName, 9, fp.getBatchId(), 99);
-        FastPublishException e = assertThrows(FastPublishException.class, () -> fp.commit(subject, data("3")));
+        FastPublishException e = assertThrows(FastPublishException.class, () -> fp.closeBatch(subject, data("3")));
         assertTrue(e.getMessage().contains("99"), e.getMessage());
 
         // after a gap the client's count is an upper bound rather than an equal, since the
@@ -778,7 +774,7 @@ public class FastPublishTests {
         injectGap(control, 1, 3);
         injectPubAck(control, streamName, 9, gapped.getBatchId(), 1);
         addUntilGapSeen(gapped, subject, 1);
-        FastPublishException gapEnd = assertThrows(FastPublishException.class, () -> gapped.commit(subject, data("x")));
+        FastPublishException gapEnd = assertThrows(FastPublishException.class, () -> gapped.closeBatch(subject, data("x")));
         assertNotNull(gapEnd.getPublishAck(), "the terminal ack must survive, not be rejected for its count");
         assertEquals(1, gapEnd.getPublishAck().getBatchSize());
     }

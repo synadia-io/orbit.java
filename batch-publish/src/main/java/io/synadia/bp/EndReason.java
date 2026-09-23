@@ -14,13 +14,20 @@ public enum EndReason {
     /** The batch is still running. */
     Open,
 
-    /** The batch committed and the server answered with the authoritative PublishAck. */
+    /**
+     * The batch was closed with {@code closeBatch}, which ADR-50 calls a commit, and the server
+     * answered with the authoritative PublishAck.
+     */
     Committed,
 
     /** The server reported a gap while in {@link GapMode#Fail}, which abandons the batch. */
     Gap,
 
-    /** The server reported a per message error while in {@link GapMode#Fail}. */
+    /**
+     * The server reported an error that ended the batch: a per message error while in
+     * {@link GapMode#Fail}, or an error in place of the terminal PublishAck in either mode, such as
+     * {@code 10208 batch publish ID unknown} when the server had already dropped the batch.
+     */
     Error,
 
     /**

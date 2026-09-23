@@ -30,4 +30,57 @@ public class BatchUtils {
     public static int getMaxBatchSize(Connection conn) {
         return 1000;
     }
+
+    /**
+     * The percentage of the server's batch idle timeout used as the default idle ping interval.
+     * Half the timeout leaves room for one lost ping before the server abandons the batch.
+     */
+    public static final int DEFAULT_IDLE_PING_PERCENT = 50;
+
+    /**
+     * The largest percentage of the server's batch idle timeout that an idle ping interval may be.
+     */
+    public static final int MAX_IDLE_PING_PERCENT = 80;
+
+    /**
+     * How many seconds a batch may go without receiving a message before the server abandons it,
+     * on this connection's server. A fast ingest ping counts as a message.
+     * <p>
+     * Hardcoded to 10 today, the number ADR-50 documents, for the same reason as
+     * {@link #getMaxBatchSize(Connection)}: the server takes it from its
+     * {@code jetstream { limits { batch { timeout } } } } option and reports it in neither INFO nor
+     * stream info, only in the monitoring endpoints, so a client has no way to ask. The connection
+     * is a parameter so that this can change without changing callers, if a later server
+     * publishes the value.
+     * <p>
+     * The server sends nothing when it abandons a batch this way. The next message the client
+     * sends for it is answered {@code 10208 batch publish ID unknown}.
+     * @param conn the connection whose server the timeout applies to
+     * @return the timeout in seconds
+     */
+    public static int getBatchIdleTimeoutSeconds(Connection conn) {
+        return 10;
+    }
+
+    /**
+     * The idle ping interval a fast publisher uses when none is set:
+     * {@value #DEFAULT_IDLE_PING_PERCENT}% of {@link #getBatchIdleTimeoutSeconds(Connection)},
+     * rounded down. 5 seconds today.
+     * @param conn the connection whose server the timeout applies to
+     * @return the default idle ping interval in seconds
+     */
+    public static int getDefaultIdlePingSeconds(Connection conn) {
+        return getBatchIdleTimeoutSeconds(conn) * DEFAULT_IDLE_PING_PERCENT / 100;
+    }
+
+    /**
+     * The largest idle ping interval a fast publisher accepts:
+     * {@value #MAX_IDLE_PING_PERCENT}% of {@link #getBatchIdleTimeoutSeconds(Connection)},
+     * rounded down. 8 seconds today.
+     * @param conn the connection whose server the timeout applies to
+     * @return the maximum idle ping interval in seconds
+     */
+    public static int getMaxIdlePingSeconds(Connection conn) {
+        return getBatchIdleTimeoutSeconds(conn) * MAX_IDLE_PING_PERCENT / 100;
+    }
 }

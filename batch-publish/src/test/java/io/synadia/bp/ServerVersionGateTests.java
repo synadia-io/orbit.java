@@ -142,18 +142,6 @@ public class ServerVersionGateTests {
             .connection(connectionReporting("2.14.0")).ackTimeout(ACK_TIMEOUT).build());
     }
 
-    @Test
-    public void testEobFastPublisherGate() {
-        // both fast publishers share one gate, unlike the atomic pair whose minimums differ
-        Connection old = connectionReporting("2.13.5");
-        IllegalArgumentException e = assertThrows(IllegalArgumentException.class,
-            () -> EobFastPublisher.builder().connection(old).ackTimeout(ACK_TIMEOUT).build());
-        assertTrue(e.getMessage().contains("2.14.0"), e.getMessage());
-
-        assertNotNull(EobFastPublisher.builder()
-            .connection(connectionReporting("2.14.0")).ackTimeout(ACK_TIMEOUT).build());
-    }
-
     // ----------------------------------------------------------------------------------
     // the gate must not reject a dev or release candidate build of a good version
     // ----------------------------------------------------------------------------------
@@ -163,8 +151,6 @@ public class ServerVersionGateTests {
         assertNotNull(FastPublisher.builder()
             .connection(connectionReporting("2.15.0-dev")).ackTimeout(ACK_TIMEOUT).build());
         assertNotNull(EobBatchPublisher.builder()
-            .connection(connectionReporting("2.15.0-dev")).ackTimeout(ACK_TIMEOUT).build());
-        assertNotNull(EobFastPublisher.builder()
             .connection(connectionReporting("2.15.0-dev")).ackTimeout(ACK_TIMEOUT).build());
     }
 }

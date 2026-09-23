@@ -7,7 +7,7 @@ package io.synadia.bp;
  * Callbacks for the informational messages a fast ingest batch receives on its control channel.
  * All methods default to doing nothing, so an implementation only overrides what it cares about.
  * <p>
- * These are called on the thread that called {@code add}, {@code commit}, {@code close} or
+ * These are called on the thread that called {@code add}, {@code closeBatch}, {@code close} or
  * {@code ping}, never on a separate thread. A publisher that goes quiet will not deliver anything
  * until it publishes again, so a batch that must notice gaps promptly should call
  * {@link FastPublisher#ping()} periodically.

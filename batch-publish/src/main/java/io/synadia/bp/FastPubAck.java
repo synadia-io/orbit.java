@@ -6,7 +6,7 @@ package io.synadia.bp;
 /**
  * The result of adding one message to a fast ingest batch.
  * This is not a JetStream PublishAck. A fast batch produces exactly one authoritative
- * {@link io.nats.client.api.PublishAck}, at the commit. This type only reports where the
+ * {@link io.nats.client.api.PublishAck}, at {@code closeBatch}. This type only reports where the
  * batch stands locally.
  */
 public class FastPubAck {
