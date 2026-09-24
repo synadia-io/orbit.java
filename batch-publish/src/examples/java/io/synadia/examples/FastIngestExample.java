@@ -7,8 +7,8 @@ import io.nats.client.*;
 import io.nats.client.api.*;
 import io.synadia.bp.*;
 
-import static io.synadia.bp.AbstractFastPublisher.DEFAULT_MAX_FLOW;
-import static io.synadia.bp.AbstractFastPublisher.DEFAULT_MAX_OUTSTANDING_ACKS;
+import static io.synadia.bp.FastPublisher.DEFAULT_MAX_FLOW;
+import static io.synadia.bp.FastPublisher.DEFAULT_MAX_OUTSTANDING_ACKS;
 
 /**
  * A fast ingest firehose in GapMode.Ok, where a dropped message is reported but does not
@@ -43,7 +43,7 @@ public class FastIngestExample {
                 .allowBatched(true)
                 .build());
 
-            EobFastPublisher fp = EobFastPublisher.builder()
+            FastPublisher fp = FastPublisher.builder()
                 .connection(nc)
                 .gapMode(GapMode.Ok)
                 // both of these are the defaults, named rather than written as 100 and 2 so the
@@ -75,8 +75,24 @@ public class FastIngestExample {
                 }
             }
 
-            // the no-arg commit ends the batch without storing a filler message
-            PublishAck pa = fp.commit();
+            // closeBatch ends the batch, and comes in three varieties. ADR-50 calls all of them a
+            // commit. Whichever is used, the PublishAck returned is the authoritative record of
+            // what the batch stored.
+            //
+            // 1. No message (EOB). Ends the batch without storing anything more, so the batch is
+            //    exactly the messages already added. Its batch size is COUNT.
+            PublishAck pa = fp.closeBatch();
+            //
+            // 2. A final message, stored with the rest. Its batch size is COUNT + 1.
+            //    To try it, comment out the line above and comment in this one:
+            // PublishAck pa = fp.closeBatch(SUBJECT, "last".getBytes());
+            //
+            // 3. A final message with headers, stored with the rest. Its batch size is COUNT + 1.
+            //    Needs import io.nats.client.impl.Headers;
+            // PublishAck pa = fp.closeBatch(SUBJECT, new Headers().put("my-header", "last"), "last".getBytes());
+            //
+            // Not to be confused with close(), which comes from AutoCloseable and abandons the
+            // batch: nothing is sent, and the server drops the batch after its idle timeout.
             long elapsed = System.currentTimeMillis() - start;
 
             System.out.println("Batch [" + pa.getBatchId() + "] stored " + pa.getBatchSize() + " messages in " + elapsed + "ms.");
