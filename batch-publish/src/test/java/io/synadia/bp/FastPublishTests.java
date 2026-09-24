@@ -560,9 +560,14 @@ public class FastPublishTests {
      * injected gap has been drained. One add is almost always enough. In {@link GapMode#Fail}
      * that add throws rather than returning, because the drain at the front of add ends the
      * batch before a sequence is spent on the message, so the throw is the expected outcome.
+     * <p>
+     * Bounded by time rather than by a count of adds, with a short pause between them: the
+     * injected message travels through the server to the publisher's dispatcher, and on a slow
+     * runner a burst of adds can finish before it arrives.
      */
     private static void addUntilGapSeen(FastPublisher fp, String subject, long gaps) throws Exception {
-        for (int i = 0; i < 100 && fp.gapCount() < gaps; i++) {
+        long deadline = System.currentTimeMillis() + 5000;
+        for (int i = 0; fp.gapCount() < gaps && System.currentTimeMillis() < deadline; i++) {
             try {
                 fp.add(subject, data("drain-" + i));
             }
@@ -571,6 +576,10 @@ public class FastPublishTests {
                     return;
                 }
                 throw e;
+            }
+            if (fp.gapCount() < gaps) {
+                //noinspection BusyWait
+                Thread.sleep(10);
             }
         }
     }
