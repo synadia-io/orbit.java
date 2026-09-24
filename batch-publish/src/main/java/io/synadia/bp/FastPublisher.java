@@ -65,8 +65,12 @@ import static io.nats.client.support.Validator.*;
  * default, and says nothing when it does. So once the first message is out, the publisher pings
  * the batch whenever nothing has been sent for the {@link Builder#idlePingSeconds(int) idle ping}
  * interval, which keeps it alive for as long as the application takes to close it. The ping is
- * sent from a shared timer thread; its answer is processed on the publishing thread like every
- * other control message. The flip side is that a batch that is never closed with
+ * sent from one timer thread shared by every fast publisher in the process; its answer is
+ * processed on the publishing thread like every other control message. A ping publishes on the
+ * connection like any other message, so when the connection's outgoing queue is full it waits
+ * up to the connection's {@code writeQueuePushTimeout}, 2 seconds by default, and the shared
+ * thread waits with it. A ping the connection refuses is tried again one interval later. The
+ * flip side is that a batch that is never closed with
  * {@code closeBatch}, abandoned, or closed with {@code close()} is kept alive indefinitely,
  * along with this publisher.
  * <p>
@@ -738,7 +742,9 @@ public class FastPublisher implements AutoCloseable {
     }
 
     /**
-     * Stop pinging an idle batch. Called when the commit goes out and whenever the batch ends.
+     * Stop pinging an idle batch. Called on the publishing thread just before the closing message
+     * goes out, and takes the lock so an idle ping already being sent finishes first. Not called
+     * when the batch ends; see {@code end}.
      */
     private void stopIdlePing() {
         synchronized (idlePingLock) {
@@ -944,7 +950,11 @@ public class FastPublisher implements AutoCloseable {
         // terminal ack is collected sooner.
         endReason.compareAndSet(EndReason.Open, reason);
         terminal = true;
-        stopIdlePing();
+        // Deliberately not stopIdlePing(). This runs on the dispatcher thread, and that lock can
+        // be held by an idle ping waiting on a full outgoing queue, which would stall classifying
+        // this batch's control messages. It is not needed either: idlePing() checks isTerminal()
+        // under the lock before publishing, so no ping follows the end, and a pending one simply
+        // returns without rescheduling when it fires.
     }
 
     private Message nextMessage() throws FastPublishException {
